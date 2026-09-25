@@ -104,13 +104,18 @@ const count = $("[data-count]", askEl);
 const askError = $("[data-error]", askEl);
 const length = (s: string) => [...s].length;
 
-function setQuestion(text: string) {
-	q.value = text;
-	count.textContent = `${length(text)} / ${MAX_LENGTH}`;
+function typed() {
+	count.textContent = `${length(q.value)} / ${MAX_LENGTH}`;
 	askError.textContent = "";
 }
 
-q.addEventListener("input", () => setQuestion(q.value));
+function setQuestion(text: string) {
+	q.value = text;
+	typed();
+}
+
+// Never write q.value while typing: it can break an IME mid-composition.
+q.addEventListener("input", typed);
 q.addEventListener("keydown", (e) => {
 	// isComposing / 229: this Enter picks an IME candidate, it does not submit.
 	if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
