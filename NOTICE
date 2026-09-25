@@ -40,6 +40,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---------------------------------------------------------------------------
+经文数据
+
+src/data/guaci.json：《周易》经文、彖传、象传。原文属公有领域；本文件转录自
+中文维基文库《周易》（https://zh.wikisource.org/wiki/周易），按 CC BY-SA 4.0
+（https://creativecommons.org/licenses/by-sa/4.0/）授权，并按原协议共享。
+它由 TaoracleHQ/najia（commit 108d13a）的 tools/build-guaci.py 生成：繁体转
+简体，删去维基文库的异文夹注，并据数据内部证据改正地雷复的两处转录讹误
+（「不复远」改为「不远复」，「无袛悔」改为「无祗悔」）。本项目原样复制，未作改动。
+
+---------------------------------------------------------------------------
+原创文案
+
+src/data/baihua.json（六十四卦卦辞白话）、src/data/templates.ts（断语与建议）、
+src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
+（https://creativecommons.org/licenses/by-nc-sa/4.0/）。
+
+---------------------------------------------------------------------------
 依赖
 
 tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail。
