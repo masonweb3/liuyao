@@ -178,8 +178,8 @@ async function submit() {
 function proceed(emergencySeen: boolean) {
 	const next = afterJudge(session.judgement, emergencySeen);
 	session.ask = settled(session.judgement);
-	if (next === "topic") pickTopic(session.judgement.topic, null);
 	go(next);
+	if (next === "topic") pickTopic(session.judgement.topic, null);
 }
 
 // ---------------------------------------------------------------- 择类
@@ -196,8 +196,11 @@ function pickTopic(t: Topic | null, g: Gender | null) {
 	gender = g;
 	for (const b of $$("[data-topic]", topicEl)) b.setAttribute("aria-pressed", String(b.dataset.topic === t));
 	for (const b of $$("[data-gender]", topicEl)) b.setAttribute("aria-pressed", String(b.dataset.gender === g));
+	const showWho = who.hidden && t === "婚恋";
 	who.hidden = t !== "婚恋";
 	topicDone.disabled = t === null || (t === "婚恋" && g === null);
+	// On short screens the gender buttons appear below the fold.
+	if (showWho) who.scrollIntoView({ block: "nearest" });
 }
 
 topicEl.addEventListener("click", (e) => {

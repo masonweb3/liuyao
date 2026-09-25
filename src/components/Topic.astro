@@ -31,17 +31,15 @@ const cats = [
         <span class="sub">自己的运势 · <span class="yong">世爻</span></span>
       </button>
     </div>
-    <div class="foot">
-      <div class="who" data-who hidden>
-        <span id="who" class="label">问卦之人</span>
-        <div class="pair" role="group" aria-labelledby="who">
-          <button type="button" data-gender="男" aria-pressed="false">男</button>
-          <button type="button" data-gender="女" aria-pressed="false">女</button>
-        </div>
-        <p class="note">婚恋之事，男问取妻财，女问取官鬼。只用于排盘，不会保存。</p>
+    <div class="who" data-who hidden>
+      <span id="who" class="label">问卦之人</span>
+      <div class="pair" role="group" aria-labelledby="who">
+        <button type="button" data-gender="男" aria-pressed="false">男</button>
+        <button type="button" data-gender="女" aria-pressed="false">女</button>
       </div>
-      <button class="btn solid done" data-topic-done disabled>定</button>
+      <p class="note">婚恋之事，男问取妻财，女问取官鬼。只用于排盘，不会保存。</p>
     </div>
+    <button class="btn solid done dock" data-topic-done disabled>定</button>
   </div>
 </section>
 
@@ -135,16 +133,12 @@ const cats = [
     font-size: inherit;
     letter-spacing: 0;
   }
-  .foot {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 26px;
-  }
   .who {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    /* 滚进视野时停在贴底的「定」之上 */
+    scroll-margin-bottom: calc(var(--btn-h) + 32px);
   }
   .label {
     font-size: 13px;
@@ -224,13 +218,16 @@ const cats = [
     .sub {
       font-size: 13px;
     }
-    .foot {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding-top: 8px;
+    .col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .title,
+    .grid {
+      grid-column: 1 / -1;
     }
     .who {
+      grid-column: 1;
       gap: 14px;
     }
     .pair {
@@ -244,8 +241,10 @@ const cats = [
       font-size: 13px;
     }
     .done {
+      grid-column: 2;
+      align-self: end;
       width: 220px;
-      margin-left: auto;
+      margin-top: 0;
     }
   }
 </style>

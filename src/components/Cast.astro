@@ -47,7 +47,7 @@ const tilts = [-8, 14, 3];
         </div>
         <p class="caption" aria-live="polite" data-caption></p>
       </div>
-      <div class="act">
+      <div class="act dock">
         <button class="shake" aria-label="摇卦：按住摇动，松开掷出" data-shake data-autofocus>摇</button>
         <p class="hint">
           <span class="touch">长按摇动 · 松手掷出</span>
@@ -216,7 +216,8 @@ const tilts = [-8, 14, 3];
     padding: 0;
     border-radius: 50%;
     border: 1px solid var(--gold);
-    background: rgb(192 147 81 / 0.08);
+    /* 不透明：矮屏上贴底时会盖在铜钱上 */
+    background: linear-gradient(rgb(192 147 81 / 0.08), rgb(192 147 81 / 0.08)), var(--night);
     box-shadow: 0 0 0 8px rgb(192 147 81 / 0.06);
     font-family: var(--font-display);
     font-size: 26px;
@@ -288,6 +289,31 @@ const tilts = [-8, 14, 3];
     }
     to {
       transform: translateY(0) rotateX(var(--to));
+    }
+  }
+  /* 矮屏（小手机）：收紧尺寸，六爻、铜钱和「摇」尽量一屏放下 */
+  @media (max-width: 1023px) and (max-height: 700px) {
+    .lines {
+      padding-top: 16px;
+      gap: 12px;
+    }
+    .slot {
+      width: 160px;
+      height: 14px;
+    }
+    .toss {
+      gap: 14px;
+    }
+    .coin {
+      --size: 60px;
+    }
+    .act {
+      gap: 12px;
+    }
+    .shake {
+      width: 80px;
+      height: 80px;
+      font-size: 24px;
     }
   }
   @media (min-width: 1024px) {

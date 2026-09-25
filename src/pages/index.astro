@@ -140,6 +140,13 @@ import { EMERGENCY, INSINCERE } from '../data/copy';
     }
   }
 
+  /* 主按钮：内容比屏幕高时贴住底部，始终在拇指够得到的地方。 */
+  .dock {
+    position: sticky;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1;
+  }
+
   .brand {
     display: flex;
     align-items: center;

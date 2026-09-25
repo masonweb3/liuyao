@@ -32,7 +32,7 @@ const chips = ["这次考试能过吗", "这段感情还有可能吗", "这笔�
         {chips.map((c) => <button type="button" data-chip>{c}</button>)}
       </div>
     </div>
-    <footer>
+    <footer class="dock">
       <button class="btn solid" data-submit>落笔</button>
     </footer>
   </div>
@@ -202,6 +202,12 @@ const chips = ["这次考试能过吗", "这段感情还有可能吗", "这笔�
     from {
       opacity: 0;
       transform: scale(0.92);
+    }
+  }
+  @media (max-height: 700px) {
+    .col {
+      gap: 28px;
+      padding-top: 24px;
     }
   }
   @media (min-width: 1024px) {

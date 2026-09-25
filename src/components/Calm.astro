@@ -150,6 +150,14 @@ import Bar from "./Bar.astro";
       opacity: 1;
     }
   }
+  @media (max-width: 1023px) and (max-height: 700px) {
+    main {
+      gap: 36px;
+    }
+    .rings {
+      --size: 180px;
+    }
+  }
   @media (min-width: 1024px) {
     .calm {
       background: radial-gradient(ellipse 50% 55% at 50% 48%, var(--night-2) 0%, var(--night) 72%);
@@ -172,6 +180,18 @@ import Bar from "./Bar.astro";
     }
     .dots {
       gap: 14px;
+    }
+  }
+  @media (min-width: 1024px) and (max-height: 760px) {
+    main {
+      gap: 36px;
+    }
+    .rings {
+      --size: 240px;
+    }
+    .ring {
+      width: 220px;
+      height: 220px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
