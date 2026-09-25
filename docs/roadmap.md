@@ -60,7 +60,7 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - `docker compose up -d --build` 之后，测试服务器的 4321 端口能打开
 - `docker compose run --rm app pnpm test` 通过
 
-## M3 排盘引擎
+## M3 排盘引擎 ✅
 - 起卦：铜钱（`crypto.getRandomValues`）和手动录入
 - 装卦：本卦、变卦、纳甲、卦宫、六亲、世应、六神、旬空、伏神。从 taoracle 复制代码，并在 `NOTICE` 里登记
 - 干支：用 tyme4ts 按节气精确时刻计算，固定 UTC+8；晚子时是否换日做成选项
