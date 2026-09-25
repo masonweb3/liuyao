@@ -1,0 +1,8 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "liuyao",
+	// /api/judge 按 IP 限流。judge.ts 在没有这个 binding 时放行。
+	"ratelimits": [
+		{ "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+	]
+}

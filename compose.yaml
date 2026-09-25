@@ -3,4 +3,13 @@ services:
     build: .
     ports:
       - "4321:4321"
+    # 密钥不进镜像（.dockerignore），运行时挂到 preview 读取的位置（构建产物 wrangler.json 旁）。
+    # 文件必须存在；没有 key 时可以是空文件。
+    volumes:
+      - type: bind
+        source: ./.dev.vars
+        target: /app/dist/server/.dev.vars
+        read_only: true
+        bind:
+          create_host_path: false
     restart: unless-stopped

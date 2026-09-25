@@ -193,7 +193,8 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
   for f in package.json pnpm-lock.yaml pnpm-workspace.yaml; do scp $STAGE:liuyao/$f .; done
   ```
   pnpm 12 默认不跑依赖的构建脚本。确实需要时，在 `pnpm-workspace.yaml` 的 `allowBuilds` 里逐个放行。
-- 服务器上的密钥放在 `~/liuyao/.dev.vars`，这个文件不进 git。
+- 服务器上的密钥放在 `~/liuyao/.dev.vars`，这个文件不进 git。`compose.yaml` 在运行时把它挂进容器，所以**没有 key 也要有这个文件，可以为空**，否则 `docker compose up` 会报挂载错误。
+- Jev 评测（需要 key）：`ssh $STAGE 'cd ~/liuyao && docker compose run --rm app sh -c "set -a; . dist/server/.dev.vars; set +a; pnpm vitest run eval"'`
 - 界面改动完成后，在测试地址上用浏览器看一遍，包括手机尺寸，再报告完成。
 
 ## 8. 部署
