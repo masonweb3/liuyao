@@ -1,0 +1,188 @@
+---
+import Bar from "./Bar.astro";
+---
+
+<section class="screen calm" data-screen="calm" tabindex="-1" hidden>
+  <Bar />
+  <main>
+    <div class="rings" aria-hidden="true">
+      <div class="halo"></div>
+      <div class="ring" data-ring></div>
+    </div>
+    <div class="words">
+      <p class="breath" aria-hidden="true"><span class="in">吸</span> · <span class="out">呼</span></p>
+      <p class="guide">随金环，呼吸三次，心中默念所问</p>
+    </div>
+    <div class="dots" role="img" aria-label="第一息，共三息" data-dots>
+      <span></span><span></span><span></span>
+    </div>
+  </main>
+  <footer>
+    <button class="skip" data-skip>跳过</button>
+  </footer>
+</section>
+
+<style>
+  .calm {
+    background: radial-gradient(ellipse 70% 45% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
+  }
+  main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+  }
+  .rings {
+    --size: 220px;
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    display: grid;
+    place-items: center;
+  }
+  .halo {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgb(192 147 81 / 0.22);
+    border-radius: 50%;
+  }
+  .ring {
+    width: calc(var(--size) - 20px);
+    height: calc(var(--size) - 20px);
+    box-sizing: border-box;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    /* 三息，每息 --t-breath；结束后 ritual.ts 进入摇卦 */
+    animation: calm-ring var(--t-breath) ease-in-out 3;
+  }
+  .words {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .breath {
+    margin: 0;
+    padding-left: 0.6em;
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: 0.6em;
+  }
+  .in {
+    animation: calm-in var(--t-breath) ease-in-out 3;
+  }
+  .out {
+    animation: calm-out var(--t-breath) ease-in-out 3;
+  }
+  .guide {
+    margin: 0;
+    font-size: var(--fs-s);
+    letter-spacing: 0.18em;
+    color: rgb(248 244 237 / 0.68);
+    text-align: center;
+  }
+  .dots {
+    display: flex;
+    gap: 12px;
+  }
+  .dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgb(192 147 81 / 0.3);
+    transition: background-color var(--t-hover);
+  }
+  .dots span.on {
+    background: var(--gold-hi);
+  }
+  footer {
+    display: flex;
+    justify-content: center;
+  }
+  .skip {
+    min-width: 88px;
+    min-height: var(--tap);
+    padding: 0 0 0 0.4em;
+    background: none;
+    border: none;
+    font-size: var(--fs-s);
+    letter-spacing: 0.4em;
+    color: rgb(248 244 237 / 0.62);
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .skip:hover {
+    color: var(--gold-hi);
+  }
+  /* 前半息吸（环放大），后半息呼。 */
+  @keyframes calm-ring {
+    0%,
+    100% {
+      transform: scale(0.82);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes calm-in {
+    0%,
+    45%,
+    100% {
+      opacity: 1;
+    }
+    55%,
+    95% {
+      opacity: 0.4;
+    }
+  }
+  @keyframes calm-out {
+    0%,
+    45%,
+    100% {
+      opacity: 0.4;
+    }
+    55%,
+    95% {
+      opacity: 1;
+    }
+  }
+  @media (min-width: 1024px) {
+    .calm {
+      background: radial-gradient(ellipse 50% 55% at 50% 48%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .rings {
+      --size: 340px;
+    }
+    .ring {
+      width: 310px;
+      height: 310px;
+    }
+    .words {
+      gap: 16px;
+    }
+    .breath {
+      font-size: 32px;
+    }
+    .guide {
+      font-size: 15px;
+    }
+    .dots {
+      gap: 14px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes calm-ring {
+      0%,
+      100% {
+        opacity: 0.55;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+  }
+</style>

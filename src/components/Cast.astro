@@ -1,0 +1,404 @@
+---
+import { posName } from "../lib/flow";
+import Bar from "./Bar.astro";
+
+const tilts = [-8, 14, 3];
+---
+
+<section class="screen cast" data-screen="cast" tabindex="-1" hidden>
+  <Bar />
+  <div class="stage">
+    <ul class="lines" aria-label="已成之爻">
+      {[5, 4, 3, 2, 1, 0].map((i) => (
+        <li data-pos={i}>
+          <span class="pos" aria-hidden="true">{posName(i)}</span>
+          <div class="slot"></div>
+        </li>
+      ))}
+    </ul>
+    <div class="rule" aria-hidden="true"></div>
+    <div class="throw">
+      <div class="toss">
+        <p class="nth" data-nth>第一爻</p>
+        <div class="coins" aria-hidden="true" data-coins>
+          {tilts.map((t) => (
+            <div class="coin" style={`--tilt:${t}deg`}>
+              <div class="spin">
+                <svg class="face" viewBox="0 0 72 72">
+                  <circle class="body" cx="36" cy="36" r="34"></circle>
+                  <circle class="rim" cx="36" cy="36" r="30.5"></circle>
+                  <rect class="hole" x="28" y="28" width="16" height="16"></rect>
+                  <g class="wen">
+                    <text x="36" y="22">开</text>
+                    <text x="36" y="59">元</text>
+                    <text x="53" y="40">通</text>
+                    <text x="19" y="40">宝</text>
+                  </g>
+                </svg>
+                <svg class="face back" viewBox="0 0 72 72">
+                  <circle class="body" cx="36" cy="36" r="34"></circle>
+                  <circle class="rim" cx="36" cy="36" r="30.5"></circle>
+                  <rect class="hole" x="28" y="28" width="16" height="16"></rect>
+                  <path class="moon" d="M27 51c4 3.2 14 3.2 18 0"></path>
+                </svg>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="caption" aria-live="polite" data-caption></p>
+      </div>
+      <div class="act">
+        <button class="shake" aria-label="摇卦：按住摇动，松开掷出" data-shake data-autofocus>摇</button>
+        <p class="hint">
+          <span class="touch">长按摇动 · 松手掷出</span>
+          <span class="keys">按住<kbd>空格</kbd>或鼠标摇动，松开掷出</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stage {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .lines {
+    margin: 0;
+    padding: 44px 0 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .lines li {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .pos {
+    display: none;
+  }
+  .slot {
+    position: relative;
+    width: 200px;
+    height: 18px;
+  }
+  .slot :global(.yao),
+  .slot :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .slot :global(svg) {
+    fill: var(--gold);
+    animation: cast-write var(--t-line) ease-out;
+  }
+  .slot :global(.moving svg) {
+    fill: var(--gold-hi);
+    filter: drop-shadow(0 0 6px rgb(226 193 124 / 0.55));
+  }
+  .slot :global(.mark) {
+    position: absolute;
+    top: -2px;
+    right: -26px;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--gold-hi);
+    animation: cast-appear 300ms ease-out var(--t-line) both;
+  }
+  .rule {
+    display: none;
+  }
+  .throw {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .toss {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+  .nth {
+    margin: 0;
+    padding-left: 0.5em;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.5em;
+  }
+  .coins {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .coin {
+    --size: 72px;
+    width: var(--size);
+    height: var(--size);
+    perspective: 400px;
+    rotate: var(--tilt);
+    transition: rotate var(--t-flip) var(--ease-out);
+  }
+  .spin {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--face, 0deg));
+  }
+  .face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .back {
+    transform: rotateX(180deg);
+  }
+  .body {
+    fill: var(--coin);
+  }
+  .back .body {
+    fill: var(--coin-back);
+  }
+  .rim {
+    fill: none;
+    stroke: var(--coin-rim);
+    stroke-width: 1.4;
+  }
+  .hole {
+    fill: var(--night);
+    stroke: var(--coin-rim);
+    stroke-width: 1.4;
+  }
+  .wen {
+    fill: var(--coin-ink);
+    font-family: var(--font-body);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .moon {
+    fill: none;
+    stroke: var(--coin-ink);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+  }
+  .shaking .coin {
+    animation: cast-shake var(--t-shake) linear infinite alternate;
+  }
+  .flipping .spin {
+    animation: cast-flip var(--t-flip) var(--ease-out);
+  }
+  .caption {
+    min-height: 1.6em;
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+  .act {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .shake {
+    width: 96px;
+    height: 96px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    background: rgb(192 147 81 / 0.08);
+    box-shadow: 0 0 0 8px rgb(192 147 81 / 0.06);
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--gold-hi);
+    cursor: pointer;
+    /* 长按时不弹系统菜单、不选中文字、不滚动页面 */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    transition:
+      transform var(--t-hover),
+      border-color var(--t-hover);
+  }
+  .shake:hover,
+  .shake.held {
+    border-color: var(--gold-hi);
+  }
+  .shake.held {
+    transform: scale(0.94);
+  }
+  .hint {
+    margin: 0;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: rgb(248 244 237 / 0.6);
+  }
+  .keys {
+    display: none;
+  }
+  kbd {
+    padding: 3px 10px;
+    border: 1px solid rgb(248 244 237 / 0.3);
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: rgb(248 244 237 / 0.82);
+  }
+  /* 揭开用 clip-path：设计稿写的是蒙版揭开，元素只有一爻大小。负值留出动爻的光晕。 */
+  @keyframes cast-write {
+    from {
+      clip-path: inset(-12px 100% -12px -12px);
+    }
+    to {
+      clip-path: inset(-12px);
+    }
+  }
+  @keyframes cast-appear {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes cast-shake {
+    from {
+      transform: rotate(-3deg);
+    }
+    to {
+      transform: rotate(3deg);
+    }
+  }
+  /* 结果在掷出时已定（toss），翻转只是把 --from 面转到 --to 面。 */
+  @keyframes cast-flip {
+    from {
+      transform: translateY(0) rotateX(var(--from));
+    }
+    40% {
+      transform: translateY(-36px) rotateX(calc(var(--from) + (var(--to) - var(--from)) * 0.6));
+    }
+    to {
+      transform: translateY(0) rotateX(var(--to));
+    }
+  }
+  @media (min-width: 1024px) {
+    .stage {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 120px;
+    }
+    .lines {
+      padding: 0;
+      align-items: flex-start;
+      gap: 26px;
+    }
+    .lines li {
+      height: 26px;
+    }
+    .pos {
+      display: block;
+      width: 28px;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.1em;
+      color: rgb(192 147 81 / 0.45);
+    }
+    .lines li.now .pos {
+      color: var(--gold);
+    }
+    .slot {
+      width: 300px;
+      height: 26px;
+    }
+    .slot :global(.moving svg) {
+      filter: drop-shadow(0 0 8px rgb(226 193 124 / 0.5));
+    }
+    .slot :global(.mark) {
+      top: 5px;
+      right: -34px;
+      font-size: var(--fs-m);
+    }
+    .rule {
+      display: block;
+      width: 1px;
+      height: 440px;
+      background: rgb(192 147 81 / 0.18);
+    }
+    .throw {
+      flex-grow: 0;
+      width: 420px;
+      gap: 30px;
+    }
+    .toss {
+      flex-grow: 0;
+      gap: 30px;
+    }
+    .nth {
+      font-size: 30px;
+    }
+    .coins {
+      gap: 30px;
+    }
+    .coin {
+      --size: 100px;
+    }
+    .caption {
+      font-size: var(--fs-s);
+    }
+    .act {
+      margin-top: 16px;
+    }
+    .shake {
+      width: 112px;
+      height: 112px;
+      font-size: 30px;
+      box-shadow: 0 0 0 10px rgb(192 147 81 / 0.06);
+    }
+    .hint {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: rgb(248 244 237 / 0.62);
+    }
+    .touch {
+      display: none;
+    }
+    .keys {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .coin {
+      transition: none;
+    }
+    .shaking .coin {
+      animation-name: cast-pulse;
+    }
+    .flipping .spin {
+      animation-name: cast-appear;
+    }
+    @keyframes cast-pulse {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0.6;
+      }
+    }
+    @keyframes cast-write {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+</style>

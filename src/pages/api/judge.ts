@@ -8,6 +8,7 @@
  */
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
+import { FALLBACK, type Judgement } from "../../lib/flow.js";
 import type { Topic } from "../../lib/liuyao/duan.js";
 
 export const prerender = false;
@@ -26,21 +27,6 @@ export const THRESHOLDS = {
 const MAX_LENGTH = 200;
 const TIMEOUT_MS = 3000;
 
-/**
- * Flags are independent — a 跳楼 question is both selfHarm and emergency, a
- * lottery question also gets topic 财. The page applies them in this order:
- * selfHarm（阻断，显示求助资源）→ gambling（婉拒）→ emergency（提示，确认后可继续）
- * → insincere（请用户重写）→ topic（null 时让用户自己选）.
- */
-export interface Judgement {
-	/** `null`: no confident category; the page asks the user to pick one. */
-	topic: Topic | null;
-	selfHarm: boolean;
-	emergency: boolean;
-	gambling: boolean;
-	insincere: boolean;
-}
-
 /** Jev's raw answers, before thresholds. */
 export interface Raw {
 	topic: string;
@@ -50,14 +36,6 @@ export interface Raw {
 	gambling: number;
 	sincere: number;
 }
-
-export const FALLBACK: Judgement = {
-	topic: null,
-	selfHarm: false,
-	emergency: false,
-	gambling: false,
-	insincere: false,
-};
 
 const TOPICS: Record<string, Topic> = {
 	wealth: "财",

@@ -1,0 +1,191 @@
+---
+const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, i) => ({ ch, i: r * 4 + i })));
+---
+
+<section class="screen home" data-screen="home" tabindex="-1">
+  <header>
+    <div class="brand">
+      <span class="seal" aria-hidden="true">爻</span>
+      <span class="name">六爻</span>
+    </div>
+    <button class="sound" aria-label="音效：已关闭">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
+    </button>
+  </header>
+  <main>
+    <h1 class="motto" aria-label="心有所疑，不妨一问">
+      {rows.map((row) => (
+        <span class="row" aria-hidden="true">
+          {row.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}
+        </span>
+      ))}
+    </h1>
+    <svg class="line" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
+    <div class="cta">
+      <button class="btn cast" data-go="ask" data-autofocus>起卦</button>
+      <span class="hint">一事一问 · 六次摇卦</span>
+    </div>
+  </main>
+  <p class="aside" aria-hidden="true">寂然不动　感而遂通</p>
+  <p class="today" data-today></p>
+</section>
+
+<style>
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--tap);
+  }
+  .sound {
+    width: var(--tap);
+    height: var(--tap);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgb(248 244 237 / 0.6);
+    cursor: pointer;
+  }
+  .home {
+    background: radial-gradient(ellipse 80% 55% at 50% 44%, var(--night-2) 0%, var(--night) 70%);
+  }
+  main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 52px;
+  }
+  .motto {
+    margin: 0;
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-2xl);
+    letter-spacing: 0.38em;
+    line-height: 1;
+  }
+  .row {
+    display: block;
+  }
+  .row + .row {
+    margin-right: 30px;
+    padding-top: 1.2em;
+    color: rgb(248 244 237 / 0.86);
+  }
+  .ch {
+    animation: home-in 600ms var(--ease-out) both;
+    animation-delay: calc(var(--i) * var(--t-char));
+  }
+  .line {
+    width: 188px;
+    height: 19px;
+    fill: var(--gold);
+    animation:
+      home-draw var(--t-draw) var(--ease-out) both,
+      home-breathe var(--t-breath) ease-in-out var(--t-draw) infinite;
+  }
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .cast {
+    width: 208px;
+  }
+  .hint {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: rgb(248 244 237 / 0.62);
+  }
+  .aside {
+    display: none;
+  }
+  .today {
+    min-height: 1.5em;
+    margin: 0;
+    text-align: center;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.28em;
+    color: rgb(248 244 237 / 0.55);
+  }
+  @keyframes home-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* 揭开用 clip-path：设计稿动效说明如此，且只作用于一条小金线。 */
+  @keyframes home-draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+  @keyframes home-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  @media (min-width: 1024px) {
+    header {
+      height: 48px;
+    }
+    .home {
+      background: radial-gradient(ellipse 55% 60% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
+    }
+    main {
+      gap: 56px;
+    }
+    .motto {
+      font-size: 54px;
+    }
+    .row + .row {
+      margin-right: 44px;
+    }
+    .line {
+      width: 260px;
+      height: 26px;
+    }
+    .cta {
+      gap: 20px;
+    }
+    .cast {
+      width: 240px;
+    }
+    .hint {
+      font-size: 13px;
+    }
+    .aside,
+    .today {
+      position: absolute;
+      bottom: 48px;
+      margin: 0;
+      font-size: 13px;
+      color: rgb(248 244 237 / 0.55);
+    }
+    .aside {
+      display: block;
+      left: 64px;
+      writing-mode: vertical-rl;
+      letter-spacing: 0.4em;
+    }
+    .today {
+      right: 64px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .line {
+      animation: home-in var(--t-draw) ease-out both;
+    }
+  }
+</style>

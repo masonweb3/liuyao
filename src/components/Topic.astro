@@ -1,0 +1,251 @@
+---
+import Bar from "./Bar.astro";
+
+// 按钮上的叫法取自设计稿；data-topic 是引擎里的类别名。
+const cats = [
+  { topic: "财", label: "财", yong: "妻财", sub: "收入 · 投资 · 买卖" },
+  { topic: "事业", label: "事业", yong: "官鬼", sub: "工作 · 升迁 · 官司" },
+  { topic: "父母", label: "父母", yong: "父母", sub: "长辈 · 房屋 · 文书 · 考试" },
+  { topic: "子孙", label: "子女", yong: "子孙", sub: "子女 · 晚辈 · 医药" },
+  { topic: "兄弟", label: "朋友", yong: "兄弟", sub: "兄弟 · 同事 · 竞争 · 合伙" },
+  { topic: "婚恋", label: "婚恋", yong: "随性别", sub: "恋爱 · 婚姻 · 复合" },
+];
+---
+
+<section class="screen topic" data-screen="topic" tabindex="-1" hidden>
+  <Bar />
+  <div class="col">
+    <div class="title">
+      <h1 tabindex="-1" data-autofocus>此事关乎</h1>
+      <p>请为所问择一类，以定用神。</p>
+    </div>
+    <div class="grid" role="group" aria-label="问题类别">
+      {cats.map((c) => (
+        <button type="button" class="cat" data-topic={c.topic} aria-pressed="false">
+          <span class="head">{c.label}<span class="yong">{c.yong}</span></span>
+          <span class="sub">{c.sub}</span>
+        </button>
+      ))}
+      <button type="button" class="cat wide" data-topic="自身" aria-pressed="false">
+        <span class="head">自身</span>
+        <span class="sub">自己的运势 · <span class="yong">世爻</span></span>
+      </button>
+    </div>
+    <div class="foot">
+      <div class="who" data-who hidden>
+        <span id="who" class="label">问卦之人</span>
+        <div class="pair" role="group" aria-labelledby="who">
+          <button type="button" data-gender="男" aria-pressed="false">男</button>
+          <button type="button" data-gender="女" aria-pressed="false">女</button>
+        </div>
+        <p class="note">婚恋之事，男问取妻财，女问取官鬼。只用于排盘，不会保存。</p>
+      </div>
+      <button class="btn solid done" data-topic-done disabled>定</button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding-top: 26px;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: 0.24em;
+    outline: none;
+  }
+  .title p {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    color: var(--on-night-2);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cat {
+    min-height: 72px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    background: var(--night-2);
+    border: 1px solid rgb(248 244 237 / 0.12);
+    border-radius: var(--radius);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .cat:hover {
+    border-color: var(--gold);
+  }
+  .cat[aria-pressed="true"] {
+    background: rgb(192 147 81 / 0.12);
+    border-color: var(--gold);
+  }
+  .head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 17px;
+    letter-spacing: 0.2em;
+  }
+  .cat[aria-pressed="true"] .head {
+    color: var(--gold-hi);
+  }
+  .yong {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+  }
+  .sub {
+    font-size: var(--fs-xs);
+    color: rgb(248 244 237 / 0.6);
+  }
+  .cat[aria-pressed="true"] .sub {
+    color: rgb(248 244 237 / 0.7);
+  }
+  .wide {
+    grid-column: span 2;
+    min-height: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .wide .head {
+    width: auto;
+  }
+  .wide .yong {
+    font-size: inherit;
+    letter-spacing: 0;
+  }
+  .foot {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  .who {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .label {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  [data-gender] {
+    min-height: 48px;
+    background: transparent;
+    border: 1px solid rgb(248 244 237 / 0.2);
+    border-radius: var(--radius);
+    font-size: var(--fs-m);
+    letter-spacing: 0.4em;
+    padding-left: 0.4em;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  [data-gender]:hover,
+  [data-gender][aria-pressed="true"] {
+    border-color: var(--gold);
+  }
+  [data-gender][aria-pressed="true"] {
+    background: rgb(192 147 81 / 0.12);
+    color: var(--gold-hi);
+  }
+  .note {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: rgb(248 244 237 / 0.6);
+  }
+  .done {
+    width: 100%;
+    margin-top: auto;
+  }
+  @media (min-width: 1024px) {
+    .topic {
+      background: radial-gradient(ellipse 55% 60% at 50% 50%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .col {
+      flex-grow: 0;
+      width: 960px;
+      margin: auto;
+      gap: 36px;
+      padding-top: 0;
+    }
+    .title {
+      gap: 12px;
+    }
+    h1 {
+      font-size: 40px;
+    }
+    .title p {
+      font-size: var(--fs-m);
+    }
+    .grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .cat {
+      min-height: 96px;
+      padding: 18px 20px;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .head {
+      font-size: var(--fs-l);
+    }
+    .yong {
+      font-size: var(--fs-xs);
+    }
+    .sub {
+      font-size: 13px;
+    }
+    .foot {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-top: 8px;
+    }
+    .who {
+      gap: 14px;
+    }
+    .pair {
+      display: flex;
+      gap: 12px;
+    }
+    [data-gender] {
+      width: 140px;
+    }
+    .note {
+      font-size: 13px;
+    }
+    .done {
+      width: 220px;
+      margin-left: auto;
+    }
+  }
+</style>

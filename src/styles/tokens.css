@@ -15,7 +15,13 @@
   --ink-2: #6e665e;                 /* 瓦灰加深，保证 4.5:1 */
   --rule: #e4dfd7;                  /* 珍珠灰 */
   --seal: #ab372f;                  /* 鹅血石红：印章、吉 */
-  --vermilion: #ed5126;             /* 朱红：只用于动爻 ○ × 这类小标记 */
+  --vermilion: #ed5126;             /* 朱红：只用于动爻 ○ × 这类小标记（纸面；暗场用 --gold-hi） */
+
+  /* 铜钱 */
+  --coin: #b58c4e;                  /* 字面 */
+  --coin-back: #a98147;             /* 背面 */
+  --coin-rim: #7d5a2a;
+  --coin-ink: #4e3719;              /* 钱文、月纹 */
 
   --font-display: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;  /* 卦名、标语、竖排 */
   --font-body: 'Noto Serif SC', serif;
@@ -38,5 +44,15 @@
   --t-flip: 1200ms;                 /* 铜钱翻转 */
   --t-breath: 4s;                   /* 金线、金环呼吸 */
   --t-unroll: 900ms;                /* 暗场展开为纸 */
+  --t-draw: 2s;                     /* 首屏金线揭开 */
+  --t-char: 120ms;                  /* 首屏竖排逐字，字间 */
+  --t-seal: 600ms;                  /* 落笔：所问收拢为印 */
+  --t-hold: 800ms;                  /* 摇卦至少摇这么久才掷出 */
+  --t-shake: 80ms;                  /* 铜钱轻颤，单程 */
+  --t-hush: 1500ms;                 /* 第六爻后静默，再成卦 */
+  --t-ink: 2s;                      /* 卦名墨晕浮现 */
+  --t-bian: 800ms;                  /* 卦名之后多久变卦淡入 */
+  --t-fade: 400ms;                  /* 换屏淡入 */
+  --t-hover: 180ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }

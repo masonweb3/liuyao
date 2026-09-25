@@ -1,5 +1,6 @@
 // `_` prefix keeps Astro from routing this file.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FALLBACK } from "../../lib/flow.js";
 
 const env = vi.hoisted(
 	() =>
@@ -10,7 +11,7 @@ const env = vi.hoisted(
 );
 vi.mock("cloudflare:workers", () => ({ env }));
 
-const { POST, FALLBACK, THRESHOLDS } = await import("./judge.js");
+const { POST, THRESHOLDS } = await import("./judge.js");
 
 const call = (body: unknown) =>
 	POST({

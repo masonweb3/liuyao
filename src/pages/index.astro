@@ -1,7 +1,16 @@
 ---
 import '@fontsource/noto-serif-sc/400.css';
+import '@fontsource/noto-serif-sc/600.css';
 import '@fontsource/zcool-xiaowei';
 import '../styles/tokens.css';
+import Ask from '../components/Ask.astro';
+import Calm from '../components/Calm.astro';
+import Cast from '../components/Cast.astro';
+import Home from '../components/Home.astro';
+import Notice from '../components/Notice.astro';
+import Reveal from '../components/Reveal.astro';
+import Topic from '../components/Topic.astro';
+import { EMERGENCY, INSINCERE } from '../data/copy';
 ---
 
 <!doctype html>
@@ -15,28 +24,53 @@ import '../styles/tokens.css';
     <meta name="description" content="写下所问，静心，摇六次铜钱成卦。程序按纳甲法排盘，附卦爻辞原文与白话。" />
   </head>
   <body>
-    <div class="screen">
-      <header>
-        <div class="brand">
-          <span class="seal" aria-hidden="true">爻</span>
-          <span class="name">六爻</span>
-        </div>
-        <button class="sound" aria-label="音效：已关闭">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
-        </button>
-      </header>
-      <main>
-        <h1 class="motto">
-          <span>心有所疑</span>
-          <span>不妨一问</span>
-        </h1>
-        <svg class="line" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
-        <div class="cta">
-          <a class="cast" href="#">起卦</a>
-          <span class="hint">一事一问 · 六次摇卦</span>
-        </div>
-      </main>
-    </div>
+    <!-- 爻的墨边：笔触边缘轻微起毛 -->
+    <svg class="defs" aria-hidden="true">
+      <filter id="ink">
+        <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" seed="3" result="noise"></feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4"></feDisplacementMap>
+      </filter>
+    </svg>
+
+    <Home />
+    <Ask />
+
+    <Notice screen="guard" guard title="先停一停" body={['从你写下的话里，我们感到你可能正经历很难熬的时刻。', '这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。']}>
+      <a class="help" href="https://findahelpline.com" target="_blank" rel="noopener">
+        查找你所在地区的求助热线
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+      </a>
+      <a class="tel" href="tel:12356"><span>拨打 12356 心理援助热线</span><span class="where">中国大陆</span></a>
+      <button class="quiet" data-go="home" data-clear>我想先静一静</button>
+      <p class="note">如果你正身处危险之中，请立即拨打当地紧急电话。</p>
+    </Notice>
+
+    <Notice screen="decline" title="此问不占" body={['彩票号码、赌局输赢，是概率之事，卦象给不出答案。', '卦为心中之疑而设。换一件真正让你犹豫的事，再来问。']}>
+      <Fragment slot="extra">
+        <svg class="stroke" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
+        <p class="quote">善为《易》者不占。<span>——《荀子·大略》</span></p>
+      </Fragment>
+      <button class="btn" style="--ls: 0.5em" data-go="ask" data-clear>换一件事问</button>
+    </Notice>
+
+    <Notice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body}>
+      <button class="btn" style="--ls: 0.5em" data-go="home" data-clear>{EMERGENCY.back}</button>
+      <button class="quiet" data-proceed>{EMERGENCY.proceed}</button>
+      <p class="note">{EMERGENCY.note}</p>
+    </Notice>
+
+    <Notice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]}>
+      <button class="btn" style="--ls: 0.5em" data-go="ask">{INSINCERE.action}</button>
+    </Notice>
+
+    <Topic />
+    <Calm />
+    <Cast />
+    <Reveal />
+
+    <script>
+      import '../scripts/ritual.ts';
+    </script>
   </body>
 </html>
 
@@ -49,29 +83,69 @@ import '../styles/tokens.css';
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
   }
-</style>
+  button,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 1px solid var(--gold-hi);
+    outline-offset: 3px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
 
-<style>
+  /* 一屏只做一件事：ritual.ts 每次只显示一个 .screen。 */
   .screen {
+    position: relative;
     min-height: 100dvh;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    padding: max(16px, env(safe-area-inset-top)) var(--gutter) max(36px, env(safe-area-inset-bottom));
-    background: radial-gradient(ellipse 80% 55% at 50% 44%, var(--night-2) 0%, var(--night) 70%);
+    padding: max(16px, env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right))
+      max(36px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+    animation: screen-in var(--t-fade) var(--ease-out);
   }
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: var(--tap);
+  .screen:focus {
+    outline: none;
   }
+  @keyframes screen-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* 768–1023：沿用手机版式，内容居中，最宽 640px */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .screen {
+      padding-inline: max(var(--gutter), calc(50% - 320px));
+    }
+  }
+  @media (min-width: 1024px) {
+    .screen {
+      padding: 32px 64px 48px;
+    }
+  }
+
   .brand {
     display: flex;
     align-items: center;
     gap: 10px;
   }
-  .seal {
+  .brand .seal {
     width: 26px;
     height: 26px;
     display: grid;
@@ -82,91 +156,137 @@ import '../styles/tokens.css';
     font-size: 17px;
     border-radius: var(--radius);
   }
-  .name {
+  .brand .name {
     font-size: var(--fs-s);
     letter-spacing: 0.4em;
     color: rgb(248 244 237 / 0.78);
   }
-  .sound {
-    width: var(--tap);
-    height: var(--tap);
-    display: grid;
-    place-items: center;
-    padding: 0;
-    background: none;
-    border: none;
-    color: rgb(248 244 237 / 0.6);
-    cursor: pointer;
-  }
-  main {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 52px;
-  }
-  .motto {
-    margin: 0;
-    writing-mode: vertical-rl;
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: var(--fs-2xl);
-    letter-spacing: 0.38em;
-    line-height: 1;
-  }
-  .motto span {
-    display: block;
-  }
-  .motto span + span {
-    margin-right: 30px;
-    padding-top: 1.2em;
-    color: rgb(248 244 237 / 0.86);
-  }
-  .line {
-    width: 188px;
-    height: 19px;
-    fill: var(--gold);
-    animation: breathe var(--t-breath) ease-in-out infinite;
-  }
-  .cta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
-  .cast {
-    width: 208px;
+
+  .btn {
+    --ls: 0.9em;
     height: var(--btn-h);
     box-sizing: border-box;
     display: grid;
     place-items: center;
-    padding-left: 0.9em;
+    padding: 0 0 0 var(--ls);
     border: 1px solid var(--gold);
+    border-radius: var(--radius);
     background: rgb(192 147 81 / 0.07);
     color: var(--gold-hi);
     font-size: 18px;
-    letter-spacing: 0.9em;
+    letter-spacing: var(--ls);
     text-decoration: none;
-    border-radius: var(--radius);
+    cursor: pointer;
+    transition:
+      border-color var(--t-hover),
+      background-color var(--t-hover);
   }
-  .hint {
+  .btn:hover {
+    border-color: var(--gold-hi);
+  }
+  .btn.solid {
+    background: var(--gold);
+    color: var(--night);
+    font-weight: 600;
+  }
+  .btn.solid:hover {
+    background: var(--gold-hi);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .btn.solid:disabled:hover {
+    border-color: var(--gold);
+    background: var(--gold);
+  }
+
+  @media (min-width: 1024px) {
+    .brand {
+      gap: 12px;
+    }
+    .brand .seal {
+      width: 30px;
+      height: 30px;
+      font-size: 19px;
+    }
+    .brand .name {
+      font-size: 15px;
+      color: rgb(248 244 237 / 0.8);
+    }
+    .btn {
+      height: 56px;
+      font-size: 19px;
+    }
+  }
+</style>
+
+<style>
+  /* 拦截、婉拒页的按钮与附注 */
+  .help,
+  .tel {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius);
+    text-decoration: none;
+  }
+  .help {
+    height: 56px;
+    background: var(--on-night);
+    color: var(--night);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  .tel {
+    height: var(--btn-h);
+    border: 1px solid rgb(248 244 237 / 0.5);
+    color: var(--on-night);
+    font-size: 15px;
+    letter-spacing: 0.08em;
+  }
+  .where {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--on-night-2);
+  }
+  .quiet {
+    min-height: var(--tap);
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    color: var(--on-night-2);
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .quiet:hover {
+    color: var(--on-night);
+  }
+  .note {
+    margin: 8px 0 0;
     font-size: var(--fs-xs);
-    letter-spacing: 0.3em;
+    line-height: 1.8;
+    text-align: center;
     color: rgb(248 244 237 / 0.62);
   }
-  @keyframes breathe {
-    0%,
-    100% {
-      opacity: 0.5;
-    }
-    50% {
-      opacity: 1;
-    }
+  .stroke {
+    width: 120px;
+    height: 12px;
+    margin-top: 16px;
+    fill: var(--gold);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .line {
-      animation: none;
-    }
+  .quote {
+    margin: 0;
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+    color: var(--gold);
+  }
+  .quote span {
+    color: rgb(248 244 237 / 0.6);
   }
 </style>
