@@ -1,0 +1,42 @@
+/* 设计参数。来源：Claude Design 设计稿（链接见 AGENTS.md §6）。改这里，不要在组件里写死色值。 */
+:root {
+  /* 暗场：首屏与起卦 */
+  --night: #131824;                 /* 燕颔蓝 */
+  --night-2: #1c2938;               /* 鸽蓝 */
+  --gold: #c09351;                  /* 桂皮淡棕 */
+  --gold-hi: #e2c17c;               /* 浅驼色：动爻、高光 */
+  --on-night: #f8f4ed;
+  --on-night-2: rgb(248 244 237 / 0.72);
+
+  /* 纸面：解读、往卦、分享卡 */
+  --paper: #f8f4ed;                 /* 汉白玉 */
+  --paper-2: #f1ebe1;               /* 完整盘面底 */
+  --ink: #2d2e36;                   /* 牛角灰 */
+  --ink-2: #6e665e;                 /* 瓦灰加深，保证 4.5:1 */
+  --rule: #e4dfd7;                  /* 珍珠灰 */
+  --seal: #ab372f;                  /* 鹅血石红：印章、吉 */
+  --vermilion: #ed5126;             /* 朱红：只用于动爻 ○ × 这类小标记 */
+
+  --font-display: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;  /* 卦名、标语、竖排 */
+  --font-body: 'Noto Serif SC', serif;
+
+  --fs-xs: 12px;
+  --fs-s: 14px;
+  --fs-m: 16px;
+  --fs-l: 20px;
+  --fs-xl: 28px;
+  --fs-2xl: 38px;
+
+  --gutter: 24px;
+  --radius: 2px;
+  --tap: 44px;
+  --btn-h: 52px;
+
+  /* 动效，见设计稿「动效说明」 */
+  --t-line: 800ms;                  /* 一爻写出 */
+  --t-pause: 600ms;                 /* 爻与爻之间 */
+  --t-flip: 1200ms;                 /* 铜钱翻转 */
+  --t-breath: 4s;                   /* 金线、金环呼吸 */
+  --t-unroll: 900ms;                /* 暗场展开为纸 */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}

@@ -31,7 +31,9 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - [x] `AGENTS.md`、`LICENSE.md`（PolyForm Noncommercial）、`NOTICE`
 - [x] 公开 GitHub 仓库
 
-## M1 设计稿（Claude Design）
+## M1 设计稿（Claude Design）✅
+设计稿：https://claude.ai/artifact/HHnTpBWmtBKHJ6kBtvsWh9
+
 **产出（手机 390 宽为主，桌面 1440 宽做适配）：**
 - 首屏
 - 写下所问
@@ -51,7 +53,7 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 ## M2 工程骨架
 - 搭好 Astro 7 + `@astrojs/cloudflare` + pnpm + Vitest
 - `Dockerfile`（`node:22-bookworm-slim`）和 `compose.yaml`：在服务器上 `astro preview --host`，端口 4321
-- `tokens.css`；字体自托管（Noto Serif SC、霞鹜文楷，按 unicode-range 切片）
+- 字体自托管（Noto Serif SC、站酷小薇，按 unicode-range 切片），接入已有的 `src/styles/tokens.css`
 - 占位首屏
 
 **完成标准：**
