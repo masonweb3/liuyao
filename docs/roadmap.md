@@ -50,7 +50,7 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 
 **完成标准：** 项目负责人确认设计稿；设计稿链接写进 `AGENTS.md` §6。
 
-## M2 工程骨架
+## M2 工程骨架 ✅
 - 搭好 Astro 7 + `@astrojs/cloudflare` + pnpm + Vitest
 - `Dockerfile`（`node:22-bookworm-slim`）和 `compose.yaml`：在服务器上 `astro preview --host`，端口 4321
 - 字体自托管（Noto Serif SC、站酷小薇，按 unicode-range 切片），接入已有的 `src/styles/tokens.css`
@@ -134,6 +134,7 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - **可访问性：** 对比度达到 WCAG AA；键盘能走完整个流程；动画元素有读屏标签
 - **隐私：** 不接第三方统计或追踪
 - **部署：** Cloudflare Workers，配置自定义域名、`TYPESAFE_API_KEY` secret，并验证线上限流生效
+- Cloudflare 适配器默认会启用 `IMAGES` 和 `SESSION`（KV）两个 binding，本项目都不用，部署前在 `astro.config.mjs` 里关掉
 
 **完成标准：** 线上域名可以访问；项目负责人验收通过。
 

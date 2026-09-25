@@ -176,7 +176,7 @@ docs/research.md
 
 ```sh
 # 同步代码（在本机执行）
-rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .git ./ $STAGE:~/liuyao/
+rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
 # 构建并启动预览（workerd）
 ssh $STAGE 'cd ~/liuyao && docker compose up -d --build'
 # 跑测试
@@ -184,6 +184,12 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 ```
 
 - 容器镜像用 `node:22-bookworm-slim`。**不要用 alpine**：workerd 依赖 glibc。
+- **加依赖**也在服务器上做，做完把三个文件拷回本机再提交：
+  ```sh
+  ssh $STAGE 'cd ~/liuyao && docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v ~/liuyao:/app -w /app node:22-bookworm-slim corepack pnpm add <包名>'
+  for f in package.json pnpm-lock.yaml pnpm-workspace.yaml; do scp $STAGE:liuyao/$f .; done
+  ```
+  pnpm 12 默认不跑依赖的构建脚本。确实需要时，在 `pnpm-workspace.yaml` 的 `allowBuilds` 里逐个放行。
 - 服务器上的密钥放在 `~/liuyao/.dev.vars`，这个文件不进 git。
 - 界面改动完成后，在测试地址上用浏览器看一遍，包括手机尺寸，再报告完成。
 
