@@ -131,7 +131,7 @@ docs/research.md
 ## 6. 视觉与交互
 
 - **风格：** 首屏和起卦用「夜色烫金」暗场；解读页和分享卡切到「宋式宣纸」纸色。从暗到纸的切换，就是从「问」到「答」的转场。
-- **设计稿：** https://claude.ai/artifact/HHnTpBWmtBKHJ6kBtvsWh9（Claude Design，12 块画板，附动效说明）。实现界面前先看对应画板。颜色、字体、时长以 `src/styles/tokens.css` 为准。
+- **设计稿：** https://claude.ai/artifact/HHnTpBWmtBKHJ6kBtvsWh9（Claude Design：手机 12 块、桌面 8 块画板，附动效与桌面交互说明）。实现界面前先看对应画板。颜色、字体、时长以 `src/styles/tokens.css` 为准。
 - **色值：**
 
 | 用途 | 色名 | 色值 |
@@ -162,7 +162,10 @@ docs/research.md
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
-- **移动端优先：** 用 `100dvh`，处理 safe-area，主按钮放在拇指够得到的区域。
+- **手机和桌面都要做：**
+  - 手机优先：用 `100dvh`，处理 safe-area，主按钮放在拇指够得到的区域。
+  - ≥1024px 用桌面版式（设计稿 D1–D8）；768–1023px 沿用手机版式，内容居中，最宽 640px。
+  - 桌面交互：Enter 落笔、Shift+Enter 换行；按住空格或鼠标摇卦，松开掷出；解读页左栏卦象与结论固定（sticky），右栏正文。
 - **音效：** 只有铜钱落盘和成卦磬声两段，用 CC0 素材，默认关闭。
 - **分享卡：**
   - 在客户端用 canvas 生成，3:4，1242×1656。
