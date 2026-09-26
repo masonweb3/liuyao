@@ -366,8 +366,8 @@ document.addEventListener("keyup", (e) => {
 // back, so shaking shorter than --t-hold (lifting the phone to look, a bump)
 // is dropped instead of thrown.
 // Initial values, tune on a real phone.
-/** m/s² away from gravity, on accelerationIncludingGravity (the one every phone reports). */
-const MOTION_SHAKE = 6;
+/** m/s² of the phone's own acceleration, gravity left out. */
+const MOTION_SHAKE = 4;
 /** No shaking this long means the hand has stopped. */
 const MOTION_QUIET_MS = 400;
 
@@ -392,10 +392,19 @@ motionBtn.addEventListener("click", async () => {
 	$(".touch", castEl).textContent = "摇动手机 · 停下掷出";
 });
 
-function onMotion(e: DeviceMotionEvent) {
+/** How hard the phone is moving, in m/s², gravity left out. */
+function motionForce(e: DeviceMotionEvent): number {
+	const a = e.acceleration;
+	if (a?.x != null && a.y != null && a.z != null) return Math.hypot(a.x, a.y, a.z);
+	// Phones without a gyroscope report only this. How far its length strays from
+	// gravity misses most sideways shaking, but it is all there is.
 	const g = e.accelerationIncludingGravity;
-	if (current !== "cast" || g?.x == null || g.y == null || g.z == null) return;
-	if (Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81) < MOTION_SHAKE) return;
+	if (g?.x != null && g.y != null && g.z != null) return Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81);
+	return 0;
+}
+
+function onMotion(e: DeviceMotionEvent) {
+	if (current !== "cast" || motionForce(e) < MOTION_SHAKE) return;
 	if (phase === "idle") {
 		press();
 		byMotion = true;
