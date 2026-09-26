@@ -214,8 +214,8 @@ README.md           英文说明；README.zh-CN.md 是中文版
 ```sh
 # 同步代码（在本机执行）
 rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .env.deploy --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
-# 构建并启动预览（workerd）
-ssh $STAGE 'cd ~/liuyao && docker compose up -d --build'
+# 构建并启动预览（workerd）。--force-recreate：只加 --build 时，容器有时仍在跑旧镜像
+ssh $STAGE 'cd ~/liuyao && docker compose up -d --build --force-recreate'
 # 跑测试
 ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 ```
