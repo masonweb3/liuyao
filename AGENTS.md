@@ -192,7 +192,7 @@ docs/research.md
 
 ```sh
 # 同步代码（在本机执行）
-rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
+rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .env.deploy --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
 # 构建并启动预览（workerd）
 ssh $STAGE 'cd ~/liuyao && docker compose up -d --build'
 # 跑测试
