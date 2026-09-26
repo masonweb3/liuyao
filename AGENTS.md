@@ -228,7 +228,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 生产环境部署到 Cloudflare Workers，域名 `sixyao.app`（Cloudflare 注册）。它同时写在 `astro.config.mjs` 的 `site`（canonical、og:image 等绝对地址靠它）和 `wrangler.jsonc` 的 `routes`（绑定自定义域名），改域名两处一起改。
 - **合并到 `main` 即自动部署**：Worker `liuyao` 接了 Cloudflare Workers Builds，构建命令 `pnpm build`，部署命令 `npx wrangler deploy`。只有 `main` 触发，其他分支不构建（测试环境仍是局域网服务器）。构建变量 `NODE_VERSION`、`PNPM_VERSION` 在 Cloudflare 后台设，改 Node 或 pnpm 大版本时和 `package.json`、`ci.yml` 一起改。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
-- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本手动写在 `src/pages/index.astro` 的 `<head>`；以后加新页面，每页都要带上。Cloudflare 后台的自动注入已关闭：Worker 返回的页面没有被注入，而且两段脚本不能同时存在。
+- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本手动写在 `src/pages/index.astro` 的 `<head>`；以后加新页面，每页都要带上。Cloudflare 后台 sixyao.app 的 Web Analytics 自动注入（zone 的 RUM 设置）要保持关闭：它只给浏览器请求注入脚本，用 curl 默认请求头看不到；开着就会和手写的那段重复计数。
 - 应急时可以从测试服务器手动部署，命令和凭据见 `CLAUDE.local.md`。部署凭据不要放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
 
 每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。这一条**写在 PR 里**，日期按预计合并的那天；拖到别的日子才合并，合并前改过来。同名 annotated tag 由 `.github/workflows/tag.yml` 在合并后自动打，同一天再合并会把 tag 移到新提交。
