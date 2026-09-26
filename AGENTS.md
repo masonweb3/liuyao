@@ -220,7 +220,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 
 1. 从 `main` 开分支，在测试服务器上改完、测完。
 2. 推送分支，开 PR 到 `main`。推分支、开 PR 不用另外请示。
-3. CI（`.github/workflows/ci.yml` 的 `test`：`pnpm test` + `pnpm build`）必须通过。CodeRabbit 会自动审，意见逐条处理或回复理由。它的状态不是必过项：免费版有限流，不能让它卡住合并。
+3. CI（`.github/workflows/ci.yml` 的 `test`：`pnpm test` + `pnpm build`）必须通过。CodeRabbit 对不满 10 星的仓库不自动审，开 PR 后评论 `@coderabbitai review` 触发；意见逐条处理或回复理由。它的状态不是必过项：免费版有限流，不能让它卡住合并。
 4. 由项目负责人合并（squash）。**合并就是上线**，见 §8。
 
 ## 8. 部署
