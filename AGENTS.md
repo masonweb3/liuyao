@@ -219,7 +219,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
 - `wrangler` 部署需要的 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 放在服务器的 `~/liuyao/.env.deploy`（不进 git），只在执行部署命令时注入。不要把它们放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
 
-每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。
+每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。再给部署的提交打同名 annotated tag（`git tag -a YYYY.MM.DD`）；同一天再部署，把当天的 tag 移到新提交。
 
 未经项目负责人同意，不要部署生产环境，不要推送代码。
 
