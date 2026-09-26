@@ -49,11 +49,18 @@ const tilts = [-8, 14, 3];
         <p class="caption" aria-live="polite" data-caption></p>
       </div>
       <div class="act dock">
-        <button class="shake" aria-label="摇卦：按住摇动，松开掷出" data-shake data-autofocus>摇</button>
+        <div class="press" data-press>
+          <button class="shake" aria-label="摇卦：按住摇动，松开掷出" data-shake data-autofocus>摇</button>
+          <!-- iOS Safari has no Vibration API. Since iOS 26.5 the one haptic a page can get
+               is a finger landing on a native switch, so an invisible one covers the button. -->
+          <input class="tick" type="checkbox" switch tabindex="-1" aria-hidden="true" />
+        </div>
         <p class="hint">
           <span class="touch">长按摇动 · 松手掷出</span>
           <span class="keys">按住<kbd>空格</kbd>或鼠标摇动，松开掷出</span>
         </p>
+        <!-- 摇一摇: shown by ritual.ts only where motion sensors can be read -->
+        <button class="motion" hidden data-motion>改用摇手机</button>
       </div>
     </div>
   </div>
@@ -233,7 +240,22 @@ const tilts = [-8, 14, 3];
       transform var(--t-hover),
       border-color var(--t-hover);
   }
-  .shake:hover,
+  .press {
+    position: relative;
+  }
+  .tick {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    clip-path: inset(0 round 50%);
+    cursor: pointer;
+    touch-action: none;
+    -webkit-touch-callout: none;
+  }
+  .press:hover .shake,
   .shake.held {
     border-color: var(--gold-hi);
   }
@@ -248,6 +270,19 @@ const tilts = [-8, 14, 3];
   }
   .keys {
     display: none;
+  }
+  .motion {
+    padding: 10px 16px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    text-decoration-color: rgb(192 147 81 / 0.4);
+    cursor: pointer;
   }
   kbd {
     padding: 3px 10px;

@@ -1,14 +1,14 @@
 /**
  * 音效 —— 铜钱落盘与成卦磬声, synthesised with Web Audio: no files to ship
- * or license. Off by default; the choice is kept in this browser.
+ * or license. On by default; turning it off is kept in this browser.
  */
 const KEY = "liuyao:sound";
 
 let on = (() => {
 	try {
-		return localStorage.getItem(KEY) === "on";
+		return localStorage.getItem(KEY) !== "off";
 	} catch {
-		return false;
+		return true;
 	}
 })();
 let ac: AudioContext | undefined;
@@ -18,8 +18,8 @@ export const soundOn = () => on;
 export function setSound(next: boolean) {
 	on = next;
 	try {
-		if (on) localStorage.setItem(KEY, "on");
-		else localStorage.removeItem(KEY);
+		if (on) localStorage.removeItem(KEY);
+		else localStorage.setItem(KEY, "off");
 	} catch {
 		// Blocked storage: the choice lasts until the page closes.
 	}

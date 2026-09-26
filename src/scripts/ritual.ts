@@ -37,7 +37,11 @@ import { coinsSound, qingSound, setSound, soundOn, unlock } from "./sound.js";
 const MAX_LENGTH = 200;
 /** judge.ts gives Jev 3s; leave room for the round trip. */
 const JUDGE_TIMEOUT_MS = 5000;
-const VIBRATE_MS = 20;
+// 震动 (Android only: Safari has no Vibration API). Initial values, adjust by feel.
+/** One tick per full swing of the coins (2 × --t-shake) while shaking. */
+const SHAKE_BUZZ_MS = 15;
+/** Three coins landing, in step with coinsSound. */
+const LAND_BUZZ = [20, 50, 20, 50, 20];
 
 /** A dynamic import that can be retried after a failed load. */
 function lazy<T>(load: () => Promise<T>): () => Promise<T> {
@@ -280,9 +284,12 @@ const coinsEl = $("[data-coins]", castEl);
 const coins = $$(".coin", coinsEl);
 const caption = $("[data-caption]", castEl);
 const shake = $<HTMLButtonElement>("[data-shake]", castEl);
+/** The button plus the invisible switch over it (see Cast.astro); taps land on the switch. */
+const pressEl = $("[data-press]", castEl);
 
 let phase: "idle" | "holding" | "busy" = "idle";
 let heldAt = 0;
+let buzz = 0;
 // The last yao's brush stroke and pause. The coins are free as soon as they
 // land, so the next shake can start at once; only the throw waits for this.
 let written: Promise<void> = Promise.resolve();
@@ -298,6 +305,10 @@ function press() {
 	heldAt = performance.now();
 	coinsEl.classList.add("shaking");
 	shake.classList.add("held");
+	if (navigator.vibrate) {
+		navigator.vibrate(SHAKE_BUZZ_MS);
+		buzz = window.setInterval(() => navigator.vibrate(SHAKE_BUZZ_MS), token("--t-shake") * 2);
+	}
 }
 
 /** A short tap still shakes for --t-hold before the coins leave the hand. */
@@ -305,23 +316,37 @@ async function release() {
 	if (phase !== "holding") return;
 	phase = "busy";
 	await Promise.all([sleep(token("--t-hold") - (performance.now() - heldAt)), written]);
-	coinsEl.classList.remove("shaking");
-	shake.classList.remove("held");
+	stopShaking();
 	await throwCoins();
 	if (session.params.length < 6) phase = "idle";
 }
 
-shake.addEventListener("pointerdown", (e) => {
+function stopShaking() {
+	coinsEl.classList.remove("shaking");
+	shake.classList.remove("held");
+	clearInterval(buzz);
+}
+
+/** Shaking that stopped too soon: back to idle, nothing thrown. */
+function cancel() {
+	if (phase !== "holding") return;
+	phase = "idle";
+	stopShaking();
+}
+
+pressEl.addEventListener("pointerdown", (e) => {
 	if (e.button !== 0) return;
-	shake.setPointerCapture(e.pointerId);
+	// Touch is captured to the switch already. Capturing it here would send the
+	// click to this div, and the switch would never toggle or tick.
+	if (e.pointerType === "mouse") pressEl.setPointerCapture(e.pointerId);
 	press();
 });
-shake.addEventListener("pointerup", () => void release());
-shake.addEventListener("pointercancel", () => void release());
-shake.addEventListener("contextmenu", (e) => e.preventDefault());
+pressEl.addEventListener("pointerup", () => void release());
+pressEl.addEventListener("pointercancel", () => void release());
+pressEl.addEventListener("contextmenu", (e) => e.preventDefault());
 // Enter and screen-reader activation arrive as a bare click. The click that
 // trails a pointer or Space throw finds phase "busy" and does nothing.
-shake.addEventListener("click", () => {
+pressEl.addEventListener("click", () => {
 	press();
 	void release();
 });
@@ -335,6 +360,56 @@ document.addEventListener("keyup", (e) => {
 	e.preventDefault();
 	void release();
 });
+
+// 摇一摇: shaking the phone stands in for holding the button. The coins shake
+// while the phone does and leave the hand once it stops. A throw can't be taken
+// back, so shaking shorter than --t-hold (lifting the phone to look, a bump)
+// is dropped instead of thrown.
+// Initial values, tune on a real phone.
+/** m/s² away from gravity, on accelerationIncludingGravity (the one every phone reports). */
+const MOTION_SHAKE = 6;
+/** No shaking this long means the hand has stopped. */
+const MOTION_QUIET_MS = 400;
+
+const motionBtn = $<HTMLButtonElement>("[data-motion]", castEl);
+let byMotion = false;
+let shookAt = 0;
+let quiet = 0;
+
+// Sensors only report on https, and only phones have them.
+if (isSecureContext && "DeviceMotionEvent" in window && matchMedia("(pointer: coarse)").matches) motionBtn.hidden = false;
+
+motionBtn.addEventListener("click", async () => {
+	motionBtn.hidden = true;
+	// iOS asks first, and only from a tap; Android just reports.
+	const dme = DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> };
+	try {
+		if (dme.requestPermission && (await dme.requestPermission()) !== "granted") return;
+	} catch {
+		return;
+	}
+	addEventListener("devicemotion", onMotion);
+	$(".touch", castEl).textContent = "摇动手机 · 停下掷出";
+});
+
+function onMotion(e: DeviceMotionEvent) {
+	const g = e.accelerationIncludingGravity;
+	if (current !== "cast" || g?.x == null || g.y == null || g.z == null) return;
+	if (Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81) < MOTION_SHAKE) return;
+	if (phase === "idle") {
+		press();
+		byMotion = true;
+	}
+	// A button or Space hold already under way keeps control.
+	if (!byMotion) return;
+	shookAt = performance.now();
+	clearTimeout(quiet);
+	quiet = window.setTimeout(() => {
+		byMotion = false;
+		if (shookAt - heldAt < token("--t-hold")) cancel();
+		else void release();
+	}, MOTION_QUIET_MS);
+}
 
 /** 一爻的毛笔笔触：阳一笔，阴两笔；动爻加 ○ ×. */
 function yaoHtml(yang: boolean, moving: boolean, label: string): string {
@@ -366,7 +441,7 @@ async function throwCoins() {
 	await settle(coinsEl);
 	coinsEl.classList.remove("flipping");
 	coinsSound();
-	navigator.vibrate?.(VIBRATE_MS);
+	navigator.vibrate?.(LAND_BUZZ);
 	caption.textContent = tossCaption(yao);
 	written = writeYao(i, yao);
 }
