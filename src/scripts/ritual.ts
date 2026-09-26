@@ -283,6 +283,9 @@ const shake = $<HTMLButtonElement>("[data-shake]", castEl);
 
 let phase: "idle" | "holding" | "busy" = "idle";
 let heldAt = 0;
+// The last yao's brush stroke and pause. The coins are free as soon as they
+// land, so the next shake can start at once; only the throw waits for this.
+let written: Promise<void> = Promise.resolve();
 
 function showThrow(i: number) {
 	$("[data-nth]", castEl).textContent = nthThrow(i);
@@ -301,7 +304,7 @@ function press() {
 async function release() {
 	if (phase !== "holding") return;
 	phase = "busy";
-	await sleep(token("--t-hold") - (performance.now() - heldAt));
+	await Promise.all([sleep(token("--t-hold") - (performance.now() - heldAt)), written]);
 	coinsEl.classList.remove("shaking");
 	shake.classList.remove("held");
 	await throwCoins();
@@ -342,6 +345,7 @@ function yaoHtml(yang: boolean, moving: boolean, label: string): string {
 
 const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${YAO_NAME[y]}${isMoving(y) ? " 动" : ""}`;
 
+/** Resolves once the coins land; the yao is written in the background (`written`). */
 async function throwCoins() {
 	const { toss } = await loadEngine();
 	const i = session.params.length;
@@ -364,7 +368,10 @@ async function throwCoins() {
 	coinsSound();
 	navigator.vibrate?.(VIBRATE_MS);
 	caption.textContent = tossCaption(yao);
+	written = writeYao(i, yao);
+}
 
+async function writeYao(i: number, yao: Yao) {
 	const slot = $(`[data-pos="${i}"] .slot`, castEl);
 	slot.innerHTML = yaoHtml(isYang(yao), isMoving(yao), yaoLabel(i, yao));
 	await settle(slot);
