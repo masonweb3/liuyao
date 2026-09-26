@@ -7,6 +7,7 @@
 真机验收后的修改。
 
 - **访问统计**：接入 Cloudflare Web Analytics，不用 cookie，不追踪个人。脚本手动写在页面里；Cloudflare 后台的自动注入要保持关闭，否则浏览器会拿到两段脚本、重复计数（自动注入只对浏览器请求生效，用 curl 测不出来）。
+- **sitemap**：新增 `/sitemap.xml`，robots.txt 改为由 `site` 生成并指向它。以后新增可收录的页面，都在 `src/pages/sitemap.xml.ts` 登记。
 - **改为 PR 流程、合并即部署**：`main` 只接受 PR，CI 跑测试和构建，CodeRabbit 审阅；合并后由 Cloudflare Workers Builds 自动部署，GitHub Actions 自动打当天的 tag。CHANGELOG 在 PR 里写。
 - **摇卦不必按两下**：铜钱落定后，原来要等笔画写完、停顿结束（约 1.7 秒）才接受下一次按压，这段时间按钮看不出不可用，第一下被忽略。现在落定即可按下开摇，真正掷出时再等上一爻写完，爻与爻之间的节奏不变。
 - **音效默认开启**，首屏可以关掉。本机只记「关」，没关过的都算开。
