@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	afterJudge,
+	dayLabel,
 	FALLBACK,
 	fromBeijingInput,
 	type Judgement,
@@ -41,8 +42,16 @@ describe("afterJudge", () => {
 	});
 });
 
-it("一事一占：静心之后只能向前", () => {
-	expect([NEXT.calm, NEXT.cast, NEXT.reveal, NEXT.reading]).toEqual([["cast"], ["reveal"], ["reading"], []]);
+it("一事一占：静心之后只能向前，解读与往卦之间不回到起卦", () => {
+	expect([NEXT.calm, NEXT.cast, NEXT.reveal]).toEqual([["cast"], ["reveal"], ["reading"]]);
+	expect([NEXT.reading, NEXT.history]).toEqual([["history"], ["reading"]]);
+});
+
+it("往卦日期按北京时间，跨年才写年份", () => {
+	const now = new Date("2026-09-26T12:00:00+08:00");
+	expect(dayLabel(new Date("2026-09-25T23:30:00+08:00"), now)).toBe("9月25日");
+	expect(dayLabel(new Date("2026-09-25T16:30:00Z"), now)).toBe("9月26日");
+	expect(dayLabel(new Date("2025-12-31T23:59:00+08:00"), now)).toBe("2025年12月31日");
 });
 
 describe("文字", () => {

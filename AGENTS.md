@@ -50,15 +50,18 @@ src/
   lib/liuyao/       纯 TS 排盘引擎，零 DOM，浏览器和测试都能直接跑
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
-  components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读
+  lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘）
+  components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
+  scripts/card.ts   分享卡的 canvas 绘制（按需加载）
+  scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/api/judge.ts 唯一的服务端路由：调用 Jev
   styles/tokens.css 颜色、字体、间距、动效时长
-public/fonts/ public/audio/
+public/fonts/
 docs/research.md
 ```
 
@@ -169,7 +172,7 @@ docs/research.md
   - 手机优先：用 `100dvh`，处理 safe-area，主按钮放在拇指够得到的区域。
   - ≥1024px 用桌面版式（设计稿 D1–D8）；768–1023px 沿用手机版式，内容居中，最宽 640px。
   - 桌面交互：Enter 落笔、Shift+Enter 换行；按住空格或鼠标摇卦，松开掷出；解读页左栏卦象与结论固定（sticky），右栏正文。
-- **音效：** 只有铜钱落盘和成卦磬声两段，用 CC0 素材，默认关闭。
+- **音效：** 只有铜钱落盘和成卦磬声两段，用 Web Audio 现场合成（不带音频文件，不涉及授权），默认关闭。
 - **分享卡：**
   - 在客户端用 canvas 生成，3:4，1242×1656。
   - 所问默认不上卡。

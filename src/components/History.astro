@@ -1,0 +1,355 @@
+---
+import { HISTORY_EMPTY } from "../data/copy";
+
+// 条目由 ritual.ts 按 src/lib/history.ts 的记录重新排盘后填入。
+---
+
+<section class="screen history" data-screen="history" tabindex="-1" hidden>
+  <header class="top">
+    <a class="back" href="/" aria-label="回到首屏">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </a>
+    <a class="brand" href="/" aria-label="六爻，回到首屏">
+      <span class="seal" aria-hidden="true">爻</span>
+      <span class="name" aria-hidden="true">六爻</span>
+    </a>
+    <a class="ask" href="/?ask">起卦</a>
+  </header>
+
+  <div class="col">
+    <div class="title">
+      <h1 tabindex="-1" data-autofocus>往卦</h1>
+      <p>记录只保存在这台设备的浏览器里。</p>
+    </div>
+    <div class="records">
+      <div class="thead" aria-hidden="true"><span>日期</span><span>卦</span><span>所问</span><span>断</span></div>
+      <ol class="list" aria-label="往卦记录" data-list></ol>
+    </div>
+    <button class="clear" data-forget data-confirm="再点一次，全部清除">清除全部记录</button>
+    <div class="none">
+      <p class="none-title">{HISTORY_EMPTY.title}</p>
+      <p>{HISTORY_EMPTY.body}</p>
+      <a class="go" href="/?ask">{HISTORY_EMPTY.action}</a>
+    </div>
+  </div>
+
+  <template data-item>
+    <li>
+      <button type="button" class="rec">
+        <span class="date"></span>
+        <span class="gua"></span>
+        <span class="q"></span>
+        <span class="duan"></span>
+      </button>
+    </li>
+  </template>
+</section>
+
+<style>
+  .screen.history {
+    gap: 28px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  :global(html:has(.history:not([hidden]))),
+  :global(html:has(.history:not([hidden])) body) {
+    background: var(--paper);
+  }
+  .history :focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--tap);
+  }
+  .back {
+    width: var(--tap);
+    height: var(--tap);
+    margin-left: -10px;
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+  }
+  .top .brand,
+  .ask {
+    display: none;
+  }
+
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: 0.3em;
+    outline: none;
+  }
+  .title p {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+
+  .thead {
+    display: none;
+  }
+  .list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .rec {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "date duan" "gua duan" "q duan";
+    align-items: center;
+    gap: 6px 16px;
+    padding: 18px 0;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--rule);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--t-hover);
+  }
+  .rec:hover {
+    background: rgb(45 46 54 / 0.03);
+  }
+  .rec :global(.date) {
+    grid-area: date;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.14em;
+    color: var(--ink-2);
+  }
+  .rec :global(.gua) {
+    grid-area: gua;
+    font-size: 17px;
+    letter-spacing: 0.12em;
+  }
+  .rec :global(.gua small) {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .rec :global(.q) {
+    grid-area: q;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-2);
+  }
+  .rec :global(.q:empty) {
+    display: none;
+  }
+  /* 断语印章：吉红底白字，平墨线框，凶墨底白字 */
+  .rec :global(.duan) {
+    grid-area: duan;
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: 19px;
+    border-radius: var(--radius);
+  }
+  .rec :global(.duan[data-verdict="吉"]) {
+    background: var(--seal);
+    color: var(--paper);
+  }
+  .rec :global(.duan[data-verdict="平"]) {
+    border: 1.5px solid var(--ink);
+  }
+  .rec :global(.duan[data-verdict="凶"]) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .clear {
+    margin-top: auto;
+    align-self: center;
+    min-height: var(--tap);
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .clear:hover {
+    color: var(--ink);
+  }
+
+  .none {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding-top: 48px;
+    text-align: center;
+  }
+  .none p {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .none .none-title {
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+  }
+  .go {
+    width: 208px;
+    height: var(--btn-h);
+    margin-top: 18px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding-left: 0.6em;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-size: 17px;
+    letter-spacing: 0.6em;
+    text-decoration: none;
+    transition: background-color var(--t-hover);
+  }
+  .go:hover {
+    background: rgb(45 46 54 / 0.05);
+  }
+  .history.empty .records,
+  .history.empty .clear,
+  .history.empty .title p {
+    display: none;
+  }
+  .history.empty .none {
+    display: flex;
+  }
+
+  @media (min-width: 1024px) {
+    .screen.history {
+      gap: 64px;
+    }
+    .top {
+      height: 48px;
+    }
+    .back {
+      display: none;
+    }
+    .top .brand {
+      display: flex;
+      text-decoration: none;
+    }
+    .history .brand .name {
+      color: var(--ink);
+    }
+    .ask {
+      min-height: var(--tap);
+      display: flex;
+      align-items: center;
+      padding: 0 20px 0 calc(20px + 0.3em);
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      color: var(--ink);
+      font-size: var(--fs-s);
+      letter-spacing: 0.3em;
+      text-decoration: none;
+      transition: background-color var(--t-hover);
+    }
+    .ask:hover {
+      background: rgb(45 46 54 / 0.05);
+    }
+    .col {
+      width: min(960px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      align-content: start;
+      gap: 36px 24px;
+    }
+    .title {
+      gap: 12px;
+    }
+    h1 {
+      font-size: 44px;
+    }
+    .title p {
+      font-size: var(--fs-s);
+    }
+    .clear {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+    }
+    .records,
+    .none {
+      grid-column: 1 / -1;
+    }
+    .thead,
+    .rec {
+      display: grid;
+      grid-template-columns: 180px 260px minmax(0, 1fr) 48px;
+      grid-template-areas: "date gua q duan";
+      gap: 24px;
+      align-items: center;
+    }
+    .thead {
+      min-height: 40px;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.2em;
+      color: var(--ink-2);
+    }
+    .list {
+      border-bottom: none;
+    }
+    .rec {
+      min-height: 76px;
+      padding: 0;
+      border-top: none;
+      border-bottom: 1px solid var(--rule);
+    }
+    .thead {
+      border-bottom: 1px solid var(--rule);
+    }
+    .rec :global(.date) {
+      font-size: var(--fs-s);
+      letter-spacing: 0.1em;
+    }
+    .rec :global(.gua) {
+      font-size: 18px;
+    }
+    .rec :global(.q) {
+      font-size: 15px;
+      color: var(--ink);
+    }
+    .rec :global(.q:empty) {
+      display: block;
+    }
+    .rec :global(.duan) {
+      width: 36px;
+      height: 36px;
+      font-size: var(--fs-l);
+    }
+  }
+</style>

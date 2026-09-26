@@ -1,5 +1,5 @@
 ---
-import { DISCLAIMER } from "../data/copy";
+import { DISCLAIMER, ERRORS } from "../data/copy";
 
 // 内容由 ritual.ts 按 src/lib/reading.ts 的结果填入。
 const facts = [
@@ -14,13 +14,20 @@ const facts = [
 
 <section class="screen reading" data-screen="reading" tabindex="-1" hidden>
   <header class="top">
-    <a class="back" href="/" aria-label="回到首屏">
+    <a class="back" href="/" aria-label="回到首屏" data-back>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
     </a>
     <a class="brand" href="/" aria-label="六爻，回到首屏">
       <span class="seal" aria-hidden="true">爻</span>
       <span class="name" aria-hidden="true">六爻</span>
     </a>
+    <nav class="acts">
+      <button class="to-history" data-go="history">往卦</button>
+      <button class="share-btn" data-share>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1"></rect><path d="M9 8h6M9 12h6"></path></svg>
+        分享卡
+      </button>
+    </nav>
   </header>
 
   <div class="layout">
@@ -103,10 +110,23 @@ const facts = [
   </div>
 
   <footer class="end">
-    <a class="again" href="/">再问一事</a>
+    <a class="again" href="/?ask">再问一事</a>
     <p>同一件事，一卦为定</p>
+    <p class="warn" data-storage hidden>{ERRORS.storage}</p>
     <p>{DISCLAIMER[0]}<br />{DISCLAIMER[1]}</p>
   </footer>
+
+  <!-- 分享卡：设计稿只有卡面，没有这一层；按简单弹层做。 -->
+  <dialog class="share" aria-label="分享卡" data-share-dialog>
+    <div class="frame"><img alt="分享卡" data-card /></div>
+    <p class="error" role="alert" data-card-error></p>
+    <div class="row">
+      <label data-with-q-label><input type="checkbox" data-with-q /> 所问上卡</label>
+      <span class="hint">长按图片保存</span>
+      <a class="save" download data-save>保存图片</a>
+    </div>
+    <form method="dialog"><button class="close">关闭</button></form>
+  </dialog>
 </section>
 
 <style>
@@ -151,7 +171,40 @@ const facts = [
   .top {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: var(--tap);
+  }
+  .acts {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .to-history {
+    display: none;
+    min-height: var(--tap);
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    cursor: pointer;
+  }
+  .share-btn {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: var(--fs-s);
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .share-btn:hover {
+    border-color: var(--ink);
   }
   .back {
     width: var(--tap);
@@ -572,9 +625,123 @@ const facts = [
     color: var(--ink-2);
   }
 
+  .end .warn {
+    color: var(--seal);
+  }
+
+  .share {
+    width: min(440px, 100% - 32px);
+    max-height: calc(100dvh - 32px);
+    box-sizing: border-box;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .share[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: share-in var(--t-fade) var(--ease-out);
+  }
+  .share::backdrop {
+    background: rgb(19 24 36 / 0.6);
+  }
+  @keyframes share-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* 卡片 3:4，矮屏上按高度收小 */
+  .frame {
+    width: min(100%, (100dvh - 220px) * 0.75);
+    aspect-ratio: 3 / 4;
+    align-self: center;
+    background: var(--paper-2);
+  }
+  .frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* 长按保存要的是图片本身，不要被选中文字 */
+    -webkit-touch-callout: default;
+  }
+  .frame img:not([src]) {
+    visibility: hidden;
+  }
+  .share .error {
+    margin: 0;
+    font-size: 13px;
+    color: var(--seal);
+  }
+  .share .error:empty {
+    display: none;
+  }
+  .row {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: var(--fs-s);
+    letter-spacing: 0.1em;
+  }
+  .row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--tap);
+    cursor: pointer;
+  }
+  .row input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--seal);
+  }
+  .hint {
+    margin-left: auto;
+    color: var(--ink-2);
+  }
+  .save {
+    display: none;
+    margin-left: auto;
+    color: var(--ink);
+    text-underline-offset: 4px;
+  }
+  /* 桌面用鼠标，没有长按：给下载链接 */
+  @media (hover: hover) and (pointer: fine) {
+    .hint {
+      display: none;
+    }
+    .save {
+      display: block;
+    }
+  }
+  .share form {
+    display: contents;
+  }
+  .close {
+    height: 48px;
+    padding: 0 0 0 0.6em;
+    background: none;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: var(--fs-m);
+    letter-spacing: 0.6em;
+    cursor: pointer;
+  }
+
   @media (min-width: 1024px) {
     .screen.reading {
       gap: 56px;
+    }
+    .to-history {
+      display: block;
+    }
+    .share-btn {
+      padding: 0 18px;
     }
     .top {
       height: 48px;

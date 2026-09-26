@@ -1,6 +1,6 @@
 /**
  * 起卦仪式 —— drives index.astro: 写下所问 →（拦截 | 择类）→ 静心 → 摇卦 ×6 → 成卦 → 解读,
- * or 手动排盘 → 择类 → 解读.
+ * or 手动排盘 → 择类 → 解读; and 往卦, 分享卡, 音效.
  *
  * One screen is shown at a time and every move is checked against
  * {@link NEXT}, so nothing leads back once 静心 starts. Durations live in
@@ -9,6 +9,7 @@
 import { ERRORS } from "../data/copy.js";
 import {
 	afterJudge,
+	dayLabel,
 	FALLBACK,
 	fromBeijingInput,
 	isMoving,
@@ -20,15 +21,18 @@ import {
 	posName,
 	type Screen,
 	settled,
+	STROKES,
 	toBeijingInput,
 	tossCaption,
 	YAO_NAME,
 	yaoTitle,
 } from "../lib/flow.js";
+import { asked, type Entry, entries, forget, record } from "../lib/history.js";
 import type { LateZiSect } from "../lib/liuyao/calendar.js";
 import type { Gender, Question, Topic } from "../lib/liuyao/duan.js";
 import type { CastResult, Yao } from "../lib/liuyao/najia.js";
 import type { GuaText, Reading, Row } from "../lib/reading.js";
+import { coinsSound, qingSound, setSound, soundOn, unlock } from "./sound.js";
 
 const MAX_LENGTH = 200;
 /** judge.ts gives Jev 3s; leave room for the round trip. */
@@ -49,6 +53,16 @@ function lazy<T>(load: () => Promise<T>): () => Promise<T> {
 // keep both out of the first screen.
 const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
 const loadReading = lazy(() => import("../lib/reading.js"));
+const loadCard = lazy(() => import("./card.js"));
+
+/** localStorage, or `null` where the browser blocks it. */
+const store = (() => {
+	try {
+		return localStorage;
+	} catch {
+		return null;
+	}
+})();
 
 /** The cast so far, and what the reading needs. */
 const session = {
@@ -92,6 +106,10 @@ const screen = (s: Screen) => $(`[data-screen="${s}"]`);
 
 function go(next: Screen) {
 	if (!NEXT[current].includes(next)) throw new Error(`no way from ${current} to ${next}`);
+	if (next === "reading" || next === "history") {
+		const paper = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim();
+		$('meta[name="theme-color"]').setAttribute("content", paper);
+	}
 	screen(current).hidden = true;
 	current = next;
 	const el = screen(next);
@@ -101,6 +119,7 @@ function go(next: Screen) {
 	if (next === "manual") when.value ||= toBeijingInput(new Date());
 	if (next === "calm") void calm();
 	if (next === "cast") showThrow(0);
+	if (next === "history") void showHistory();
 }
 
 document.addEventListener("click", (e) => {
@@ -171,6 +190,7 @@ async function submit() {
 	const text = q.value.trim();
 	if (!text) return fail(ERRORS.empty);
 	if (length(text) > MAX_LENGTH) return fail(ERRORS.tooLong);
+	if (store && asked(entries(store), text)) return fail(ERRORS.asked);
 	if (sealing) return;
 	sealing = true;
 	askEl.classList.add("sealing");
@@ -313,16 +333,11 @@ document.addEventListener("keyup", (e) => {
 	void release();
 });
 
-const YANG =
-	'<path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"/>';
-const YIN =
-	'<path d="M5 12.5C3 7.5 8 4.5 17 5L100 6.8C106 7 108.5 10 106.5 13.5C104.5 17 99 17.3 94 17.3L19 19.5C9 20.2 6.5 16.5 5 12.5Z"/>' +
-	'<path d="M137 12.5C135.5 8 140 5.5 148 5.8L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L150 18.2C141 18.8 138.3 16.3 137 12.5Z"/>';
-
 /** 一爻的毛笔笔触：阳一笔，阴两笔；动爻加 ○ ×. */
 function yaoHtml(yang: boolean, moving: boolean, label: string): string {
 	const mark = moving ? `<span class="mark" aria-hidden="true">${yang ? "○" : "×"}</span>` : "";
-	return `<div class="yao${moving ? " moving" : ""}"><svg viewBox="0 0 240 24" role="img" aria-label="${label}"><g filter="url(#ink)">${yang ? YANG : YIN}</g></svg>${mark}</div>`;
+	const paths = STROKES[yang ? "yang" : "yin"].map((d) => `<path d="${d}"/>`).join("");
+	return `<div class="yao${moving ? " moving" : ""}"><svg viewBox="0 0 240 24" role="img" aria-label="${label}"><g filter="url(#ink)">${paths}</g></svg>${mark}</div>`;
 }
 
 const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${YAO_NAME[y]}${isMoving(y) ? " 动" : ""}`;
@@ -346,6 +361,7 @@ async function throwCoins() {
 	coinsEl.classList.add("flipping");
 	await settle(coinsEl);
 	coinsEl.classList.remove("flipping");
+	coinsSound();
 	navigator.vibrate?.(VIBRATE_MS);
 	caption.textContent = tossCaption(yao);
 
@@ -377,10 +393,27 @@ const benLines = (r: CastResult) =>
 		}),
 	);
 
+/** 成卦: from here the cast counts (一事一占), so it goes into 往卦 at once, before it is read. */
+function formed(r: CastResult): CastResult {
+	session.result = r;
+	try {
+		if (!store) throw new Error("storage blocked");
+		record(store, {
+			question: session.question,
+			ask: session.ask as Question,
+			params: session.params,
+			at: (session.date as Date).toISOString(),
+			lateZi: session.lateZi,
+		});
+	} catch {
+		$("[data-storage]", readingEl).hidden = false;
+	}
+	return r;
+}
+
 async function reveal() {
 	const { cast } = await loadEngine();
-	const r = cast(session.params, castOptions());
-	session.result = r;
+	const r = formed(cast(session.params, castOptions()));
 
 	$("[data-ben-lines]", revealEl).innerHTML = benLines(r);
 	$("[data-ben-name]", revealEl).textContent = r.gua.name;
@@ -397,6 +430,7 @@ async function reveal() {
 	$("[data-ganzhi]", revealEl).innerHTML =
 		`${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}时</span> · 旬空 ${g.xkong}`;
 	go("reveal");
+	qingSound();
 }
 
 $("[data-read]", revealEl).addEventListener("click", () => void read());
@@ -411,11 +445,8 @@ async function read() {
 	const [{ cast }, { compose }] = await Promise.all([loadEngine(), loadReading()]);
 	const { ask } = session;
 	if (!NEXT[current].includes("reading") || !ask) return;
-	const r = (session.result ??= cast(session.params, castOptions()));
-	render(r, compose(r, ask));
-	$<HTMLDetailsElement>("[data-panel]", readingEl).open = matchMedia("(min-width: 1024px)").matches;
-	const paper = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim();
-	$('meta[name="theme-color"]').setAttribute("content", paper);
+	const r = session.result ?? formed(cast(session.params, castOptions()));
+	render(r, compose(r, ask), session.question);
 	go("reading");
 }
 
@@ -432,11 +463,21 @@ const rowHtml = (w: Row) =>
 	`<td>${w.bian ? `${w.bian.qin} ${w.bian.gz}${w.bian.hua ? ` <span class="hua">${w.bian.hua}</span>` : ""}` : ""}</td>` +
 	"</tr>";
 
+/** What the reading page shows now; the 分享卡 is drawn from it. */
+let shown: { question: string; r: CastResult; x: Reading } | undefined;
+
 /** Everything but the question is our own text, so innerHTML is safe here. */
-function render(r: CastResult, x: Reading) {
+function render(r: CastResult, x: Reading, question: string) {
 	const set = (sel: string, text: string, root: ParentNode = readingEl) => {
 		$(sel, root).textContent = text;
 	};
+	shown = { question, r, x };
+	set("[data-question]", question);
+	// 所问默认不上卡
+	withQ.checked = false;
+	$("[data-with-q-label]", shareEl).hidden = !question;
+	cardImg.removeAttribute("src");
+	$<HTMLDetailsElement>("[data-panel]", readingEl).open = matchMedia("(min-width: 1024px)").matches;
 	const g = r.ganzhi;
 	$("[data-lines]", readingEl).innerHTML = benLines(r);
 	set("[data-name]", r.gua.name);
@@ -478,6 +519,112 @@ function render(r: CastResult, x: Reading) {
 	$("[data-rows]", readingEl).innerHTML = p.rows.map(rowHtml).join("");
 }
 
+// ---------------------------------------------------------------- 分享卡
+
+const shareEl = $<HTMLDialogElement>("[data-share-dialog]", readingEl);
+const cardImg = $<HTMLImageElement>("[data-card]", shareEl);
+const withQ = $<HTMLInputElement>("[data-with-q]", shareEl);
+const save = $<HTMLAnchorElement>("[data-save]", shareEl);
+const cardError = $("[data-card-error]", shareEl);
+
+/** Only the latest draw may land: ticking 所问上卡 twice quickly starts two. */
+let draws = 0;
+
+async function drawCard() {
+	if (!shown) return;
+	const { question, r, x } = shown;
+	const n = ++draws;
+	cardError.textContent = "";
+	try {
+		const { card } = await loadCard();
+		const url = await card(r, x.ben, withQ.checked ? question : "");
+		if (n !== draws) return;
+		cardImg.src = url;
+		save.href = url;
+		save.download = `六爻-${r.gua.name}.png`;
+	} catch {
+		cardError.textContent = ERRORS.share;
+	}
+}
+
+$("[data-share]", readingEl).addEventListener("click", () => {
+	shareEl.showModal();
+	void drawCard();
+});
+withQ.addEventListener("change", () => void drawCard());
+
+// ---------------------------------------------------------------- 往卦
+
+const historyEl = screen("history");
+const list = $("[data-list]", historyEl);
+const itemTemplate = $<HTMLTemplateElement>("[data-item]", historyEl);
+const forgetBtn = $<HTMLButtonElement>("[data-forget]", historyEl);
+const back = $("[data-back]", readingEl);
+/** The reading on show was opened from 往卦, so its back arrow returns there. */
+let fromHistory = false;
+
+/** Cast every entry again: the list shows exactly what its reading will. */
+async function showHistory() {
+	disarm();
+	const past = store ? entries(store) : [];
+	historyEl.classList.toggle("empty", past.length === 0);
+	if (!past.length) return list.replaceChildren();
+	const [{ cast }, { compose }] = await Promise.all([loadEngine(), loadReading()]);
+	list.replaceChildren(
+		...past.flatMap((e) => {
+			try {
+				const r = cast(e.params, { date: new Date(e.at), lateZi: e.lateZi });
+				return [pastItem(e, r, compose(r, e.ask))];
+			} catch {
+				return []; // a date the calendar cannot place
+			}
+		}),
+	);
+}
+
+function pastItem(e: Entry, r: CastResult, x: Reading): Node {
+	const li = $("li", itemTemplate.content).cloneNode(true) as HTMLElement;
+	$(".date", li).textContent = `${dayLabel(new Date(e.at))} · ${r.ganzhi.day}日`;
+	$(".gua", li).innerHTML = r.bian ? `${r.gua.name} <small>之</small> ${r.bian.name}` : r.gua.name;
+	$(".q", li).textContent = e.question;
+	const d = $(".duan", li);
+	d.textContent = x.verdict;
+	d.dataset.verdict = x.verdict;
+	$("button", li).addEventListener("click", () => {
+		fromHistory = true;
+		back.setAttribute("aria-label", "回到往卦");
+		render(r, x, e.question);
+		go("reading");
+	});
+	return li;
+}
+
+back.addEventListener("click", (e) => {
+	if (!fromHistory) return;
+	e.preventDefault();
+	go("history");
+});
+
+// 清除全部记录要点两次。
+const FORGET = forgetBtn.textContent ?? "";
+function disarm() {
+	delete forgetBtn.dataset.armed;
+	forgetBtn.textContent = FORGET;
+}
+forgetBtn.addEventListener("click", () => {
+	if (!("armed" in forgetBtn.dataset)) {
+		forgetBtn.dataset.armed = "";
+		forgetBtn.textContent = forgetBtn.dataset.confirm ?? FORGET;
+		return;
+	}
+	try {
+		if (store) forget(store);
+	} catch {
+		// Blocked storage has nothing to clear.
+	}
+	void showHistory();
+});
+
 // ---------------------------------------------------------------- 手动排盘
 
 const manualEl = screen("manual");
@@ -506,6 +653,22 @@ $("[data-manual]", manualEl).addEventListener("submit", async (e) => {
 	pickTopic(null, null);
 });
 
+// ---------------------------------------------------------------- 音效
+
+const soundBtn = $<HTMLButtonElement>("[data-sound]");
+function showSound() {
+	soundBtn.setAttribute("aria-pressed", String(soundOn()));
+	soundBtn.setAttribute("aria-label", `音效：${soundOn() ? "已开启" : "已关闭"}`);
+}
+soundBtn.addEventListener("click", () => {
+	setSound(!soundOn());
+	showSound();
+});
+showSound();
+// Any tap or key will do to let audio start later, when the coins land.
+addEventListener("pointerup", unlock);
+addEventListener("keydown", unlock);
+
 // ---------------------------------------------------------------- 首屏日期
 
 // After load, so tyme4ts never weighs on the first screen; this also warms the engine.
@@ -520,3 +683,9 @@ addEventListener("load", () =>
 		}
 	}),
 );
+
+// 「再问一事」「起卦」 reload the page into 写下所问, so nothing of an earlier cast carries over.
+if (new URLSearchParams(location.search).has("ask")) {
+	window.history.replaceState(null, "", "/");
+	go("ask");
+}

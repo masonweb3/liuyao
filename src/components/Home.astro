@@ -8,9 +8,13 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       <span class="seal" aria-hidden="true">爻</span>
       <span class="name">六爻</span>
     </div>
-    <button class="sound" aria-label="音效：已关闭">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
-    </button>
+    <nav class="acts">
+      <!-- 设计稿手机首屏没有往卦入口，照桌面版放在这里 -->
+      <button class="past" data-go="history">往卦</button>
+      <button class="sound" aria-label="音效：已关闭" aria-pressed="false" data-sound>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"></path><path class="on" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"></path></svg>
+      </button>
+    </nav>
   </header>
   <main>
     <h1 class="motto" aria-label="心有所疑，不妨一问">
@@ -40,6 +44,30 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     align-items: center;
     height: var(--tap);
   }
+  .acts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .past {
+    min-height: var(--tap);
+    padding: 0 0 0 0.24em;
+    background: none;
+    border: none;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    color: var(--on-night-2);
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .past:hover,
+  .sound:hover {
+    color: var(--on-night);
+  }
+  .sound[aria-pressed="true"] .off,
+  .sound[aria-pressed="false"] .on {
+    display: none;
+  }
   .sound {
     width: var(--tap);
     height: var(--tap);
@@ -50,6 +78,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     border: none;
     color: rgb(248 244 237 / 0.6);
     cursor: pointer;
+    transition: color var(--t-hover);
   }
   .home {
     background: radial-gradient(ellipse 80% 55% at 50% 44%, var(--night-2) 0%, var(--night) 70%);
@@ -165,6 +194,9 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
   @media (min-width: 1024px) {
     header {
       height: 48px;
+    }
+    .acts {
+      gap: 36px;
     }
     .home {
       background: radial-gradient(ellipse 55% 60% at 50% 46%, var(--night-2) 0%, var(--night) 72%);

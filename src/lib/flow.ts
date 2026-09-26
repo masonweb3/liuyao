@@ -40,11 +40,15 @@ export type Screen =
 	| "calm"
 	| "cast"
 	| "reveal"
-	| "reading";
+	| "reading"
+	| "history";
 
-/** Allowed moves. From 静心 on there is no way back (一事一占). */
+/**
+ * Allowed moves. From 静心 on there is no way back (一事一占). 往卦 and the
+ * reading lead only to each other: anything else reloads the page.
+ */
 export const NEXT: Record<Screen, readonly Screen[]> = {
-	home: ["ask", "manual"],
+	home: ["ask", "manual", "history"],
 	manual: ["home", "topic"],
 	ask: ["home", "guard", "decline", "emergency", "insincere", "topic", "calm"],
 	guard: ["home"],
@@ -56,7 +60,8 @@ export const NEXT: Record<Screen, readonly Screen[]> = {
 	calm: ["cast"],
 	cast: ["reveal"],
 	reveal: ["reading"],
-	reading: [],
+	reading: ["history"],
+	history: ["reading"],
 };
 
 /** The question as Jev settled it, or `null` when the asker must choose: Jev was unsure, or it is 婚恋 and needs a gender. */
@@ -96,6 +101,15 @@ export function yaoTitle(i: number, yang: boolean): string {
 	return i === 0 || i === 5 ? `${POS[i]}${n}` : `${n}${POS[i]}`;
 }
 
+/** 爻的毛笔笔触, viewBox 0 0 240 24: 阳一笔，阴两笔. */
+export const STROKES = {
+	yang: ["M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"],
+	yin: [
+		"M5 12.5C3 7.5 8 4.5 17 5L100 6.8C106 7 108.5 10 106.5 13.5C104.5 17 99 17.3 94 17.3L19 19.5C9 20.2 6.5 16.5 5 12.5Z",
+		"M137 12.5C135.5 8 140 5.5 148 5.8L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L150 18.2C141 18.8 138.3 16.3 137 12.5Z",
+	],
+};
+
 /** 一背两字 · 少阳 */
 export const tossCaption = (y: Yao) => `${COINS[y]} · ${YAO_NAME[y]}`;
 
@@ -106,6 +120,13 @@ export function parseYao(input: string): Yao[] | null {
 }
 
 const BEIJING = 8 * 3_600_000;
+
+/** 往卦 dates, in 北京时间: 9月26日, with the year only when it is not this one. */
+export function dayLabel(at: Date, now = new Date()): string {
+	const d = new Date(at.getTime() + BEIJING);
+	const year = d.getUTCFullYear() === new Date(now.getTime() + BEIJING).getUTCFullYear() ? "" : `${d.getUTCFullYear()}年`;
+	return `${year}${d.getUTCMonth() + 1}月${d.getUTCDate()}日`;
+}
 
 /** A moment as an `<input type="datetime-local">` value in 北京时间. */
 export const toBeijingInput = (d: Date) => new Date(d.getTime() + BEIJING).toISOString().slice(0, 16);
