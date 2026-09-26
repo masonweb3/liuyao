@@ -208,7 +208,9 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - SEO：标题改为「六爻 · 在线摇卦起卦、纳甲排盘与白话解读」，重写描述；加了 Open Graph 与 Twitter 卡片标签、1200×630 预览图（`public/og.png`，照首屏画面，源在 `tools/og.html`）、apple-touch-icon、robots.txt（不抓 `/api/`）。canonical、og:url、og:image 和 WebSite 结构化数据要绝对地址，在 `astro.config.mjs` 填上 `site` 之后才输出，已用示例域名构建验证。单页站不做 sitemap。
 - 字体许可登记进 `NOTICE`；子集保留原字体的版权与许可字段（OFL）。
 - 域名定为 `sixyao.app`（2026-09-26 注册），已填 `site` 和 `wrangler.jsonc` 的自定义域名。
-- 还剩：部署，线上验证限流，项目负责人验收。
+- 部署（2026-09-26）：https://sixyao.app 已上线，Worker 名 `liuyao`，自定义域名由 `wrangler deploy` 自动绑定并建 DNS；`TYPESAFE_API_KEY` 已设为生产 secret。线上 `/api/judge` 调 Jev 约 1.5s，在 3s 超时以内。
+- 限流：同一 IP 每分钟 10 次。Cloudflare 的限流计数先缓存在各机器上、异步汇总（官方说明是「宽松、最终一致」），实测连续请求到第 13 次左右才开始返回 429，之后 429 与 200 交替。用来挡刷接口够用，不是精确计数。
+- 还剩：项目负责人验收。
 
 ---
 
