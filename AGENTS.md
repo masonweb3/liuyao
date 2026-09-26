@@ -210,7 +210,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 
 ## 8. 部署
 
-生产环境部署到 Cloudflare Workers，自定义域名待定。域名定了先在 `astro.config.mjs` 填 `site`：canonical、og:image 等要绝对地址的标签靠它才会输出。
+生产环境部署到 Cloudflare Workers，域名 `sixyao.app`（Cloudflare 注册）。它同时写在 `astro.config.mjs` 的 `site`（canonical、og:image 等绝对地址靠它）和 `wrangler.jsonc` 的 `routes`（绑定自定义域名），改域名两处一起改。
 - 在服务器的容器里执行 `pnpm run deploy`（即 `wrangler deploy`）。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
 - `wrangler` 部署需要的 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 放在服务器的 `~/liuyao/.env.deploy`（不进 git），只在执行部署命令时注入。不要把它们放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。

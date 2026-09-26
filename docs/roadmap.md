@@ -207,7 +207,8 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - 部署准备：`imageService: 'passthrough'`、`session: false`，生成的 wrangler 配置里已经没有 IMAGES 和 SESSION。`public/_headers` 给带哈希的 `_astro/*` 长缓存。
 - SEO：标题改为「六爻 · 在线摇卦起卦、纳甲排盘与白话解读」，重写描述；加了 Open Graph 与 Twitter 卡片标签、1200×630 预览图（`public/og.png`，照首屏画面，源在 `tools/og.html`）、apple-touch-icon、robots.txt（不抓 `/api/`）。canonical、og:url、og:image 和 WebSite 结构化数据要绝对地址，在 `astro.config.mjs` 填上 `site` 之后才输出，已用示例域名构建验证。单页站不做 sitemap。
 - 字体许可登记进 `NOTICE`；子集保留原字体的版权与许可字段（OFL）。
-- 还剩：定域名并填 `site`，部署，线上验证限流，项目负责人验收。
+- 域名定为 `sixyao.app`（2026-09-26 注册），已填 `site` 和 `wrangler.jsonc` 的自定义域名。
+- 还剩：部署，线上验证限流，项目负责人验收。
 
 ---
 
