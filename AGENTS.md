@@ -66,6 +66,8 @@ src/
   fonts/            首屏字形子集（tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、robots.txt、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
+.github/workflows/  ci.yml：PR 上跑测试和构建；tag.yml：合并后打日期 tag
+.coderabbit.yaml    CodeRabbit 审 PR 的设置
 docs/               调研与路线图（本地，不进 git）
 CHANGELOG.md        变更记录，版本号＝发布日期
 README.md           英文说明；README.zh-CN.md 是中文版
@@ -212,16 +214,25 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 - Jev 评测（需要 key）：`ssh $STAGE 'cd ~/liuyao && docker compose run --rm app sh -c "set -a; . dist/server/.dev.vars; set +a; pnpm vitest run eval"'`
 - 界面改动完成后，在测试地址上用浏览器看一遍，包括手机尺寸，再报告完成。
 
+### 提交流程
+
+所有改动都走 PR，`main` 有 ruleset 保护，不能直接推送。
+
+1. 从 `main` 开分支，在测试服务器上改完、测完。
+2. 推送分支，开 PR 到 `main`。推分支、开 PR 不用另外请示。
+3. CI（`.github/workflows/ci.yml` 的 `test`：`pnpm test` + `pnpm build`）必须通过。CodeRabbit 会自动审，意见逐条处理或回复理由。它的状态不是必过项：免费版有限流，不能让它卡住合并。
+4. 由项目负责人合并（squash）。**合并就是上线**，见 §8。
+
 ## 8. 部署
 
 生产环境部署到 Cloudflare Workers，域名 `sixyao.app`（Cloudflare 注册）。它同时写在 `astro.config.mjs` 的 `site`（canonical、og:image 等绝对地址靠它）和 `wrangler.jsonc` 的 `routes`（绑定自定义域名），改域名两处一起改。
-- 在服务器的容器里执行 `pnpm run deploy`（即 `wrangler deploy`）。
+- **合并到 `main` 即自动部署**：Worker `liuyao` 接了 Cloudflare Workers Builds，构建命令 `pnpm build`，部署命令 `npx wrangler deploy`。只有 `main` 触发，其他分支不构建（测试环境仍是局域网服务器）。构建变量 `NODE_VERSION`、`PNPM_VERSION` 在 Cloudflare 后台设，改 Node 或 pnpm 大版本时和 `package.json`、`ci.yml` 一起改。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
-- `wrangler` 部署需要的 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 放在服务器的 `~/liuyao/.env.deploy`（不进 git），只在执行部署命令时注入。不要把它们放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
+- 应急时可以从测试服务器手动部署，命令和凭据见 `CLAUDE.local.md`。部署凭据不要放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
 
-每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。再给部署的提交打同名 annotated tag（`git tag -a YYYY.MM.DD`）；同一天再部署，把当天的 tag 移到新提交。
+每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。这一条**写在 PR 里**，日期按预计合并的那天；拖到别的日子才合并，合并前改过来。同名 annotated tag 由 `.github/workflows/tag.yml` 在合并后自动打，同一天再合并会把 tag 移到新提交。
 
-未经项目负责人同意，不要部署生产环境，不要推送代码。
+未经项目负责人同意，不要合并 PR，不要手动部署生产环境。
 
 ## 9. 文案与代码风格
 
