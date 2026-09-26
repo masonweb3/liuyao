@@ -58,6 +58,8 @@ const url = (path: string) => Astro.site && new URL(path, Astro.site).href;
         />
       </>
     )}
+    <!-- 访问统计：Cloudflare Web Analytics，无 cookie。token 本就公开在页面里。 -->
+    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "731230fa0f9c440da87cc41a927d4d43"}'></script>
   </head>
   <body>
     <!-- 爻的墨边：笔触边缘轻微起毛 -->
