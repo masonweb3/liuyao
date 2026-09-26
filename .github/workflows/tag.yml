@@ -1,0 +1,27 @@
+# 合并到 main 即由 Cloudflare Workers Builds 部署；这里给部署的提交打当天（北京时间）的 tag，
+# 同一天再合并就把 tag 移过去。
+# ponytail: 不等 CF 构建结果，构建失败的合并也会被打上 tag；真出现时手动把 tag 移回上一个成功的提交。
+name: Tag
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# 排队执行：连续合并时，后合并的那次一定最后打，tag 不会被旧提交抢回去。
+concurrency:
+  group: tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          d=$(TZ=Asia/Shanghai date +%Y.%m.%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa "$d" -m "$d"
+          git push -f origin "refs/tags/$d"
