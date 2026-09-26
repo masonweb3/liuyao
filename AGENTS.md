@@ -2,7 +2,7 @@
 
 中国风六爻起卦网站。用户先写下所问，再摇六次铜钱成卦，程序排盘并断出吉凶，然后给出白话解读。TypeSafe **Jev** 负责语义判断：把问题分类到用神、做安全拦截。面向海外华人，免费、无广告、不登录。
 
-立项调研和各项决策的依据见 `docs/research.md`，路线图见 `docs/roadmap.md`。本文件与它冲突时，以本文件为准。
+立项调研和各项决策的依据见 `docs/research.md`，路线图见 `docs/roadmap.md`；`docs/` 只在本地，不进 git。上线后的变化和决定记在 `CHANGELOG.md`。本文件与它们冲突时，以本文件为准。
 
 ---
 
@@ -66,7 +66,9 @@ src/
   fonts/            首屏字形子集（tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、robots.txt、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
-docs/research.md
+docs/               调研与路线图（本地，不进 git）
+CHANGELOG.md        变更记录，版本号＝发布日期
+README.md           英文说明；README.zh-CN.md 是中文版
 ```
 
 有需要时再建新目录，不要预先搭空架子。
@@ -216,6 +218,8 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 - 在服务器的容器里执行 `pnpm run deploy`（即 `wrangler deploy`）。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
 - `wrangler` 部署需要的 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 放在服务器的 `~/liuyao/.env.deploy`（不进 git），只在执行部署命令时注入。不要把它们放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
+
+每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。
 
 未经项目负责人同意，不要部署生产环境，不要推送代码。
 

@@ -7,3 +7,5 @@ dist/
 .DS_Store
 CLAUDE.local.md
 .playwright-mcp/
+# 调研与路线图只留本地
+docs/

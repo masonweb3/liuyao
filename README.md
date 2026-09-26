@@ -1,26 +1,31 @@
-# 六爻 · liuyao
+# Liuyao · 六爻
 
-中国风六爻起卦网站。写下所问，静心，摇六次铜钱，成卦，读解。
+**[sixyao.app](https://sixyao.app)** · [中文](README.zh-CN.md)
 
-- **排盘由程序完成**：纳甲、六亲、世应、六神、旬空、伏神、旺衰都是确定性计算，同一卦永远排出同一盘，并用《增删卜易》卦例和 4096 组全量对照做测试。
-- **语义判断用 [TypeSafe Jev](https://docs.typesafe.ai)**：给问题分类以确定用神，并识别自伤、赌博等不宜占问的情况。吉凶由规则判定，不交给模型。
-- **解读**：卦爻辞原文，加本项目原创的白话。
+A six-line (六爻, *liùyáo*) I Ching divination site in a quiet Chinese style. Write down your question, settle your mind, toss three coins six times, and read the hexagram. The interface is in Simplified Chinese.
 
-> 状态：开发中，尚未上线。路线图见 [docs/roadmap.md](docs/roadmap.md)。
+- **The chart is computed, not generated.** Najia (纳甲), the six relations, world and response lines, six spirits, void branches, hidden spirits and strength are all worked out by deterministic code. The same cast always gives the same chart. Tests cover the worked examples from *Zengshan Buyi* (增删卜易) and 4,096 parity fixtures.
+- **Good or bad is decided by rules**, with the reasons shown, never by a language model.
+- **[TypeSafe Jev](https://docs.typesafe.ai) only reads the question**: it sorts it into a topic, which picks the use god (用神), and screens out self-harm, emergencies and gambling. If Jev is unavailable, you pick the topic yourself and everything still works.
+- **Readings** pair the original judgments and line texts (public domain) with plain-language commentary written for this project.
+- **On a phone** you can hold the 摇 button, or turn on shake mode and shake the phone itself.
+- **Free, no ads, no sign-in, no trackers.** Past casts stay in your browser. The question is sent once to Jev for classification and is not logged.
 
-## 文档
-- [AGENTS.md](AGENTS.md)：开发规范（人和 AI 代理都要遵守）
-- [docs/research.md](docs/research.md)：立项调研
-- [docs/roadmap.md](docs/roadmap.md)：MVP 路线图
+## Stack
 
-## 技术栈
-Astro 7 · Cloudflare Workers · TypeScript · tyme4ts · Vitest
+Astro 7 on Cloudflare Workers, TypeScript, [tyme4ts](https://github.com/6tail/tyme4ts) for the calendar, Vitest. Every page is prerendered; the only server route is `/api/judge`, which calls Jev.
 
-## 许可
-本项目**源码公开（source-available），禁止商业使用**，不属于 OSI 定义的开源软件。
+## Development
 
-- 代码：[PolyForm Noncommercial License 1.0.0](LICENSE.md)。允许个人学习、研究和其他非商业用途；商业使用须另外取得书面授权。
-- 原创文案与美术资源：CC BY-NC-SA 4.0。
-- 第三方内容按各自的许可，见 [NOTICE](NOTICE)。
+- [AGENTS.md](AGENTS.md): conventions for people and coding agents (in Chinese).
+- [CHANGELOG.md](CHANGELOG.md): what changed in each release. Versions are release dates.
 
-本站内容仅供传统文化参考与娱乐，不构成医疗、法律或投资建议。
+## License
+
+Source-available, **not open source**: commercial use is not allowed.
+
+- Code: [PolyForm Noncommercial License 1.0.0](LICENSE.md). Personal study, research and other noncommercial use are allowed; commercial use needs written permission.
+- Original copy and artwork: CC BY-NC-SA 4.0.
+- Third-party content keeps its own license; see [NOTICE](NOTICE).
+
+For traditional-culture reference and entertainment only. Not medical, legal or investment advice.
