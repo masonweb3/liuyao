@@ -27,6 +27,7 @@ import {
 	YAO_NAME,
 	yaoTitle,
 } from "../lib/flow.js";
+import { fontOf } from "../lib/gua.js";
 import { asked, type Entry, entries, forget, record } from "../lib/history.js";
 import type { LateZiSect } from "../lib/liuyao/calendar.js";
 import type { Gender, Question, Topic } from "../lib/liuyao/duan.js";
@@ -476,6 +477,14 @@ const revealEl = screen("reveal");
 /** 上爻 on top. */
 const stack = (html: string[]) => html.reverse().join("");
 
+/** 用站酷小薇的一段文字：含小薇缺的字就整段改用宋体，见 fontOf。 */
+const fontStyle = (text: string) => `font-family: var(${fontOf(text)})`;
+
+function setName(el: HTMLElement, text: string) {
+	el.textContent = text;
+	el.style.cssText = fontStyle(text);
+}
+
 const benLines = (r: CastResult) =>
 	stack(
 		r.params.map((y, i) => {
@@ -507,14 +516,14 @@ async function reveal() {
 	const r = formed(cast(session.params, castOptions()));
 
 	$("[data-ben-lines]", revealEl).innerHTML = benLines(r);
-	$("[data-ben-name]", revealEl).textContent = r.gua.name;
+	setName($("[data-ben-name]", revealEl), r.gua.name);
 
 	for (const el of $$("[data-bian]", revealEl)) el.hidden = r.bian === null;
 	if (r.bian) {
 		$("[data-bian-lines]", revealEl).innerHTML = stack(
 			[...r.bian.mark].map((bit, i) => yaoHtml(bit === "1", false, yaoTitle(i, bit === "1"))),
 		);
-		$("[data-bian-name]", revealEl).textContent = r.bian.name;
+		setName($("[data-bian-name]", revealEl), r.bian.name);
 	}
 
 	const g = r.ganzhi;
@@ -571,8 +580,16 @@ function render(r: CastResult, x: Reading, question: string) {
 	$<HTMLDetailsElement>("[data-panel]", readingEl).open = matchMedia("(min-width: 1024px)").matches;
 	const g = r.ganzhi;
 	$("[data-lines]", readingEl).innerHTML = benLines(r);
-	set("[data-name]", r.gua.name);
-	set("[data-zhi]", r.bian ? `之${r.bian.name}` : "");
+	// 本卦、变卦的卦名链到卦页
+	const name = $<HTMLAnchorElement>("[data-name]", readingEl);
+	setName(name, x.ben.name);
+	name.href = x.ben.href;
+	$("[data-zhi]", readingEl).hidden = !x.bian;
+	if (x.bian) {
+		const zhi = $<HTMLAnchorElement>("[data-zhi-name]", readingEl);
+		zhi.textContent = x.bian.name;
+		zhi.href = x.bian.href;
+	}
 	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}时 · 旬空 ${g.xkong}`);
 
 	const duan = $("[data-duan]", readingEl);
@@ -592,7 +609,7 @@ function render(r: CastResult, x: Reading, question: string) {
 		s.hidden = !t;
 		if (!t) return;
 		set("[data-kicker]", `${label} · ${t.short}`, s);
-		set("[data-ci]", t.ci, s);
+		setName($("[data-ci]", s), t.ci);
 		set("[data-bh]", t.baihua, s);
 	};
 	text("ben", "卦辞", x.ben);
@@ -600,7 +617,7 @@ function render(r: CastResult, x: Reading, question: string) {
 
 	set("[data-dong-heading]", x.dong.heading);
 	$("[data-dong-lines]", readingEl).innerHTML = x.dong.lines
-		.map((l) => `<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span><p>${l.text}</p></div>`)
+		.map((l) => `<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span><p style="${fontStyle(l.text)}">${l.text}</p></div>`)
 		.join("");
 	set("[data-dong-note]", x.dong.note);
 
@@ -777,7 +794,9 @@ addEventListener("load", () =>
 );
 
 // 「再问一事」「起卦」 reload the page into 写下所问, so nothing of an earlier cast carries over.
-if (new URLSearchParams(location.search).has("ask")) {
+// 卦页上的「起卦」「往卦」也是这样进来。
+const entry = new URLSearchParams(location.search);
+if (entry.has("ask") || entry.has("history")) {
 	window.history.replaceState(null, "", "/");
-	go("ask");
+	go(entry.has("ask") ? "ask" : "history");
 }

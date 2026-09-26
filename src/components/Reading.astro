@@ -39,8 +39,8 @@ const facts = [
       <section class="gua" aria-label="卦象">
         <div class="lines" data-lines></div>
         <div class="names">
-          <h1 tabindex="-1" data-name data-autofocus></h1>
-          <span class="zhi" data-zhi></span>
+          <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
+          <span class="zhi" data-zhi>之<a class="to-gua" data-zhi-name></a></span>
         </div>
       </section>
       <p class="gz" data-gz></p>
@@ -293,6 +293,16 @@ const facts = [
     letter-spacing: 0.24em;
     line-height: 1;
     outline: none;
+  }
+  /* 卦名链到卦页：不抢眼，颜色随文字，只有一条细线。 */
+  .to-gua {
+    color: inherit;
+    text-decoration: underline 1px var(--rule);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color var(--t-hover);
+  }
+  .to-gua:hover {
+    text-decoration-color: currentColor;
   }
   .zhi {
     padding-top: 50px;

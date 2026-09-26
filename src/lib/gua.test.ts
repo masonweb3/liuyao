@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { GUA, guaPath } from "../data/gua-slugs.js";
 import guaci from "../data/guaci.json" with { type: "json" };
 import { yaoTitle } from "./flow.js";
-import { fontOf, GUA, guaPath, parseGua, shortName } from "./gua.js";
+import { fontOf, parseGua, shortName } from "./gua.js";
 import { GUA64, GUAS, YAOS } from "./liuyao/const.js";
 
 const TEXT: Record<string, string> = guaci;

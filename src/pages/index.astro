@@ -1,9 +1,7 @@
 ---
 import homeBody from '../fonts/home-body.woff2?url';
 import homeDisplay from '../fonts/home-display.woff2?url';
-import webfonts from '../styles/webfonts.css?url';
-import '../styles/fonts.css';
-import '../styles/tokens.css';
+import Page from '../layouts/Page.astro';
 import Ask from '../components/Ask.astro';
 import Calm from '../components/Calm.astro';
 import Cast from '../components/Cast.astro';
@@ -16,107 +14,72 @@ import Reveal from '../components/Reveal.astro';
 import Topic from '../components/Topic.astro';
 import { EMERGENCY, INSINCERE } from '../data/copy';
 
+// 已被搜索引擎收录，不要改。
 const title = '六爻 · 在线摇卦起卦、纳甲排盘与白话解读';
 const description = '心有所疑，不妨一问。写下所问，摇六次铜钱成卦，按纳甲法排盘断吉凶，附卦爻辞原文与白话解读。免费，无广告，不用登录。';
-// 绝对地址要有正式域名（astro.config.mjs 的 site）；没填时这些标签不输出。
-const url = (path: string) => Astro.site && new URL(path, Astro.site).href;
+const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSite', name: '六爻', url: new URL('/', Astro.site).href, inLanguage: 'zh-CN', description };
 ---
 
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#131824" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <!-- 其余的字：不阻塞首次渲染。须排在打包样式之前，首屏子集（fonts.css）才优先。 -->
-    <link rel="stylesheet" href={webfonts} media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href={webfonts} /></noscript>
-    <!-- 首屏的字，见 tools/subset-fonts.py -->
+<Page title={title} description={description} path="/" ogTitle="六爻 · 心有所疑，不妨一问" jsonLd={jsonLd}>
+  <Fragment slot="head">
+    {/* 首屏的字，见 tools/subset-fonts.py（具名 slot 里的 HTML 注释不会输出，所以写成这样） */}
     <link rel="preload" href={homeDisplay} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={homeBody} as="font" type="font/woff2" crossorigin />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="六爻" />
-    <meta property="og:locale" content="zh_CN" />
-    <meta property="og:title" content="六爻 · 心有所疑，不妨一问" />
-    <meta property="og:description" content={description} />
-    <meta name="twitter:card" content="summary_large_image" />
-    {Astro.site && (
-      <>
-        <link rel="canonical" href={url('/')} />
-        <meta property="og:url" content={url('/')} />
-        <meta property="og:image" content={url('/og.png')} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="六爻：心有所疑，不妨一问" />
-        <script
-          type="application/ld+json"
-          set:html={JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebSite', name: '六爻', url: url('/'), inLanguage: 'zh-CN', description })}
-        />
-      </>
-    )}
-    <!-- 访问统计：Cloudflare Web Analytics，无 cookie。token 本就公开在页面里。 -->
-    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "731230fa0f9c440da87cc41a927d4d43"}'></script>
-  </head>
-  <body>
-    <!-- 爻的墨边：笔触边缘轻微起毛 -->
-    <svg class="defs" aria-hidden="true">
-      <filter id="ink">
-        <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" seed="3" result="noise"></feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4"></feDisplacementMap>
-      </filter>
-    </svg>
+  </Fragment>
+  <!-- 爻的墨边：笔触边缘轻微起毛 -->
+  <svg class="defs" aria-hidden="true">
+    <filter id="ink">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" seed="3" result="noise"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4"></feDisplacementMap>
+    </filter>
+  </svg>
 
-    <!-- 一屏一件事：同一时刻只有一屏可见，它就是本页的主体。 -->
-    <main>
-      <Home />
-      <Manual />
-      <Ask />
+  <!-- 一屏一件事：同一时刻只有一屏可见，它就是本页的主体。 -->
+  <main>
+    <Home />
+    <Manual />
+    <Ask />
 
-      <Notice screen="guard" guard title="先停一停" body={['从你写下的话里，我们感到你可能正经历很难熬的时刻。', '这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。']}>
-        <a class="help" href="https://findahelpline.com" target="_blank" rel="noopener">
-          查找你所在地区的求助热线
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
-        </a>
-        <a class="tel" href="tel:12356"><span>拨打 12356 心理援助热线</span><span class="where">中国大陆</span></a>
-        <button class="quiet" data-go="home" data-clear>我想先静一静</button>
-        <p class="note">如果你正身处危险之中，请立即拨打当地紧急电话。</p>
-      </Notice>
+    <Notice screen="guard" guard title="先停一停" body={['从你写下的话里，我们感到你可能正经历很难熬的时刻。', '这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。']}>
+      <a class="help" href="https://findahelpline.com" target="_blank" rel="noopener">
+        查找你所在地区的求助热线
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+      </a>
+      <a class="tel" href="tel:12356"><span>拨打 12356 心理援助热线</span><span class="where">中国大陆</span></a>
+      <button class="quiet" data-go="home" data-clear>我想先静一静</button>
+      <p class="note">如果你正身处危险之中，请立即拨打当地紧急电话。</p>
+    </Notice>
 
-      <Notice screen="decline" title="此问不占" body={['彩票号码、赌局输赢，是概率之事，卦象给不出答案。', '卦为心中之疑而设。换一件真正让你犹豫的事，再来问。']}>
-        <Fragment slot="extra">
-          <svg class="stroke" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
-          <p class="quote">善为《易》者不占。<span>——《荀子·大略》</span></p>
-        </Fragment>
-        <button class="btn" style="--ls: 0.5em" data-go="ask" data-clear>换一件事问</button>
-      </Notice>
+    <Notice screen="decline" title="此问不占" body={['彩票号码、赌局输赢，是概率之事，卦象给不出答案。', '卦为心中之疑而设。换一件真正让你犹豫的事，再来问。']}>
+      <Fragment slot="extra">
+        <svg class="stroke" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
+        <p class="quote">善为《易》者不占。<span>——《荀子·大略》</span></p>
+      </Fragment>
+      <button class="btn" style="--ls: 0.5em" data-go="ask" data-clear>换一件事问</button>
+    </Notice>
 
-      <Notice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body}>
-        <button class="btn" style="--ls: 0.5em" data-go="home" data-clear>{EMERGENCY.back}</button>
-        <button class="quiet" data-proceed>{EMERGENCY.proceed}</button>
-        <p class="note">{EMERGENCY.note}</p>
-      </Notice>
+    <Notice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body}>
+      <button class="btn" style="--ls: 0.5em" data-go="home" data-clear>{EMERGENCY.back}</button>
+      <button class="quiet" data-proceed>{EMERGENCY.proceed}</button>
+      <p class="note">{EMERGENCY.note}</p>
+    </Notice>
 
-      <Notice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]}>
-        <button class="btn" style="--ls: 0.5em" data-go="ask">{INSINCERE.action}</button>
-      </Notice>
+    <Notice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]}>
+      <button class="btn" style="--ls: 0.5em" data-go="ask">{INSINCERE.action}</button>
+    </Notice>
 
-      <Topic />
-      <Calm />
-      <Cast />
-      <Reveal />
-      <Reading />
-      <History />
-    </main>
+    <Topic />
+    <Calm />
+    <Cast />
+    <Reveal />
+    <Reading />
+    <History />
+  </main>
 
-    <script>
-      import '../scripts/ritual.ts';
-    </script>
-  </body>
-</html>
+  <script>
+    import '../scripts/ritual.ts';
+  </script>
+</Page>
 
 <style is:global>
   html,

@@ -3,17 +3,23 @@
  * 断语、依据、建议、卦爻辞与白话、完整盘面. Zero DOM; ritual.ts renders it.
  */
 import baihua from "../data/baihua.json" with { type: "json" };
+import { guaPath } from "../data/gua-slugs.js";
 import guaci from "../data/guaci.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "../data/templates.js";
 import { posName, yaoTitle } from "./flow.js";
+import { shortName } from "./gua.js";
 import { GUAS, type Qing6, type Shen6 } from "./liuyao/const.js";
 import { duan, hua, type Question, type Topic, type Verdict } from "./liuyao/duan.js";
 import type { CastResult, Hexagram } from "./liuyao/najia.js";
 import { getType, gongXing, setShiYao, yaoXing } from "./liuyao/utils.js";
 
 export interface GuaText {
+	/** 兑为泽 */
+	name: string;
 	/** 兑、同人 */
 	short: string;
+	/** 卦页：/gua/dui-wei-ze/ */
+	href: string;
 	/** 卦辞原文 */
 	ci: string;
 	baihua: string;
@@ -77,10 +83,10 @@ const LABEL: Partial<Record<Topic, string>> = { 子孙: "子女", 兄弟: "朋�
 
 const lines = (name: string) => (GUACI[name] as string).split("\n");
 
-/** Line 0 is 「《易经》第一卦 乾 乾为天 乾上乾下」; line 1 the whole 卦辞. */
+/** Line 1 of a 卦 is the whole 卦辞. */
 function guaText(name: string): GuaText {
-	const [title = "", ci = ""] = lines(name);
-	return { short: title.split(" ")[1] as string, ci, baihua: BAIHUA[name] as string };
+	const [, ci = ""] = lines(name);
+	return { name, short: shortName(name), href: guaPath(name), ci, baihua: BAIHUA[name] as string };
 }
 
 /** 爻辞 for 爻题, without its 小象. */

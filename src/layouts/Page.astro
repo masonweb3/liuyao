@@ -1,0 +1,63 @@
+---
+// 全站公共的 <head>：每页自己的 title、description、canonical、OG，外加访问统计（AGENTS.md §8：每页都要带）。
+// 首页的输出不能变（title、description 已被收录）：改这里要和线上首页的 <head> 对比一遍。
+// 模板里的 HTML 注释会原样输出到页面，改注释也会改变首页的 <head>。
+import webfonts from '../styles/webfonts.css?url';
+import '../styles/fonts.css';
+import '../styles/tokens.css';
+
+interface Props {
+  title: string;
+  description: string;
+  /** 本页路径，带尾斜杠（/gua/di-tian-tai/）：canonical 与 og:url */
+  path: string;
+  /** 分享预览的标题，默认同 title */
+  ogTitle?: string;
+  /** 手机浏览器地址栏的颜色：暗场用燕颔蓝，纸面用汉白玉 */
+  themeColor?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description, path, ogTitle = title, themeColor = '#131824', jsonLd } = Astro.props;
+// 绝对地址要有正式域名（astro.config.mjs 的 site）；没填时这些标签不输出。
+const url = (p: string) => Astro.site && new URL(p, Astro.site).href;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content={themeColor} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- 其余的字：不阻塞首次渲染。须排在打包样式之前，首屏子集（fonts.css）才优先。 -->
+    <link rel="stylesheet" href={webfonts} media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href={webfonts} /></noscript>
+    <slot name="head" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="六爻" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={description} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {Astro.site && (
+      <>
+        <link rel="canonical" href={url(path)} />
+        <meta property="og:url" content={url(path)} />
+        <meta property="og:image" content={url('/og.png')} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="六爻：心有所疑，不妨一问" />
+        {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+      </>
+    )}
+    <!-- 访问统计：Cloudflare Web Analytics，无 cookie。token 本就公开在页面里。 -->
+    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "731230fa0f9c440da87cc41a927d4d43"}'></script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

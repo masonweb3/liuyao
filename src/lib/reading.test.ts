@@ -23,6 +23,11 @@ describe("卦例 A：亥月己丑日，兑为泽之天水讼，问事业", () =>
 		expect(x.bian?.short).toBe("讼");
 	});
 
+	it("本卦、变卦链到各自的卦页", () => {
+		expect(x.ben.href).toBe("/gua/dui-wei-ze/");
+		expect(x.bian?.href).toBe("/gua/tian-shui-song/");
+	});
+
 	it("两爻齐动，以上爻为主", () => {
 		expect(x.dong.heading).toBe("动爻 · 两爻齐动，以上爻为主");
 		expect(x.dong.lines).toEqual([

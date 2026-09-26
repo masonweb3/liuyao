@@ -5,6 +5,7 @@
  */
 import { DISCLAIMER } from "../data/copy.js";
 import { isMoving, isYang, STROKES } from "../lib/flow.js";
+import { fontOf } from "../lib/gua.js";
 import type { CastResult } from "../lib/liuyao/najia.js";
 import type { GuaText } from "../lib/reading.js";
 
@@ -34,12 +35,15 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 	const name = r.gua.name;
 	const zhi = r.bian ? `之${r.bian.name}` : "";
 	const asked = question.replace(/\s+/g, " ").trim();
+	// 卦名、卦辞含站酷小薇缺的字时整段改用宋体；canvas 也是逐字回退，不改就会混排。
+	const nameFont = v(fontOf(name));
+	const ciFont = v(fontOf(ben.ci));
 
 	// The fonts load in unicode-range slices as the page needs them; a 卦 the
 	// page has not shown yet would otherwise draw in a fallback font.
 	await Promise.all([
 		document.fonts.load(`76px ${display}`, `爻${name}${ben.ci}`),
-		document.fonts.load(`36px ${body}`, `六爻所问○×…${zhi}${ben.baihua}${date}${foot}${asked}`),
+		document.fonts.load(`36px ${body}`, `六爻所问○×…${zhi}${ben.baihua}${date}${foot}${asked}${name}${ben.ci}`),
 	]);
 
 	const canvas = document.createElement("canvas");
@@ -115,7 +119,7 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 	let ciPx = 76;
 	let ci: string[] = [];
 	for (ciPx of [76, 64, 56, 48]) {
-		pen(ciPx, display, ink);
+		pen(ciPx, ciFont, ink);
 		ci = wrap(ben.ci, textW, ciPx * 0.2);
 		if (ci.length <= 2) break;
 	}
@@ -168,7 +172,7 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 		}
 	});
 	const groupTop = y + (guaH - gua.groupH) / 2;
-	pen(namePx, display, ink);
+	pen(namePx, nameFont, ink);
 	column(name, RIGHT - namePx / 2, groupTop, namePx, namePx * 0.2);
 	pen(48 * k, body, ink2);
 	column(zhi, RIGHT - namePx - 64 * k, groupTop + namePx, 48 * k, 14.4 * k);
@@ -178,7 +182,7 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 	c.fillStyle = v("--rule");
 	c.fillRect(LEFT, y, textW, 2);
 	y += 62;
-	pen(ciPx, display, ink);
+	pen(ciPx, ciFont, ink);
 	lines(ci, LEFT, y, ciLh, ciPx * 0.2);
 	y += ci.length * ciLh + 30;
 	pen(36, body, ink2);

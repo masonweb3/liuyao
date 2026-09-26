@@ -1,0 +1,96 @@
+---
+// 卦页、目录页底部的暗色一块，把人引回起卦：卦是摇出来的，不是挑出来的。
+interface Props {
+  /** 卦页：多一句说明；桌面放进左栏，文字左对齐。 */
+  aside?: boolean;
+}
+const { aside = false } = Astro.props;
+---
+
+<section class:list={['invite', { aside }]} aria-label="起卦">
+  <p class="slogan">心有所疑，不妨一问</p>
+  <p class="why">
+    卦是摇出来的，不是挑出来的。{aside && <><br />写下一件事，摇六次铜钱，看它落在哪一卦。</>}
+  </p>
+  <a class="go" href="/?ask">起卦</a>
+</section>
+
+<style>
+  .invite {
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 36px var(--gutter) 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: var(--night);
+    text-align: center;
+  }
+  .aside {
+    gap: 18px;
+  }
+  p {
+    margin: 0;
+  }
+  .slogan {
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    color: var(--on-night);
+  }
+  .why {
+    font-size: 13px;
+    line-height: 1.8;
+    letter-spacing: 0.08em;
+    color: var(--on-night-2);
+  }
+  .go {
+    width: 100%;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.6em;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    color: var(--gold-hi);
+    font-size: 17px;
+    letter-spacing: 0.6em;
+    text-decoration: none;
+    transition: border-color var(--t-hover);
+  }
+  .go:hover {
+    border-color: var(--gold-hi);
+  }
+  .go:focus-visible {
+    outline-color: var(--gold-hi);
+  }
+
+  @media (min-width: 1024px) {
+    .invite {
+      width: min(1120px, 100%);
+      box-sizing: border-box;
+      margin-inline: auto;
+      border-radius: var(--radius);
+    }
+    .invite:not(.aside) .go {
+      width: 240px;
+    }
+    .aside {
+      width: auto;
+      padding: 28px;
+      align-items: stretch;
+      gap: 16px;
+      text-align: left;
+    }
+    .aside .why {
+      font-size: var(--fs-s);
+      letter-spacing: 0.06em;
+    }
+    .aside br {
+      display: none;
+    }
+  }
+</style>
