@@ -176,8 +176,9 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 卦名、标语、竖排文字用站酷小薇（`@fontsource/zcool-xiaowei`，OFL）。
   - 全部自托管，按 unicode-range 切片加载。
   - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。
-  - 卦页每页一份站酷小薇子集（卦名、卦辞、爻辞用到的字，平均十几 KB），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json` 或 `gua-slugs.ts` 要重跑同一个脚本。
-  - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一段用小薇的文字（卦名、一句卦辞、一条爻辞）里只要有缺字，整段改用宋体，不逐字回退。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数。
+  - 首屏子集的 `fonts.css` 只由首页引入，不要放进公共布局：卦页会用上它，又没预加载，换字体时产生布局偏移。
+  - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
+  - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包，成卦页按需加载，解读页和分享卡用 `compose()` 带出的字体。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。
@@ -244,7 +245,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 生产环境部署到 Cloudflare Workers，域名 `sixyao.app`（Cloudflare 注册）。它同时写在 `astro.config.mjs` 的 `site`（canonical、og:image 等绝对地址靠它）和 `wrangler.jsonc` 的 `routes`（绑定自定义域名），改域名两处一起改。
 - **合并到 `main` 即自动部署**：Worker `liuyao` 接了 Cloudflare Workers Builds，构建命令 `pnpm build`，部署命令 `npx wrangler deploy`。只有 `main` 触发，其他分支不构建（测试环境仍是局域网服务器）。构建变量 `NODE_VERSION`、`PNPM_VERSION` 在 Cloudflare 后台设，改 Node 或 pnpm 大版本时和 `package.json`、`ci.yml` 一起改。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
-- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本手动写在 `src/pages/index.astro` 的 `<head>`；以后加新页面，每页都要带上。Cloudflare 后台 sixyao.app 的 Web Analytics 自动注入（zone 的 RUM 设置）要保持关闭：它只给浏览器请求注入脚本，用 curl 默认请求头看不到；开着就会和手写的那段重复计数。
+- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本写在公共布局 `src/layouts/Page.astro` 的 `<head>` 里，用这个布局的页面自动带上；新页面要用这个布局（纸面知识页用套在它外面的 `Paper.astro`），不要再手写一段。Cloudflare 后台 sixyao.app 的 Web Analytics 自动注入（zone 的 RUM 设置）要保持关闭：它只给浏览器请求注入脚本，用 curl 默认请求头看不到；开着就会和手写的那段重复计数。
 - 应急时可以从测试服务器手动部署，命令和凭据见 `CLAUDE.local.md`。部署凭据不要放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
 
 每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。这一条**写在 PR 里**，日期按预计合并的那天；拖到别的日子才合并，合并前改过来。同名 annotated tag 由 `.github/workflows/tag.yml` 在合并后自动打，同一天再合并会把 tag 移到新提交。

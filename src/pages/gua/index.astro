@@ -4,8 +4,7 @@ import Invite from '../../components/Invite.astro';
 import Paper from '../../layouts/Paper.astro';
 import { GUA, guaPath } from '../../data/gua-slugs';
 import guaci from '../../data/guaci.json';
-import { parseGua, shortName } from '../../lib/gua';
-import { GUA64 } from '../../lib/liuyao/const';
+import { markOf, parseGua, shortName } from '../../lib/gua';
 
 const TEXT: Record<string, string> = guaci;
 const items = GUA.map(([name]) => ({
@@ -13,8 +12,8 @@ const items = GUA.map(([name]) => ({
   short: shortName(name),
   // 第十一卦 → 第十一
   no: parseGua(TEXT[name]!).no.slice(0, -1),
-  // 上爻在上
-  lines: [...Object.keys(GUA64).find((m) => GUA64[m] === name)!].reverse().map((b) => b === '1'),
+  // 上爻在上。格子不另设 aria-label：读屏直接读看得见的字「泰 第十一」，两边一致。
+  lines: [...markOf(name)].reverse().map((b) => b === '1'),
 }));
 const parts = [
   { id: 'shang', title: '上经 · 乾至离', items: items.slice(0, 30) },
@@ -37,7 +36,7 @@ const description =
         <h2 id={part.id}>{part.title}</h2>
         <div class="grid">
           {part.items.map((g) => (
-            <a href={guaPath(g.name)} aria-label={`${g.no}卦 ${g.name}`}>
+            <a href={guaPath(g.name)}>
               <span class="lines" aria-hidden="true">
                 {g.lines.map((yang) => <span class:list={['yao', { yang }]} />)}
               </span>

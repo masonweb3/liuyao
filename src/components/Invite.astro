@@ -68,6 +68,14 @@ const { aside = false } = Astro.props;
     outline-color: var(--gold-hi);
   }
 
+  /* 768–1023：内容列居中、最宽 640px。出血只多出一个边距，像浮在外面；改为与内容列对齐、带圆角。 */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .invite {
+      margin-inline: 0;
+      border-radius: var(--radius);
+    }
+  }
+
   @media (min-width: 1024px) {
     .invite {
       width: min(1120px, 100%);

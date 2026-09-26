@@ -79,4 +79,8 @@ export const GUA: readonly (readonly [name: string, slug: string])[] = [
 ];
 
 /** 卦页网址，带尾斜杠（canonical、sitemap、站内链接都用这一种）：/gua/di-tian-tai/ */
-export const guaPath = (name: string) => `/gua/${GUA.find(([n]) => n === name)?.[1]}/`;
+export function guaPath(name: string): string {
+	const slug = GUA.find(([n]) => n === name)?.[1];
+	if (!slug) throw new Error(`不认识的卦名：${name}`);
+	return `/gua/${slug}/`;
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUA, guaPath } from "../data/gua-slugs.js";
 import guaci from "../data/guaci.json" with { type: "json" };
 import { yaoTitle } from "./flow.js";
-import { fontOf, parseGua, shortName } from "./gua.js";
+import { fontOf, gongOf, markOf, neighbors, parseGua, related, shortName } from "./gua.js";
 import { GUA64, GUAS, YAOS } from "./liuyao/const.js";
 
 const TEXT: Record<string, string> = guaci;
@@ -27,9 +27,10 @@ describe("slug 表", () => {
 		GUA.forEach(([name], i) => expect(parseGua(TEXT[name] as string).no, name).toBe(`第${cn(i + 1)}卦`));
 	});
 
-	it("网址带尾斜杠", () => {
+	it("网址带尾斜杠；不认识的卦名直接报错", () => {
 		expect(guaPath("地天泰")).toBe("/gua/di-tian-tai/");
 		expect(guaPath("天泽履")).toBe("/gua/tian-ze-lv/");
+		expect(() => guaPath("天天天")).toThrow();
 	});
 });
 
@@ -67,11 +68,52 @@ describe("parseGua", () => {
 });
 
 describe("fontOf", () => {
-	it("含站酷小薇缺字的整段改用宋体", () => {
+	it("含站酷小薇缺字的整块改用宋体", () => {
 		expect(fontOf("地天泰")).toBe("--font-display");
 		expect(fontOf("天山遁")).toBe("--font-display");
 		expect(fontOf("泽天夬")).toBe("--font-body");
 		expect(fontOf("天风姤")).toBe("--font-body");
 		expect(fontOf("遯：亨。小利贞。")).toBe("--font-body");
+	});
+
+	it("全部爻辞算一块：一行缺字，整组宋体", () => {
+		const yao = parseGua(TEXT["天风姤"] as string).yao.map((y) => y.text);
+		expect(fontOf(yao[1] as string)).toBe("--font-display"); // 九二：包有鱼…
+		expect(fontOf(yao.join(""))).toBe("--font-body");
+	});
+});
+
+describe("卦页推导", () => {
+	it("卦码初爻在前；不认识的卦名直接报错", () => {
+		expect(markOf("乾为天")).toBe("111111");
+		expect(markOf("水雷屯")).toBe("100010");
+		expect(() => markOf("天天天")).toThrow();
+	});
+
+	it("错卦、综卦、互卦", () => {
+		expect(related("乾为天")).toEqual([["错卦", "坤为地"], ["综卦", "乾为天"], ["互卦", "乾为天"]]);
+		expect(related("地天泰")).toEqual([["错卦", "天地否"], ["综卦", "天地否"], ["互卦", "雷泽归妹"]]);
+		expect(related("水雷屯")[1]).toEqual(["综卦", "山水蒙"]);
+	});
+
+	it("乾宫八卦的卦宫与世", () => {
+		const qian = ["乾为天", "天风姤", "天山遁", "天地否", "风地观", "山地剥", "火地晋", "火天大有"];
+		expect(qian.map(gongOf)).toEqual([
+			"乾宫 · 八纯卦",
+			"乾宫 · 一世卦",
+			"乾宫 · 二世卦",
+			"乾宫 · 三世卦",
+			"乾宫 · 四世卦",
+			"乾宫 · 五世卦",
+			"乾宫 · 游魂卦",
+			"乾宫 · 归魂卦",
+		]);
+		expect(gongOf("地天泰")).toBe("坤宫 · 三世卦");
+	});
+
+	it("上一卦、下一卦不循环", () => {
+		expect(neighbors("乾为天")).toEqual({ prev: undefined, next: "坤为地" });
+		expect(neighbors("地天泰")).toEqual({ prev: "天泽履", next: "天地否" });
+		expect(neighbors("火水未济")).toEqual({ prev: "水火既济", next: undefined });
 	});
 });

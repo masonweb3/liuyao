@@ -5,7 +5,6 @@
  */
 import { DISCLAIMER } from "../data/copy.js";
 import { isMoving, isYang, STROKES } from "../lib/flow.js";
-import { fontOf } from "../lib/gua.js";
 import type { CastResult } from "../lib/liuyao/najia.js";
 import type { GuaText } from "../lib/reading.js";
 
@@ -35,15 +34,15 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 	const name = r.gua.name;
 	const zhi = r.bian ? `之${r.bian.name}` : "";
 	const asked = question.replace(/\s+/g, " ").trim();
-	// 卦名、卦辞含站酷小薇缺的字时整段改用宋体；canvas 也是逐字回退，不改就会混排。
-	const nameFont = v(fontOf(name));
-	const ciFont = v(fontOf(ben.ci));
+	// 卦名、卦辞含站酷小薇缺的字时整块改用宋体（compose 已按 fontOf 算好）；canvas 也是逐字回退，不改就会混排。
+	const nameFont = v(ben.font);
+	const ciFont = v(ben.ciFont);
 
 	// The fonts load in unicode-range slices as the page needs them; a 卦 the
 	// page has not shown yet would otherwise draw in a fallback font.
 	await Promise.all([
 		document.fonts.load(`76px ${display}`, `爻${name}${ben.ci}`),
-		document.fonts.load(`36px ${body}`, `六爻所问○×…${zhi}${ben.baihua}${date}${foot}${asked}${name}${ben.ci}`),
+		document.fonts.load(`36px ${body}`, `六爻所问○×…${zhi}${ben.baihua}${date}${foot}${asked}`),
 	]);
 
 	const canvas = document.createElement("canvas");

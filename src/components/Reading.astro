@@ -294,15 +294,21 @@ const facts = [
     line-height: 1;
     outline: none;
   }
-  /* 卦名链到卦页：不抢眼，颜色随文字，只有一条细线。 */
+  /* 卦名链到卦页：不抢眼，颜色随文字；竖排时常驻的下划线像一条分隔线，只在悬停、聚焦时出现。 */
   .to-gua {
     color: inherit;
-    text-decoration: underline 1px var(--rule);
+    text-decoration: none;
     text-underline-offset: 0.3em;
-    transition: text-decoration-color var(--t-hover);
   }
-  .to-gua:hover {
-    text-decoration-color: currentColor;
+  .to-gua:hover,
+  .to-gua:focus-visible {
+    text-decoration: underline 1px;
+  }
+  /* 「之X」字小，可点区域撑到 24px 以上，不改变排版 */
+  .zhi .to-gua {
+    display: inline-block;
+    padding: 6px;
+    margin: -6px;
   }
   .zhi {
     padding-top: 50px;

@@ -2,8 +2,9 @@
 // 全站公共的 <head>：每页自己的 title、description、canonical、OG，外加访问统计（AGENTS.md §8：每页都要带）。
 // 首页的输出不能变（title、description 已被收录）：改这里要和线上首页的 <head> 对比一遍。
 // 模板里的 HTML 注释会原样输出到页面，改注释也会改变首页的 <head>。
+// 首屏子集（fonts.css）只由首页引入：放在这里，卦页也会用上它，而它排在卦页自己的小薇子集之后，
+// 同一个字就去拿没预加载的首页字体文件。
 import webfonts from '../styles/webfonts.css?url';
-import '../styles/fonts.css';
 import '../styles/tokens.css';
 
 interface Props {

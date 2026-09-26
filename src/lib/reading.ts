@@ -7,7 +7,7 @@ import { guaPath } from "../data/gua-slugs.js";
 import guaci from "../data/guaci.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "../data/templates.js";
 import { posName, yaoTitle } from "./flow.js";
-import { shortName } from "./gua.js";
+import { fontOf, shortName } from "./gua.js";
 import { GUAS, type Qing6, type Shen6 } from "./liuyao/const.js";
 import { duan, hua, type Question, type Topic, type Verdict } from "./liuyao/duan.js";
 import type { CastResult, Hexagram } from "./liuyao/najia.js";
@@ -20,6 +20,9 @@ export interface GuaText {
 	short: string;
 	/** 卦页：/gua/dui-wei-ze/ */
 	href: string;
+	/** 卦名、卦辞各用哪种字体（fontOf）：tokens.css 的变量名 */
+	font: string;
+	ciFont: string;
 	/** 卦辞原文 */
 	ci: string;
 	baihua: string;
@@ -58,7 +61,8 @@ export interface Reading {
 	advice: string[];
 	ben: GuaText;
 	bian: GuaText | null;
-	dong: { heading: string; lines: YaoText[]; note: string };
+	/** `font`: 这几条爻辞算一块，用哪种字体 */
+	dong: { heading: string; lines: YaoText[]; note: string; font: string };
 	panel: {
 		/** 四柱 */
 		pillars: string;
@@ -86,7 +90,15 @@ const lines = (name: string) => (GUACI[name] as string).split("\n");
 /** Line 1 of a 卦 is the whole 卦辞. */
 function guaText(name: string): GuaText {
 	const [, ci = ""] = lines(name);
-	return { name, short: shortName(name), href: guaPath(name), ci, baihua: BAIHUA[name] as string };
+	return {
+		name,
+		short: shortName(name),
+		href: guaPath(name),
+		font: fontOf(name),
+		ciFont: fontOf(ci),
+		ci,
+		baihua: BAIHUA[name] as string,
+	};
 }
 
 /** 爻辞 for 爻题, without its 小象. */
@@ -97,7 +109,7 @@ function yaoCi(name: string, title: string): YaoText {
 
 const NUM = "一二三四五六";
 
-function dong(r: CastResult): Reading["dong"] {
+function dong(r: CastResult): Omit<Reading["dong"], "font"> {
 	const name = r.gua.name;
 	const n = r.dong.length;
 	if (n === 0) return { heading: "静卦", lines: [], note: SPECIAL.jingGua };
@@ -118,6 +130,11 @@ function dong(r: CastResult): Reading["dong"] {
 		note: "",
 	};
 }
+
+const withFont = (d: Omit<Reading["dong"], "font">): Reading["dong"] => ({
+	...d,
+	font: fontOf(d.lines.map((l) => l.text).join("")),
+});
 
 function basis(q: Question, qin: Qing6): string {
 	const head = `所问属「${LABEL[q.topic] ?? q.topic}」，`;
@@ -178,7 +195,7 @@ export function compose(r: CastResult, q: Question): Reading {
 		advice: t.advice,
 		ben: guaText(gua.name),
 		bian: bian && guaText(bian.name),
-		dong: dong(r),
+		dong: withFont(dong(r)),
 		panel: {
 			pillars: [g.year, g.month, g.day, g.hour].join(" "),
 			kong: g.xkong,

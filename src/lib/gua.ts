@@ -1,7 +1,11 @@
 /**
- * 卦页用的小工具：卦名简称、卦名字体、卦爻辞拆分。零 DOM，也不引数据文件。
- * 卦页网址在 src/data/gua-slugs.ts。
+ * 卦页用的小工具：卦名简称、卦名字体、卦爻辞拆分、相关卦与卦宫。零 DOM，也不引 JSON 数据：
+ * 卦爻辞原文由调用方传进来。卦页网址在 src/data/gua-slugs.ts。
+ * 起卦脚本的入口包不引这个模块（首屏 JS 不增加），成卦、解读、分享卡都是按需加载后才用。
  */
+import { GUA } from "../data/gua-slugs.js";
+import { GUA64, GUAS } from "./liuyao/const.js";
+import { palace, setShiYao, soul } from "./liuyao/utils.js";
 
 /** 卦名简称：乾为天 → 乾，地天泰 → 泰，风天小畜 → 小畜。遁卦用「遁」，不用 guaci.json 首行的「遯」。 */
 export const shortName = (name: string) => (name[1] === "为" ? name.slice(0, 1) : name.slice(2));
@@ -13,9 +17,9 @@ export const shortName = (name: string) => (name[1] === "为" ? name.slice(0, 1)
 const NO_XIAOWEI = /[㧑刲卼咥咷嗃夬姤寘愬柅洟牿甃畬禴稊窞繘繻纆胏脢臲茀菑蔀藟虩衎袽豮輹遯邅鞶頄颙餗鼫]/;
 
 /**
- * 本该用站酷小薇的一段文字（一个卦名、一句卦辞、一条爻辞）实际用哪种字体：
- * 含小薇缺的字就整段改用宋体，不让浏览器逐字回退、一段里混着两种字体。
- * 返回 tokens.css 的变量名，页面写 `var(…)`，canvas 读它的值。
+ * 本该用站酷小薇的一块文字实际用哪种字体：含小薇缺的字就整块改用宋体，不让浏览器逐字回退、
+ * 一块里混着两种字体。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（调用方拼起来传入），
+ * 免得爻辞一行小薇一行宋体。返回 tokens.css 的变量名，页面写 `var(…)`，canvas 读它的值。
  */
 export const fontOf = (text: string) => (NO_XIAOWEI.test(text) ? "--font-body" : "--font-display");
 
@@ -57,4 +61,38 @@ export function parseGua(text: string): GuaCi {
 		yao.push({ title: line.slice(0, 2), text: line.slice(3), xiang: rest[i + 1] ?? "" });
 	}
 	return { no, upper: trigrams.slice(0, 1), lower: trigrams.slice(2, 3), ci, tuan, xiang, yao };
+}
+
+/** 卦码：六位，初爻在前，1 阳 0 阴（见 const.ts 的 GUA64）。 */
+export function markOf(name: string): string {
+	const mark = Object.keys(GUA64).find((m) => GUA64[m] === name);
+	if (!mark) throw new Error(`不认识的卦名：${name}`);
+	return mark;
+}
+
+const named = (mark: string) => GUA64[mark] as string;
+
+/** 错卦（六爻阴阳全变）、综卦（上下颠倒）、互卦（二至四爻为下卦，三至五爻为上卦）。与本卦相同时照样列出。 */
+export function related(name: string): [kind: string, name: string][] {
+	const m = markOf(name);
+	return [
+		["错卦", named([...m].map((b) => (b === "1" ? "0" : "1")).join(""))],
+		["综卦", named([...m].reverse().join(""))],
+		["互卦", named(m.slice(1, 4) + m.slice(2, 5))],
+	];
+}
+
+/** 卦宫与世：坤宫 · 三世卦，乾宫 · 八纯卦，乾宫 · 游魂卦。 */
+export function gongOf(name: string): string {
+	const m = markOf(name);
+	const { shi } = setShiYao(m);
+	const hun = soul(m);
+	return `${GUAS[palace(m, shi)]}宫 · ${hun ? `${hun}卦` : shi === 6 ? "八纯卦" : `${"一二三四五"[shi - 1]}世卦`}`;
+}
+
+/** 通行本卦序的上一卦、下一卦。乾没有上一卦，未济没有下一卦，不循环。 */
+export function neighbors(name: string): { prev?: string; next?: string } {
+	const i = GUA.findIndex(([n]) => n === name);
+	if (i < 0) throw new Error(`不认识的卦名：${name}`);
+	return { prev: GUA[i - 1]?.[0], next: GUA[i + 1]?.[0] };
 }

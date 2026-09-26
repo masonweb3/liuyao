@@ -13,7 +13,7 @@
   然后把 src/fonts/home-*.woff2、src/fonts/gua/ 和 src/styles/fonts.css 拷回本机提交。
 漏掉的字不会出错，只是回到 fontsource 的切片，慢一些。
 
-卦页（/gua/…）另外每页一份站酷小薇子集：卦名、卦辞、爻辞用小薇，一页要用到的字散在二十来片
+卦页（/gua/…）另外每页一份站酷小薇子集：页头、起卦块、卦名、卦辞、爻辞用小薇，一页要用到的字散在二十来片
 里（一百多万字节），打成一页一个小文件（平均十几 KB）预加载，首次渲染就是小薇，不再换字体。
 输出 src/fonts/gua/{slug}.woff2 和 src/fonts/gua/ranges.json（每页的 unicode-range，取自子集
 实际含有的字），卦页在自己的 <head> 里内联 @font-face。改了 guaci.json、gua-slugs.ts 就重跑，
@@ -73,14 +73,19 @@ def make_subset(raw: bytes, text: str) -> TTFont:
     return font
 
 
+# 卦页、目录页都有的小薇字：页头印章、页底起卦块的标语。
+CHROME = "爻心有所疑，不妨一问"
+
+
 def gua_pages() -> dict[str, str]:
-    """每页用站酷小薇显示的字。规则同 src/lib/gua.ts 的 fontOf：含小薇缺字的整段改用宋体，不算在内。"""
+    """每页用站酷小薇显示的全部字。按区块算，规则同 src/lib/gua.ts 的 fontOf：
+    卦名、卦辞各一块，全部爻辞算一块，含小薇缺字的整块用宋体，不算在内。"""
     slugs = re.findall(r'\["(.+?)", "([a-z-]+)"\]', open("src/data/gua-slugs.ts", encoding="utf-8").read())
     guaci = json.load(open("src/data/guaci.json", encoding="utf-8"))
-    pages = {"index": ["六十四卦"]}  # 目录页的标题
+    pages = {"index": [CHROME, "六十四卦"]}  # 目录页的标题
     for name, slug in slugs:
         lines = guaci[name].split("\n")
-        pages[slug] = [name, lines[1]] + [l[3:] for l in lines if YAO.match(l)]
+        pages[slug] = [CHROME, name, lines[1], "".join(l[3:] for l in lines if YAO.match(l))]
     has = TTFont(io.BytesIO(DISPLAY), lazy=True).getBestCmap()
     # 空格：浏览器按含空格的第一个字体定行高与基线，子集里没有空格，小薇的段落会随别的字体加载而上下微移。
     return {slug: " " + "".join(b for b in blocks if all(ord(c) in has for c in b)) for slug, blocks in pages.items()}

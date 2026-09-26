@@ -43,12 +43,20 @@ const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weig
       </nav>
     </header>
     <slot />
-    <footer class="foot">
-      <p>
-        卦爻辞、彖传、象传原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创<span class="stop">。</span>
-      </p>
-      <p>仅供传统文化参考与娱乐<span class="stop">。</span></p>
-    </footer>
+    {index ? (
+      <footer class="foot">
+        <p>
+          卦爻辞原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创 · 仅供传统文化参考与娱乐
+        </p>
+      </footer>
+    ) : (
+      <footer class="foot">
+        <p>
+          卦爻辞、彖传、象传原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创<span class="stop">。</span>
+        </p>
+        <p>仅供传统文化参考与娱乐<span class="stop">。</span></p>
+      </footer>
+    )}
   </div>
 </Page>
 
@@ -211,6 +219,16 @@ const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weig
     .foot p + p::before {
       content: "·";
       margin-inline: 0.6em;
+    }
+    /* 目录页（设计稿 D10）：与格子同宽，左对齐，没有分隔线 */
+    .index .foot {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      padding-top: 0;
+      border-top: none;
+      justify-content: flex-start;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.06em;
     }
   }
 </style>
