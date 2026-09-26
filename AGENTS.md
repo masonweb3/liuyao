@@ -60,11 +60,13 @@ src/
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/api/judge.ts 唯一的服务端路由：调用 Jev
+  pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
+  pages/robots.txt.ts  由 site 生成
   styles/tokens.css 颜色、字体、间距、动效时长
   styles/fonts.css  首屏字形子集的 @font-face（生成文件）
   styles/webfonts.css fontsource 全部切片，异步加载
   fonts/            首屏字形子集（tools/subset-fonts.py 生成）
-public/             og.png 分享预览图、robots.txt、_headers
+public/             og.png 分享预览图、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
 .github/workflows/  ci.yml：PR 上跑测试和构建；tag.yml：合并后打日期 tag
 .coderabbit.yaml    CodeRabbit 审 PR 的设置
