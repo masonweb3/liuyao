@@ -1,5 +1,6 @@
 /**
- * 起卦仪式 —— drives index.astro: 写下所问 →（拦截 | 择类）→ 静心 → 摇卦 ×6 → 成卦.
+ * 起卦仪式 —— drives index.astro: 写下所问 →（拦截 | 择类）→ 静心 → 摇卦 ×6 → 成卦 → 解读,
+ * or 手动排盘 → 择类 → 解读.
  *
  * One screen is shown at a time and every move is checked against
  * {@link NEXT}, so nothing leads back once 静心 starts. Durations live in
@@ -9,46 +10,59 @@ import { ERRORS } from "../data/copy.js";
 import {
 	afterJudge,
 	FALLBACK,
+	fromBeijingInput,
 	isMoving,
 	isYang,
 	type Judgement,
 	NEXT,
 	nthThrow,
+	parseYao,
 	posName,
 	type Screen,
 	settled,
+	toBeijingInput,
 	tossCaption,
 	YAO_NAME,
 	yaoTitle,
 } from "../lib/flow.js";
+import type { LateZiSect } from "../lib/liuyao/calendar.js";
 import type { Gender, Question, Topic } from "../lib/liuyao/duan.js";
 import type { CastResult, Yao } from "../lib/liuyao/najia.js";
+import type { GuaText, Reading, Row } from "../lib/reading.js";
 
 const MAX_LENGTH = 200;
 /** judge.ts gives Jev 3s; leave room for the round trip. */
 const JUDGE_TIMEOUT_MS = 5000;
 const VIBRATE_MS = 20;
 
-// The engine pulls in tyme4ts (~80KB gzip): keep it out of the first screen.
-let engine: Promise<typeof import("../lib/liuyao/najia.js")> | undefined;
-function loadEngine() {
-	engine ??= import("../lib/liuyao/najia.js").catch((err: unknown) => {
-		engine = undefined;
-		throw err;
-	});
-	return engine;
+/** A dynamic import that can be retried after a failed load. */
+function lazy<T>(load: () => Promise<T>): () => Promise<T> {
+	let p: Promise<T> | undefined;
+	return () =>
+		(p ??= load().catch((err: unknown) => {
+			p = undefined;
+			throw err;
+		}));
 }
 
-/** What M8 needs to read the cast. */
+// The engine pulls in tyme4ts (~80KB gzip) and the reading all 64 卦's text:
+// keep both out of the first screen.
+const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
+const loadReading = lazy(() => import("../lib/reading.js"));
+
+/** The cast so far, and what the reading needs. */
 const session = {
 	question: "",
 	judgement: FALLBACK,
 	ask: null as Question | null,
 	params: [] as Yao[],
-	/** 起卦时刻: the first throw. */
+	/** 起卦时刻: the first throw, or entered by hand. */
 	date: undefined as Date | undefined,
+	lateZi: "day-stays" as LateZiSect,
 	result: undefined as CastResult | undefined,
 };
+
+const castOptions = () => ({ date: session.date ?? new Date(), lateZi: session.lateZi });
 
 const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) =>
 	root.querySelector(sel) as T;
@@ -84,6 +98,7 @@ function go(next: Screen) {
 	el.hidden = false;
 	window.scrollTo(0, 0);
 	(el.querySelector<HTMLElement>("[data-autofocus]") ?? el).focus({ preventScroll: true });
+	if (next === "manual") when.value ||= toBeijingInput(new Date());
 	if (next === "calm") void calm();
 	if (next === "cast") showThrow(0);
 }
@@ -160,15 +175,15 @@ async function submit() {
 	sealing = true;
 	askEl.classList.add("sealing");
 	try {
-		// 落笔的印章动画与 Jev、引擎加载并行，三者都好了再走。
-		const [j] = await Promise.all([judge(text), loadEngine(), settle($(".stamp", askEl))]);
+		// 落笔的印章动画与 Jev、引擎加载并行，都好了再走。
+		const [j] = await Promise.all([judge(text), loadEngine(), loadReading(), settle($(".stamp", askEl))]);
 		if (j === "rate-limited") return fail(ERRORS.rateLimited);
 		session.question = text;
 		session.judgement = j;
 		for (const el of $$("[data-question]")) el.textContent = text;
 		proceed(false);
 	} catch {
-		fail(ERRORS.network); // the engine chunk did not load
+		fail(ERRORS.network); // a lazy chunk did not load
 	} finally {
 		askEl.classList.remove("sealing");
 		sealing = false;
@@ -214,7 +229,8 @@ topicDone.addEventListener("click", () => {
 	if (t !== "婚恋") session.ask = { topic: t };
 	else if (gender) session.ask = { topic: t, gender };
 	else return;
-	go("calm");
+	if (session.params.length === 6) void read();
+	else go("calm");
 });
 
 // ---------------------------------------------------------------- 静心
@@ -353,17 +369,20 @@ const revealEl = screen("reveal");
 /** 上爻 on top. */
 const stack = (html: string[]) => html.reverse().join("");
 
-async function reveal() {
-	const { cast } = await loadEngine();
-	const r = cast(session.params, { date: session.date ?? new Date() });
-	session.result = r;
-
-	$("[data-ben-lines]", revealEl).innerHTML = stack(
+const benLines = (r: CastResult) =>
+	stack(
 		r.params.map((y, i) => {
 			const title = yaoTitle(i, isYang(y));
 			return yaoHtml(isYang(y), isMoving(y), isMoving(y) ? `${title} ${YAO_NAME[y]} 动` : title);
 		}),
 	);
+
+async function reveal() {
+	const { cast } = await loadEngine();
+	const r = cast(session.params, castOptions());
+	session.result = r;
+
+	$("[data-ben-lines]", revealEl).innerHTML = benLines(r);
 	$("[data-ben-name]", revealEl).textContent = r.gua.name;
 
 	for (const el of $$("[data-bian]", revealEl)) el.hidden = r.bian === null;
@@ -379,6 +398,113 @@ async function reveal() {
 		`${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}时</span> · 旬空 ${g.xkong}`;
 	go("reveal");
 }
+
+$("[data-read]", revealEl).addEventListener("click", () => void read());
+
+// ---------------------------------------------------------------- 解读
+
+const readingEl = screen("reading");
+const CN = "一二三四五六七八九十";
+
+/** 展卷 from 成卦, or straight from 择类 after 手动排盘. */
+async function read() {
+	const [{ cast }, { compose }] = await Promise.all([loadEngine(), loadReading()]);
+	const { ask } = session;
+	if (!NEXT[current].includes("reading") || !ask) return;
+	const r = (session.result ??= cast(session.params, castOptions()));
+	render(r, compose(r, ask));
+	$<HTMLDetailsElement>("[data-panel]", readingEl).open = matchMedia("(min-width: 1024px)").matches;
+	const paper = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim();
+	$('meta[name="theme-color"]').setAttribute("content", paper);
+	go("reading");
+}
+
+const item = (mark: string, text: string) =>
+	`<li><span class="n" aria-hidden="true">${mark}</span><span>${text}</span></li>`;
+
+const rowHtml = (w: Row) =>
+	`<tr${w.yong ? ' class="yong"' : ""}>` +
+	`<td class="pos">${w.title}</td>` +
+	`<td class="god">${w.god}</td>` +
+	`<td class="ben">${w.qin} ${w.gz}${w.yong ? ' <span class="tag">用神</span>' : ""}</td>` +
+	`<td>${yaoHtml(w.yang, w.moving, `${w.yang ? "阳" : "阴"}${w.moving ? " 动" : ""}`)}</td>` +
+	`<td class="sy${w.shiYing === "世" ? " shi" : ""}">${w.shiYing}</td>` +
+	`<td>${w.bian ? `${w.bian.qin} ${w.bian.gz}${w.bian.hua ? ` <span class="hua">${w.bian.hua}</span>` : ""}` : ""}</td>` +
+	"</tr>";
+
+/** Everything but the question is our own text, so innerHTML is safe here. */
+function render(r: CastResult, x: Reading) {
+	const set = (sel: string, text: string, root: ParentNode = readingEl) => {
+		$(sel, root).textContent = text;
+	};
+	const g = r.ganzhi;
+	$("[data-lines]", readingEl).innerHTML = benLines(r);
+	set("[data-name]", r.gua.name);
+	set("[data-zhi]", r.bian ? `之${r.bian.name}` : "");
+	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}时 · 旬空 ${g.xkong}`);
+
+	const duan = $("[data-duan]", readingEl);
+	duan.textContent = x.verdict;
+	duan.dataset.verdict = x.verdict;
+	duan.setAttribute("aria-label", `断：${x.verdict}`);
+	set("[data-conclusion]", x.conclusion);
+	set("[data-basis]", x.basis);
+	set("[data-note]", x.note);
+	$("[data-note]", readingEl).hidden = !x.note;
+
+	$("[data-reasons]", readingEl).innerHTML = x.reasons.map((s, i) => item(CN[i] ?? String(i + 1), s)).join("");
+	$("[data-advice]", readingEl).innerHTML = x.advice.map((s) => item("·", s)).join("");
+
+	const text = (key: string, label: string, t: GuaText | null) => {
+		const s = $(`[data-text="${key}"]`, readingEl);
+		s.hidden = !t;
+		if (!t) return;
+		set("[data-kicker]", `${label} · ${t.short}`, s);
+		set("[data-ci]", t.ci, s);
+		set("[data-bh]", t.baihua, s);
+	};
+	text("ben", "卦辞", x.ben);
+	text("bian", "变卦", x.bian);
+
+	set("[data-dong-heading]", x.dong.heading);
+	$("[data-dong-lines]", readingEl).innerHTML = x.dong.lines
+		.map((l) => `<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span><p>${l.text}</p></div>`)
+		.join("");
+	set("[data-dong-note]", x.dong.note);
+
+	const p = x.panel;
+	for (const d of $$("[data-p]", readingEl)) d.textContent = p[d.dataset.p as "pillars"] ?? "";
+	$('[data-fact="bian"]', readingEl).hidden = !p.bian;
+	$("[data-rows]", readingEl).innerHTML = p.rows.map(rowHtml).join("");
+}
+
+// ---------------------------------------------------------------- 手动排盘
+
+const manualEl = screen("manual");
+const when = $<HTMLInputElement>("#when", manualEl);
+const manualError = $("[data-error]", manualEl);
+
+$("[data-manual]", manualEl).addEventListener("submit", async (e) => {
+	e.preventDefault();
+	const yao = parseYao($<HTMLInputElement>("#yao", manualEl).value);
+	const date = fromBeijingInput(when.value);
+	manualError.textContent = !yao ? ERRORS.yao : !date ? ERRORS.when : "";
+	if (!yao || !date) return;
+	try {
+		await Promise.all([loadEngine(), loadReading()]);
+	} catch {
+		manualError.textContent = ERRORS.network;
+		return;
+	}
+	if (current !== "manual") return;
+	session.params = yao;
+	session.date = date;
+	session.lateZi = $<HTMLInputElement>("[data-late-zi]", manualEl).checked ? "day-advances" : "day-stays";
+	session.question = "";
+	for (const el of $$("[data-question]")) el.textContent = "";
+	go("topic");
+	pickTopic(null, null);
+});
 
 // ---------------------------------------------------------------- 首屏日期
 

@@ -24,6 +24,10 @@
   .bar .brand {
     display: none;
   }
+  /* 手动排盘没有所问 */
+  .asked:has(.q:empty) {
+    visibility: hidden;
+  }
   .asked {
     min-width: 0;
     margin: 0;

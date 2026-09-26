@@ -7,7 +7,9 @@ import Ask from '../components/Ask.astro';
 import Calm from '../components/Calm.astro';
 import Cast from '../components/Cast.astro';
 import Home from '../components/Home.astro';
+import Manual from '../components/Manual.astro';
 import Notice from '../components/Notice.astro';
+import Reading from '../components/Reading.astro';
 import Reveal from '../components/Reveal.astro';
 import Topic from '../components/Topic.astro';
 import { EMERGENCY, INSINCERE } from '../data/copy';
@@ -33,6 +35,7 @@ import { EMERGENCY, INSINCERE } from '../data/copy';
     </svg>
 
     <Home />
+    <Manual />
     <Ask />
 
     <Notice screen="guard" guard title="先停一停" body={['从你写下的话里，我们感到你可能正经历很难熬的时刻。', '这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。']}>
@@ -67,6 +70,7 @@ import { EMERGENCY, INSINCERE } from '../data/copy';
     <Calm />
     <Cast />
     <Reveal />
+    <Reading />
 
     <script>
       import '../scripts/ritual.ts';

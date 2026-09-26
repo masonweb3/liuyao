@@ -1,0 +1,204 @@
+---
+// 手动排盘：给专业用户直接录入六爻。没有所问，所以不调 Jev；之后走择类，再直接解读。
+---
+
+<section class="screen manual" data-screen="manual" tabindex="-1" hidden>
+  <header>
+    <button class="back" data-go="home" aria-label="返回首屏">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+    <button class="brand" data-go="home" aria-label="回到首屏">
+      <span class="seal" aria-hidden="true">爻</span>
+      <span class="name" aria-hidden="true">六爻</span>
+    </button>
+  </header>
+  <form class="col" novalidate data-manual>
+    <div class="title">
+      <h1>手动排盘</h1>
+      <p>已有卦象，直接录入六爻。</p>
+    </div>
+    <div class="field">
+      <label for="yao">六爻（初爻 → 上爻）</label>
+      <input id="yao" class="yao" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="12" placeholder="例如 978776" aria-describedby="yao-hint" data-autofocus />
+      <p id="yao-hint" class="hint">6 老阴 · 7 少阳 · 8 少阴 · 9 老阳</p>
+    </div>
+    <div class="field">
+      <label for="when">起卦时间（北京时间）</label>
+      <input id="when" type="datetime-local" min="1900-01-01T00:00" max="2100-12-31T23:59" />
+    </div>
+    <label class="check">
+      <input type="checkbox" data-late-zi />
+      <span>晚子时（23 点后）换日</span>
+    </label>
+    <p class="error" role="alert" data-error></p>
+    <footer class="dock">
+      <button class="btn solid">排盘</button>
+    </footer>
+  </form>
+</section>
+
+<style>
+  .manual {
+    color-scheme: dark;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    height: var(--tap);
+  }
+  .back {
+    width: var(--tap);
+    height: var(--tap);
+    margin-left: -10px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgb(248 244 237 / 0.7);
+    cursor: pointer;
+  }
+  header .brand {
+    display: none;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding-top: 48px;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: 0.3em;
+  }
+  .title p,
+  .hint {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.8;
+    letter-spacing: 0.08em;
+    color: var(--on-night-2);
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .field label {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+  .field input {
+    width: 100%;
+    min-height: var(--tap);
+    box-sizing: border-box;
+    padding: 6px 0 10px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgb(192 147 81 / 0.55);
+    border-radius: 0;
+    font: inherit;
+    font-size: var(--fs-l);
+    color: inherit;
+    outline: none;
+    transition: border-color var(--t-hover);
+  }
+  .field input:focus {
+    border-bottom-color: var(--gold-hi);
+  }
+  .yao {
+    letter-spacing: 0.4em;
+  }
+  .yao::placeholder {
+    letter-spacing: 0.08em;
+    color: rgb(248 244 237 / 0.4);
+  }
+  .check {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: var(--fs-s);
+    letter-spacing: 0.08em;
+    color: var(--on-night-2);
+    cursor: pointer;
+  }
+  .check input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--gold);
+  }
+  .error {
+    min-height: 1.6em;
+    margin: 0;
+    font-size: var(--fs-s);
+    letter-spacing: 0.04em;
+    color: var(--gold-hi);
+  }
+  footer {
+    margin-top: auto;
+  }
+  footer .btn {
+    width: 100%;
+  }
+  @media (max-height: 700px) {
+    .col {
+      gap: 24px;
+      padding-top: 24px;
+    }
+  }
+  @media (min-width: 1024px) {
+    header {
+      height: 48px;
+    }
+    .back {
+      display: none;
+    }
+    header .brand {
+      display: flex;
+    }
+    .manual {
+      background: radial-gradient(ellipse 55% 60% at 50% 50%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .col {
+      flex-grow: 0;
+      width: 480px;
+      margin: auto;
+      gap: 36px;
+      padding-top: 0;
+    }
+    h1 {
+      font-size: 40px;
+    }
+    .title p,
+    .hint {
+      font-size: var(--fs-m);
+    }
+    .field label {
+      font-size: 13px;
+    }
+    footer {
+      margin-top: 0;
+      display: flex;
+      justify-content: flex-end;
+    }
+    footer .btn {
+      width: 220px;
+    }
+  }
+</style>

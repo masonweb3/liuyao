@@ -50,7 +50,7 @@ src/
   lib/liuyao/       纯 TS 排盘引擎，零 DOM，浏览器和测试都能直接跑
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
-  components/       各屏的 Astro 组件：首屏、所问、择类、提示页、静心、摇卦、成卦
+  components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）

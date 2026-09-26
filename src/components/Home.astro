@@ -27,7 +27,10 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     </div>
   </main>
   <p class="aside" aria-hidden="true">寂然不动　感而遂通</p>
-  <p class="today" data-today></p>
+  <footer class="foot">
+    <p class="today" data-today></p>
+    <button class="pro" data-go="manual">手动排盘</button>
+  </footer>
 </section>
 
 <style>
@@ -105,6 +108,11 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
   .aside {
     display: none;
   }
+  .foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
   .today {
     min-height: 1.5em;
     margin: 0;
@@ -112,6 +120,24 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     font-size: var(--fs-xs);
     letter-spacing: 0.28em;
     color: rgb(248 244 237 / 0.55);
+  }
+  /* 专业用户的入口，不抢「起卦」的戏 */
+  .pro {
+    min-height: var(--tap);
+    padding: 0 0 0 0.28em;
+    background: none;
+    border: none;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.28em;
+    color: rgb(248 244 237 / 0.55);
+    text-decoration: underline;
+    text-decoration-color: rgb(248 244 237 / 0.25);
+    text-underline-offset: 5px;
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .pro:hover {
+    color: var(--on-night);
   }
   @keyframes home-in {
     from {
@@ -166,12 +192,16 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       font-size: 13px;
     }
     .aside,
-    .today {
+    .foot {
       position: absolute;
       bottom: 48px;
       margin: 0;
       font-size: 13px;
       color: rgb(248 244 237 / 0.55);
+    }
+    .today,
+    .pro {
+      font-size: 13px;
     }
     .aside {
       display: block;
@@ -179,8 +209,10 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       writing-mode: vertical-rl;
       letter-spacing: 0.4em;
     }
-    .today {
+    .foot {
       right: 64px;
+      bottom: 38px;
+      align-items: flex-end;
     }
   }
   @media (prefers-reduced-motion: reduce) {

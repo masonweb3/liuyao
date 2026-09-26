@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { afterJudge, FALLBACK, type Judgement, NEXT, settled, tossCaption, yaoTitle } from "./flow.js";
+import {
+	afterJudge,
+	FALLBACK,
+	fromBeijingInput,
+	type Judgement,
+	NEXT,
+	parseYao,
+	settled,
+	toBeijingInput,
+	tossCaption,
+	yaoTitle,
+} from "./flow.js";
 
 const j = (over: Partial<Judgement>): Judgement => ({ ...FALLBACK, topic: "财", ...over });
 
@@ -31,7 +42,7 @@ describe("afterJudge", () => {
 });
 
 it("一事一占：静心之后只能向前", () => {
-	expect([NEXT.calm, NEXT.cast, NEXT.reveal]).toEqual([["cast"], ["reveal"], []]);
+	expect([NEXT.calm, NEXT.cast, NEXT.reveal, NEXT.reading]).toEqual([["cast"], ["reveal"], ["reading"], []]);
 });
 
 describe("文字", () => {
@@ -50,5 +61,23 @@ describe("文字", () => {
 			"两背一字 · 少阴",
 			"三背 · 老阳",
 		]);
+	});
+});
+
+describe("手动排盘", () => {
+	it("六爻初爻在前，容忍全角数字与空格", () => {
+		expect(parseYao("978776")).toEqual([9, 7, 8, 7, 7, 6]);
+		expect(parseYao(" ９７８ ７７６ ")).toEqual([9, 7, 8, 7, 7, 6]);
+		for (const bad of ["", "97877", "9787766", "978775", "97a776"]) expect(parseYao(bad), bad).toBeNull();
+	});
+	it("起卦时间按北京时间读写，与设备时区无关", () => {
+		expect(toBeijingInput(new Date("2026-09-26T13:30:00Z"))).toBe("2026-09-26T21:30");
+		expect(fromBeijingInput("2025-02-03T22:20")?.toISOString()).toBe("2025-02-03T14:20:00.000Z");
+		for (const bad of ["", "1899-12-31T23:59", "2025-02-03", "2025-13-40T25:00"]) expect(fromBeijingInput(bad), bad).toBeNull();
+	});
+	it("只能从首屏进入，择类之后直接解读", () => {
+		expect(NEXT.home).toContain("manual");
+		expect(NEXT.manual).toEqual(["home", "topic"]);
+		expect(NEXT.topic).toContain("reading");
 	});
 });

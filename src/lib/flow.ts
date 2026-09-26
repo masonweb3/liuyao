@@ -30,6 +30,7 @@ export const FALLBACK: Judgement = {
 
 export type Screen =
 	| "home"
+	| "manual"
 	| "ask"
 	| "guard"
 	| "decline"
@@ -38,20 +39,24 @@ export type Screen =
 	| "topic"
 	| "calm"
 	| "cast"
-	| "reveal";
+	| "reveal"
+	| "reading";
 
 /** Allowed moves. From 静心 on there is no way back (一事一占). */
 export const NEXT: Record<Screen, readonly Screen[]> = {
-	home: ["ask"],
+	home: ["ask", "manual"],
+	manual: ["home", "topic"],
 	ask: ["home", "guard", "decline", "emergency", "insincere", "topic", "calm"],
 	guard: ["home"],
 	decline: ["ask"],
 	emergency: ["home", "insincere", "topic", "calm"],
 	insincere: ["ask"],
-	topic: ["calm"],
+	// 手动排盘的爻已经有了，择类之后直接解读。
+	topic: ["calm", "reading"],
 	calm: ["cast"],
 	cast: ["reveal"],
-	reveal: [],
+	reveal: ["reading"],
+	reading: [],
 };
 
 /** The question as Jev settled it, or `null` when the asker must choose: Jev was unsure, or it is 婚恋 and needs a gender. */
@@ -93,3 +98,21 @@ export function yaoTitle(i: number, yang: boolean): string {
 
 /** 一背两字 · 少阳 */
 export const tossCaption = (y: Yao) => `${COINS[y]} · ${YAO_NAME[y]}`;
+
+/** 手动排盘: six 爻 as 6–9, 初爻 first ("978776"). Full-width digits and spaces are fine; `null` when malformed. */
+export function parseYao(input: string): Yao[] | null {
+	const s = input.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\s/g, "");
+	return /^[6-9]{6}$/.test(s) ? ([...s].map(Number) as Yao[]) : null;
+}
+
+const BEIJING = 8 * 3_600_000;
+
+/** A moment as an `<input type="datetime-local">` value in 北京时间. */
+export const toBeijingInput = (d: Date) => new Date(d.getTime() + BEIJING).toISOString().slice(0, 16);
+
+/** The moment a 北京时间 `datetime-local` value names, 1900–2100 only; `null` otherwise. */
+export function fromBeijingInput(v: string): Date | null {
+	if (!/^(19\d\d|20\d\d|2100)-\d\d-\d\dT\d\d:\d\d$/.test(v)) return null;
+	const d = new Date(`${v}:00+08:00`);
+	return Number.isNaN(d.getTime()) ? null : d;
+}

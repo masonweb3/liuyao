@@ -144,6 +144,16 @@ export function xunKong(
 	return { score: -1, reasons: [`${n}旬空，静而无气`] };
 }
 
+/** 化变 —— how a 动爻 relates to the 爻 it turns into, or `""` for none of these. */
+export function hua(zhi: string, bian: string): "化进神" | "化退神" | "回头生" | "回头克" | "" {
+	const r = rel(zhi, bian);
+	if (r === "扶" && JIN[zhi] === bian) return "化进神";
+	if (r === "扶" && JIN[bian] === zhi) return "化退神";
+	if (r === "生") return "回头生";
+	if (r === "克") return "回头克";
+	return "";
+}
+
 /**
  * 动爻化变 —— the 用神 moving into `bian`: 回头生克, 进神退神, 化空, 化破.
  *
@@ -163,20 +173,20 @@ export function huaBian(
 		out.score += score;
 		out.reasons.push(reason);
 	};
-	const hua = `${name(zhi)}化${name(bian)}`;
+	const label = `${name(zhi)}化${name(bian)}`;
 	const bKong = kong.includes(bian);
 	const bPo = chong(yue, bian);
-	const r = rel(zhi, bian);
+	const h = hua(zhi, bian);
 
-	if (r === "扶" && JIN[zhi] === bian) add(1, `${hua}，化进神`);
-	else if (r === "扶" && JIN[bian] === zhi) {
+	if (h === "化进神") add(1, `${label}，化进神`);
+	else if (h === "化退神") {
 		if (kong.includes(zhi) || chong(yue, zhi) || bKong || bPo)
-			add(0, `${hua}，化退神；逢空破，待填实而退`);
+			add(0, `${label}，化退神；逢空破，待填实而退`);
 		else if (wang || wangShuai(bian, yue, ri, false).score > 0)
-			add(0, `${hua}，化退神；旺而暂不退`);
-		else add(-1, `${hua}，化退神`);
-	} else if (r === "生") add(2, `${hua}，回头生`);
-	else if (r === "克") add(-2, `${hua}，回头克`);
+			add(0, `${label}，化退神；旺而暂不退`);
+		else add(-1, `${label}，化退神`);
+	} else if (h === "回头生") add(2, `${label}，回头生`);
+	else if (h === "回头克") add(-2, `${label}，回头克`);
 
 	if (bKong) add(-1, `变爻${name(bian)}旬空，化空`);
 	if (bPo) add(-1, `变爻${name(bian)}逢${yue}月冲，化破`);
@@ -185,9 +195,9 @@ export function huaBian(
 
 /** Why a moving 原神 / 忌神 has no force on the 用神, if it has none. */
 function restrained(zhi: string, bian: string, yue: string, kong: string): string {
-	const r = rel(zhi, bian);
-	if (r === "克") return "受回头克";
-	if (r === "扶" && JIN[bian] === zhi) return "化退神";
+	const h = hua(zhi, bian);
+	if (h === "回头克") return "受回头克";
+	if (h === "化退神") return h;
 	if (kong.includes(bian)) return "化空";
 	if (chong(yue, bian)) return "化破";
 	return "";
