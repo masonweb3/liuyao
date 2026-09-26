@@ -60,3 +60,12 @@ src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
 依赖
 
 tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail。
+
+---------------------------------------------------------------------------
+字体
+
+Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站酷小薇 ZCOOL XiaoWei
+（Copyright 2018 The ZCOOL XiaoWei Project Authors），均采用 SIL Open Font
+License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；
+src/fonts/home-*.woff2 是 tools/subset-fonts.py 从 google/fonts
+（commit 23e54b5）的原字体截取的首屏字形子集，保留原字体里的版权与许可信息。

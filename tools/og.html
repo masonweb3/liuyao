@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<!-- public/og.png（分享预览图）的源：在浏览器里按 1200×630 打开，字体加载完后截图。 -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400&family=ZCOOL+XiaoWei&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; }
+  .og {
+    width: 1200px; height: 630px; box-sizing: border-box; position: relative; overflow: hidden;
+    background: radial-gradient(ellipse 60% 70% at 50% 46%, #1c2938 0%, #131824 72%);
+    color: #f8f4ed; font-family: 'Noto Serif SC', serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px;
+  }
+  .brand { position: absolute; left: 64px; top: 52px; display: flex; align-items: center; gap: 14px; }
+  .seal { width: 40px; height: 40px; display: grid; place-items: center; background: #ab372f; color: #f8f4ed;
+    font-family: 'ZCOOL XiaoWei', serif; font-size: 26px; border-radius: 2px; }
+  .name { font-size: 20px; letter-spacing: 0.4em; color: rgb(248 244 237 / 0.8); }
+  .motto { writing-mode: vertical-rl; font-family: 'ZCOOL XiaoWei', serif; font-size: 58px; letter-spacing: 0.38em; line-height: 1; }
+  .motto span { display: block; }
+  .motto span + span { margin-right: 44px; padding-top: 1.2em; color: rgb(248 244 237 / 0.86); }
+  svg { width: 240px; height: 24px; fill: #c09351; }
+  .sub { font-size: 20px; letter-spacing: 0.4em; color: rgb(248 244 237 / 0.62); padding-left: 0.4em; }
+  .aside { position: absolute; left: 64px; bottom: 52px; writing-mode: vertical-rl; font-size: 16px; letter-spacing: 0.4em; color: rgb(248 244 237 / 0.5); }
+</style>
+</head>
+<body>
+<div class="og">
+  <div class="brand"><span class="seal">爻</span><span class="name">六爻</span></div>
+  <div class="motto"><span>心有所疑</span><span>不妨一问</span></div>
+  <svg viewBox="0 0 240 24"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"/></svg>
+  <p class="sub" style="margin:0">摇卦成卦 · 纳甲排盘 · 白话解读</p>
+</div>
+</body>
+</html>

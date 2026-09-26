@@ -192,8 +192,22 @@ M1（设计）和 M3–M6（引擎、内容、接口）可以并行。界面相�
 - **隐私：** 不接第三方统计或追踪
 - **部署：** Cloudflare Workers，配置自定义域名、`TYPESAFE_API_KEY` secret，并验证线上限流生效
 - Cloudflare 适配器默认会启用 `IMAGES` 和 `SESSION`（KV）两个 binding，本项目都不用，部署前在 `astro.config.mjs` 里关掉
+- **SEO：** 标题与描述、分享预览（Open Graph）、robots.txt；要绝对地址的标签等域名定了再输出
 
 **完成标准：** 线上域名可以访问；项目负责人验收通过。
+
+**结果（2026-09-26，不依赖域名的部分）：**
+- 测法：测试服务器上用 Lighthouse 12 测首屏，前面临时加一层 gzip 反向代理模拟线上压缩（本地 preview 不压缩）。
+- 移动端：性能 58 → 98，FCP 6.9s → 0.9–1.3s（几次测量有波动），LCP 9.5s → 2.4s，TBT 0，CLS 0；可访问性、最佳实践、SEO 都是 100。桌面四项都是 100，LCP 0.4s。
+- 首屏字体 722KB（18 个请求）→ 15KB（2 个）。首屏只用到几十个字，fontsource 的切片却要拉十几片。`tools/subset-fonts.py` 从 google/fonts 的原字体截出首屏用字的两个子集（`src/fonts/`，构建时文件名带哈希），写出 `src/styles/fonts.css` 并预加载；这两个子集在 fontsource 之后声明，浏览器遇到这些字就不再去拉大切片。首屏文案改了要重跑这个脚本；漏掉的字不会出错，只是回到大切片。
+- 阻塞渲染的 CSS 351KB → 55KB：fontsource 近 300 条 `@font-face` 移到 `src/styles/webfonts.css`，改为异步加载（排在打包样式之前，保证子集优先）；字体小切片不再以 base64 内联进 CSS。首屏 JS 仍约 8KB（gzip）。
+- LCP 落在加载后才填入的干支日期上，2.4s 刚好达标。标语逐字淡入，每个字单独成了一个小候选，整句不参评；日期又比首帧的提示字稍大。把标语改成颜色淡入可以让 LCP 落到标语上（约 0.9s），但违反 §6「只对 transform 和 opacity 做动画」，没有做。
+- 可访问性：axe-core 逐屏查了 13 屏和分享弹层，没有违规。改动：所有屏包进一个 `<main>`，组件里原来的 `<main>` 改为 `div`；静心、摇卦、成卦补上读屏用的一级标题；解读页左栏由 `<aside>` 改为 `div`（左栏是结论，不是旁注）；分享卡的 alt 带上卦名。对比度无问题；键盘能走到往卦和分享卡，Esc 关闭弹层后焦点回到按钮。
+- 隐私：没有任何第三方请求。
+- 部署准备：`imageService: 'passthrough'`、`session: false`，生成的 wrangler 配置里已经没有 IMAGES 和 SESSION。`public/_headers` 给带哈希的 `_astro/*` 长缓存。
+- SEO：标题改为「六爻 · 在线摇卦起卦、纳甲排盘与白话解读」，重写描述；加了 Open Graph 与 Twitter 卡片标签、1200×630 预览图（`public/og.png`，照首屏画面，源在 `tools/og.html`）、apple-touch-icon、robots.txt（不抓 `/api/`）。canonical、og:url、og:image 和 WebSite 结构化数据要绝对地址，在 `astro.config.mjs` 填上 `site` 之后才输出，已用示例域名构建验证。单页站不做 sitemap。
+- 字体许可登记进 `NOTICE`；子集保留原字体的版权与许可字段（OFL）。
+- 还剩：定域名并填 `site`，部署，线上验证限流，项目负责人验收。
 
 ---
 

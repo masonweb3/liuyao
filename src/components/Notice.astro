@@ -15,11 +15,11 @@ const { screen, title, body, guard } = Astro.props;
 <section class:list={["screen", "notice", { guard }]} data-screen={screen} tabindex="-1" hidden>
   {guard ? <div class="gap" /> : <Bar />}
   <div class="col">
-    <main>
+    <div class="center">
       <h1 tabindex="-1" data-autofocus>{title}</h1>
       {body.map((p) => <p>{p}</p>)}
       <slot name="extra" />
-    </main>
+    </div>
     <footer><slot /></footer>
   </div>
 </section>
@@ -39,7 +39,7 @@ const { screen, title, body, guard } = Astro.props;
     display: flex;
     flex-direction: column;
   }
-  main {
+  .center {
     flex-grow: 1;
     display: flex;
     flex-direction: column;

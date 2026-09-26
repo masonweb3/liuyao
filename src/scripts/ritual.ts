@@ -540,6 +540,7 @@ async function drawCard() {
 		const url = await card(r, x.ben, withQ.checked ? question : "");
 		if (n !== draws) return;
 		cardImg.src = url;
+		cardImg.alt = `分享卡：${r.gua.name}${r.bian ? `之${r.bian.name}` : ""}`;
 		save.href = url;
 		save.download = `六爻-${r.gua.name}.png`;
 	} catch {

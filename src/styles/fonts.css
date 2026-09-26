@@ -1,0 +1,17 @@
+/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */
+@font-face {
+  font-family: 'ZCOOL XiaoWei';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/home-display.woff2') format('woff2');
+  unicode-range: U+4E00, U+4E0D, U+59A8, U+5FC3, U+6240, U+6709, U+723B, U+7591, U+95EE;
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/home-body.woff2') format('woff2');
+  unicode-range: U+0020, U+00B7, U+3000, U+4E00, U+4E01, U+4E0D, U+4E11, U+4E19, U+4E59, U+4E8B, U+4EA5, U+516D, U+52A8, U+5348, U+5366, U+536F, U+58EC, U+5B50, U+5BC2, U+5BC5, U+5DF1, U+5DF3, U+5E74, U+5E9A, U+5F80, U+611F, U+620A, U+620C, U+624B, U+6392, U+6447, U+65E5, U+6708, U+672A, U+6B21, U+7136, U+723B, U+7532, U+7533, U+7678, U+76D8, U+800C, U+8D77, U+8F9B, U+8FB0, U+901A, U+9042, U+9149, U+95EE;
+}

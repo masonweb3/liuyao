@@ -1,0 +1,5 @@
+/* fontsource 的全部切片声明（约 300 条 @font-face）。首屏的字由 fonts.css 的子集覆盖，
+   这份不必阻塞首次渲染，由 index.astro 异步引入。 */
+@import '@fontsource/noto-serif-sc/400.css';
+@import '@fontsource/noto-serif-sc/600.css';
+@import '@fontsource/zcool-xiaowei/400.css';

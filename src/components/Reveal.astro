@@ -4,7 +4,8 @@ import Bar from "./Bar.astro";
 
 <section class="screen reveal" data-screen="reveal" tabindex="-1" hidden>
   <Bar />
-  <main>
+  <div class="center">
+    <h1 class="sr-only">成卦</h1>
     <div class="pair">
       <figure class="ben">
         <div class="lines" data-ben-lines></div>
@@ -26,14 +27,14 @@ import Bar from "./Bar.astro";
       <p class="gz" data-ganzhi></p>
       <button class="btn read" data-read>展卷而读</button>
     </div>
-  </main>
+  </div>
 </section>
 
 <style>
   .reveal {
     background: radial-gradient(ellipse 85% 50% at 50% 42%, var(--night-2) 0%, var(--night) 72%);
   }
-  main {
+  .center {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -184,7 +185,7 @@ import Bar from "./Bar.astro";
     .reveal {
       background: radial-gradient(ellipse 60% 55% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
     }
-    main {
+    .center {
       gap: 64px;
     }
     .pair {

@@ -4,7 +4,8 @@ import Bar from "./Bar.astro";
 
 <section class="screen calm" data-screen="calm" tabindex="-1" hidden>
   <Bar />
-  <main>
+  <div class="center">
+    <h1 class="sr-only">静心</h1>
     <div class="rings" aria-hidden="true">
       <div class="halo"></div>
       <div class="ring" data-ring></div>
@@ -16,7 +17,7 @@ import Bar from "./Bar.astro";
     <div class="dots" role="img" aria-label="第一息，共三息" data-dots>
       <span></span><span></span><span></span>
     </div>
-  </main>
+  </div>
   <footer>
     <button class="skip" data-skip>跳过</button>
   </footer>
@@ -26,7 +27,7 @@ import Bar from "./Bar.astro";
   .calm {
     background: radial-gradient(ellipse 70% 45% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
   }
-  main {
+  .center {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -151,7 +152,7 @@ import Bar from "./Bar.astro";
     }
   }
   @media (max-width: 1023px) and (max-height: 700px) {
-    main {
+    .center {
       gap: 36px;
     }
     .rings {
@@ -183,7 +184,7 @@ import Bar from "./Bar.astro";
     }
   }
   @media (min-width: 1024px) and (max-height: 760px) {
-    main {
+    .center {
       gap: 36px;
     }
     .rings {

@@ -61,7 +61,11 @@ src/
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/api/judge.ts 唯一的服务端路由：调用 Jev
   styles/tokens.css 颜色、字体、间距、动效时长
-public/fonts/
+  styles/fonts.css  首屏字形子集的 @font-face（生成文件）
+  styles/webfonts.css fontsource 全部切片，异步加载
+  fonts/            首屏字形子集（tools/subset-fonts.py 生成）
+public/             og.png 分享预览图、robots.txt、_headers
+tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
 docs/research.md
 ```
 
@@ -159,6 +163,7 @@ docs/research.md
   - 正文用 Noto Serif SC（`@fontsource`）。
   - 卦名、标语、竖排文字用站酷小薇（`@fontsource/zcool-xiaowei`，OFL）。
   - 全部自托管，按 unicode-range 切片加载。
+  - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。
@@ -205,7 +210,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 
 ## 8. 部署
 
-生产环境部署到 Cloudflare Workers，自定义域名待定。
+生产环境部署到 Cloudflare Workers，自定义域名待定。域名定了先在 `astro.config.mjs` 填 `site`：canonical、og:image 等要绝对地址的标签靠它才会输出。
 - 在服务器的容器里执行 `pnpm run deploy`（即 `wrangler deploy`）。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
 - `wrangler` 部署需要的 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 放在服务器的 `~/liuyao/.env.deploy`（不进 git），只在执行部署命令时注入。不要把它们放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。

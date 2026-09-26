@@ -16,7 +16,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       </button>
     </nav>
   </header>
-  <main>
+  <div class="center">
     <h1 class="motto" aria-label="心有所疑，不妨一问">
       {rows.map((row) => (
         <span class="row" aria-hidden="true">
@@ -29,7 +29,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       <button class="btn cast" data-go="ask" data-autofocus>起卦</button>
       <span class="hint">一事一问 · 六次摇卦</span>
     </div>
-  </main>
+  </div>
   <p class="aside" aria-hidden="true">寂然不动　感而遂通</p>
   <footer class="foot">
     <p class="today" data-today></p>
@@ -83,7 +83,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
   .home {
     background: radial-gradient(ellipse 80% 55% at 50% 44%, var(--night-2) 0%, var(--night) 70%);
   }
-  main {
+  .center {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -201,7 +201,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     .home {
       background: radial-gradient(ellipse 55% 60% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
     }
-    main {
+    .center {
       gap: 56px;
     }
     .motto {
