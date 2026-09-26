@@ -777,11 +777,12 @@ addEventListener("keydown", unlock);
 
 // ---------------------------------------------------------------- 首屏日期
 
-// After load, so tyme4ts never weighs on the first screen; this also warms the engine.
+// After load, so tyme4ts never weighs on the first screen; this also warms the engine
+// and the 卦名 font rule, so 成卦 does not wait on a fresh request when the sixth line lands.
 addEventListener("load", () =>
 	setTimeout(async () => {
 		try {
-			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine()]);
+			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine(), loadGua()]);
 			const g = ganzhiFromDate(new Date());
 			$("[data-today]").textContent = `${g.year}年 ${g.month}月 ${g.day}日`;
 		} catch {
