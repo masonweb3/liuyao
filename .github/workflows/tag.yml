@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# 排队执行：连续合并时，后合并的那次一定最后打，tag 不会被旧提交抢回去。
+concurrency:
+  group: tag
+  cancel-in-progress: false
+
 jobs:
   tag:
     runs-on: ubuntu-latest
