@@ -56,7 +56,7 @@ const title = `${name}（${short}卦）卦辞、爻辞原文与白话 · 六爻`
 const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附卦辞、彖传、象传与六爻爻辞原文。`;
 ---
 
-<Paper title={title} description={description} path={guaPath(name)}>
+<Paper title={title} description={description} path={guaPath(name)} subset={GUA[i]![1]}>
   <main class="layout">
     <div class="lead">
       <section class="gua" aria-label="卦象">
@@ -516,8 +516,9 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附
     }
   }
 
-  /* 左栏随滚动固定，只在窗口放得下整栏时：窗口矮时固定会让栏底的内容看不到。 */
-  @media (min-width: 1024px) and (min-height: 1000px) {
+  /* 左栏随滚动固定，只在窗口放得下整栏时：窗口矮时固定会让栏底的起卦块看不到。
+     左栏实测最高 977px（四字卦名、白话三行），加上顶部 32px 和余量。 */
+  @media (min-width: 1024px) and (min-height: 1040px) {
     .lead {
       position: sticky;
       top: 32px;

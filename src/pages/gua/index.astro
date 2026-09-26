@@ -26,7 +26,7 @@ const description =
   '《周易》六十四卦，按通行本卦序排列：上经乾至离三十卦，下经咸至未济三十四卦。每一卦都有卦辞、爻辞、彖传、象传原文，以及本站原创的白话。';
 ---
 
-<Paper title={title} description={description} path="/gua/" index>
+<Paper title={title} description={description} path="/gua/" index subset="index">
   <main class="list">
     <section class="intro">
       <h1>六十四卦</h1>
@@ -142,8 +142,9 @@ const description =
     line-height: 1.5;
     letter-spacing: 0.08em;
   }
+  /* 设计稿 11px；目录里这种小字有 64 个，Lighthouse 判「字太小」（要六成以上的字 ≥12px），改 12px。 */
   .no {
-    font-size: 11px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     letter-spacing: 0.1em;
     color: var(--ink-2);

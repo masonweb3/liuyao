@@ -1,6 +1,10 @@
 ---
 // 纸面的知识页（卦页、六十四卦目录）：页头、页脚和纸色底。不带起卦脚本。
+import ranges from '../fonts/gua/ranges.json';
 import Page from './Page.astro';
+
+// 每页一份站酷小薇子集（tools/subset-fonts.py）：预加载，首次渲染就用小薇，不再换字体。
+const SUBSETS = import.meta.glob<string>('../fonts/gua/*.woff2', { query: '?url', import: 'default', eager: true });
 
 interface Props {
   title: string;
@@ -8,12 +12,24 @@ interface Props {
   path: string;
   /** 目录页：页头不再链「六十四卦」，手机上改链「起卦」。 */
   index?: boolean;
+  /** 本页的小薇子集：卦的 slug，目录页是 index */
+  subset: string;
 }
 
-const { title, description, path, index = false } = Astro.props;
+const { title, description, path, index = false, subset } = Astro.props;
+const font = SUBSETS[`../fonts/gua/${subset}.woff2`];
+const range = (ranges as Record<string, string>)[subset];
+if (!font || !range) throw new Error(`缺小薇子集 ${subset}：重跑 tools/subset-fonts.py`);
+// 只在本页内联：各页的 unicode-range 互相重叠，合进一个样式表会取到别页的文件。
+// 排在 fontsource 之后，同一个字就先用这个小文件。
+const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weight:400;font-display:swap;src:url(${font}) format('woff2');unicode-range:${range}}`;
 ---
 
 <Page title={title} description={description} path={path} themeColor="#f8f4ed">
+  <Fragment slot="head">
+    <link rel="preload" href={font} as="font" type="font/woff2" crossorigin />
+    <style is:inline set:html={face} />
+  </Fragment>
   <div class:list={['page', { index }]}>
     <header class="top">
       <a class="brand" href="/" aria-label="六爻首页">
