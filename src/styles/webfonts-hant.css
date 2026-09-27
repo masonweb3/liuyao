@@ -1,0 +1,5 @@
+/* 繁体页的正文字体：fontsource 的全部切片声明，同 webfonts.css，由 Page.astro 异步引入。
+   标题字体（芫荽、霞鹜文楷 TC）不在这里：卦页每页一份子集，已含本页全部标题字。
+   语言切换「简」字的补丁在 Paper.astro。 */
+@import '@fontsource/noto-serif-tc/400.css';
+@import '@fontsource/noto-serif-tc/600.css';

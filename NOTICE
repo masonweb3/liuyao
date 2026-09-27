@@ -51,12 +51,28 @@ src/data/guaci.json：《周易》经文、彖传、象传。原文属公有领�
 水地比首行的「坎上下坤」改为「坎上坤下」（与卦象和其余 63 卦的写法对照，src/lib/gua.test.ts
 逐卦核对上下卦）。
 
+src/data/guaci-hant.json：同上《周易》经文、彖传、象传的繁体原文，同样转录自中文维基文库《周易》
+各卦子页，按 CC BY-SA 4.0 授权并按原协议共享。底本与 guaci.json 相同：取各页在 2026-07-26
+（najia 取数当天）的修订版本；之后有 35 页被人编辑过（如屯卦初九加了「磐／盤」的异文注），不取。
+由本项目的 tools/build-guaci-hant.py 生成（修订号写死在脚本里，可重跑）。
+处理方式同 najia 的 tools/build-guaci.py，只是不做繁简转换：删去维基文库的异文夹注，否卦爻题后的
+逗号改为冒号，坤卦分三行的卦辞并为一行，地雷復的两处讹误同样改正（「不復遠」改为「不遠復」，
+「无袛悔」改为「无祗悔」）。「无」「于」等用字一律照原文（「无」和牀、羣、衆几个传统异体不在 Big5 里，也照原文保留）。另改两处原文混入的简化字（不在 Big5，
+繁体字体可能没有）：火雷豐上六「三歲不觌」改为「覿」（泽水困初六同句作「覿」），坎为水六四小象
+「剛柔济也」改为「濟」。首行（「《易經》第八卦 比 水地比 坎上坤下」）不是维基文库的文字，由卦序、
+卦名和维基文库页首的「坤下坎上」拼成，所以没有 guaci.json 那处笔误。卦名用维基文库的页名（如遯），
+只有无妄、恒两卦按台湾常见写法作「無妄」「恆」；这只改首行，经文照原文。
+按 najia 同一函数转回简体后，与 guaci.json 逐字相同，只有遯卦全名一处不同（这里照原文作「天山遯」）。
+src/lib/gua.test.ts 逐卦核对两份文件的行数、爻题、象曰的位置。
+
 ---------------------------------------------------------------------------
 原创文案
 
 src/data/baihua.json（六十四卦卦辞白话）、src/data/yao-baihua.json（爻辞白话）、
 src/data/templates.ts（断语与建议）、src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
 （https://creativecommons.org/licenses/by-nc-sa/4.0/）。
+src/data/baihua-hant.json、src/data/yao-baihua-hant.json 是 baihua.json、yao-baihua.json 的繁体（台湾用语）
+版，用 opencc-js 1.4.2 的 s2twp 转换一次后逐条人工校对，许可同上。
 
 ---------------------------------------------------------------------------
 依赖
@@ -71,3 +87,14 @@ Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站
 License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；
 src/fonts/home-*.woff2 与 src/fonts/gua/*.woff2 是 tools/subset-fonts.py 从 google/fonts
 （commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字），保留原字体里的版权与许可信息。
+
+繁体页（/zh-hant/）另用三款字体，均采用 SIL Open Font License 1.1：
+- Noto Serif TC（字形 (c) 2017-2024 Adobe），正文，经 @fontsource 分片自托管；
+- 芫荽 Iansui v1.012（Copyright 2025 The Iansui Project Authors，https://github.com/ButTaiwan/iansui），标题；
+- 霞鹜文楷 TC LXGW WenKai TC v1.522（Copyright 2022-2026 LXGW，https://github.com/lxgw/LxgwWenkaiTC；
+  Copyright 2020 The Klee Project Authors），补芫荽缺的字。
+src/fonts/gua-hant/*.woff2 是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
+霞鹜文楷 TC 取自其 GitHub 发布的 v1.522；src/fonts/lang-400.woff2、lang-600.woff2 是 Noto Serif SC 的几字子集
+（页头语言切换「简 | 繁」用的字，Noto Serif TC 没有「简」）；src/fonts/body-hans.woff2、body-hant.woff2 是
+google/fonts（commit 23e54b5）上完整的 Noto Serif SC / TC 的子集，只含 fontsource 切片里缺、正文却要用的字。
+都保留原字体里的版权与许可信息。

@@ -1,0 +1,50 @@
+/* 生成文件，勿手改：tools/subset-fonts.py。卦页、目录页由 Paper.astro 引入，排在 fontsource 的声明之后，
+   这些字先用这里的小文件：正文补字是 fontsource 切片里没有的字，语言切换用字免得为一个字多下一整片。 */
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/body-hans.woff2') format('woff2');
+  unicode-range: U+39D1, U+5232, U+537C, U+54B7, U+55C3, U+727F, U+7E86, U+80CF, U+81F2, U+8669, U+88BD, U+8C6E, U+8F39, U+97B6, U+9804, U+9917, U+9F2B;
+}
+@font-face {
+  font-family: 'Noto Serif TC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/body-hant.woff2') format('woff2');
+  unicode-range: U+55C3, U+79B4, U+81F2, U+85DF, U+8669, U+8C76, U+8F39, U+9F2B;
+}
+@font-face {
+  font-family: 'Noto Serif TC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/lang-400.woff2') format('woff2');
+  unicode-range: U+4F53, U+7B80;
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/lang-400.woff2') format('woff2');
+  unicode-range: U+9AD4;
+}
+@font-face {
+  font-family: 'Noto Serif TC';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/lang-600.woff2') format('woff2');
+  unicode-range: U+7E41;
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/lang-600.woff2') format('woff2');
+  unicode-range: U+7B80;
+}

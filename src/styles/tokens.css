@@ -56,3 +56,10 @@
   --t-hover: 180ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+/* 繁体页（/zh-hant/，<html lang="zh-Hant-TW">）。站酷小薇缺两千多个繁体常用字，标题换成芫荽
+   （台湾标准字形），它缺的生僻字由同名 @font-face 里的霞鹜文楷 TC 补（Paper.astro）。 */
+:root:lang(zh-Hant) {
+  --font-display: 'Iansui', 'Noto Serif TC', serif;
+  --font-body: 'Noto Serif TC', serif;
+}

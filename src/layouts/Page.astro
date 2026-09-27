@@ -4,6 +4,7 @@
 // 模板里的 HTML 注释会原样输出到页面，改注释也会改变首页的 <head>。
 // 首屏子集（fonts.css）只由首页引入：放在这里，卦页也会用上它，而它排在卦页自己的小薇子集之后，
 // 同一个字就去拿没预加载的首页字体文件。
+import webfontsHant from '../styles/webfonts-hant.css?url';
 import webfonts from '../styles/webfonts.css?url';
 import '../styles/tokens.css';
 
@@ -17,41 +18,58 @@ interface Props {
   /** 手机浏览器地址栏的颜色：暗场用燕颔蓝，纸面用汉白玉 */
   themeColor?: string;
   jsonLd?: Record<string, unknown>;
+  /**
+   * 繁体页（/zh-hant/）。lang 用 zh-Hant-TW：文字按台湾用语转写，读屏也该用台湾国语念；
+   * hreflang 只写 zh-Hant：没有单独的港澳版，繁体读者都该落到这一页。
+   */
+  hant?: boolean;
+  /** 另一种文字的同一页。给了才输出 hreflang 互指（两页都列自己和对方，x-default 指简体）；首页没有繁体，不给。 */
+  alternate?: string;
 }
 
-const { title, description, path, ogTitle = title, themeColor = '#131824', jsonLd } = Astro.props;
+const { title, description, path, ogTitle = title, themeColor = '#131824', jsonLd, hant = false, alternate } = Astro.props;
 // 绝对地址要有正式域名（astro.config.mjs 的 site）；没填时这些标签不输出。
 const url = (p: string) => Astro.site && new URL(p, Astro.site).href;
+const [hansPath, hantPath] = hant ? [alternate, path] : [path, alternate];
+const fontsheet = hant ? webfontsHant : webfonts;
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang={hant ? 'zh-Hant-TW' : 'zh-CN'}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content={themeColor} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- 其余的字：不阻塞首次渲染。须排在打包样式之前，首屏子集（fonts.css）才优先。 -->
-    <link rel="stylesheet" href={webfonts} media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href={webfonts} /></noscript>
+    <link rel="stylesheet" href={fontsheet} media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href={fontsheet} /></noscript>
     <slot name="head" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="六爻" />
-    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale" content={hant ? 'zh_TW' : 'zh_CN'} />
+    {hant && <meta property="og:locale:alternate" content="zh_CN" />}
     <meta property="og:title" content={ogTitle} />
     <meta property="og:description" content={description} />
     <meta name="twitter:card" content="summary_large_image" />
     {Astro.site && (
       <>
         <link rel="canonical" href={url(path)} />
+        {alternate && (
+          <>
+            <link rel="alternate" hreflang="zh-Hans" href={url(hansPath!)} />
+            <link rel="alternate" hreflang="zh-Hant" href={url(hantPath!)} />
+            <link rel="alternate" hreflang="x-default" href={url(hansPath!)} />
+          </>
+        )}
         <meta property="og:url" content={url(path)} />
         <meta property="og:image" content={url('/og.png')} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="六爻：心有所疑，不妨一问" />
+        <meta property="og:image:alt" content={hant ? '六爻：心有所疑，不妨一問' : '六爻：心有所疑，不妨一问'} />
         {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
       </>
     )}
