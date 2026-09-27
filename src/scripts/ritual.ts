@@ -204,8 +204,8 @@ async function submit() {
 	sealing = true;
 	askEl.classList.add("sealing");
 	try {
-		// 落笔的印章动画与 Jev、引擎加载并行，都好了再走。
-		const [j] = await Promise.all([judge(text), loadEngine(), loadReading(), settle($(".stamp", askEl))]);
+		// 落笔的印章动画与 Jev、引擎和解读各包的加载并行，都好了再走：开摇之后的路全在本地。
+		const [j] = await Promise.all([judge(text), loadEngine(), loadReading(), loadView(), settle($(".stamp", askEl))]);
 		if (j === "rate-limited") return fail(ERRORS.rateLimited);
 		session.question = text;
 		session.judgement = j;
@@ -659,7 +659,7 @@ $("[data-manual]", manualEl).addEventListener("submit", async (e) => {
 	manualError.textContent = !yao ? ERRORS.yao : !date ? ERRORS.when : "";
 	if (!yao || !date) return;
 	try {
-		await Promise.all([loadEngine(), loadReading()]);
+		await Promise.all([loadEngine(), loadReading(), loadView()]);
 	} catch {
 		manualError.textContent = ERRORS.network;
 		return;
@@ -693,11 +693,13 @@ addEventListener("keydown", unlock);
 // ---------------------------------------------------------------- 首屏日期
 
 // After load, so tyme4ts never weighs on the first screen; this also warms the engine
-// and the reading view, so 成卦 and 展卷 do not wait on a fresh request.
+// and the reading view. The date (the page's LCP) does not wait for the view; if the
+// view fails to load here, submitting the question retries it and reports the network.
 addEventListener("load", () =>
 	setTimeout(async () => {
+		loadView().catch(() => {});
 		try {
-			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine(), loadView()]);
+			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine()]);
 			const g = ganzhiFromDate(new Date());
 			$("[data-today]").textContent = `${g.year}年 ${g.month}月 ${g.day}日`;
 		} catch {
