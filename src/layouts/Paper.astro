@@ -4,6 +4,8 @@
 import rangesHant from '../fonts/gua-hant/ranges.json';
 import ranges from '../fonts/gua/ranges.json';
 import { HANT } from '../data/gua-slugs';
+// 正文（宋体）补字与语言切换用字（tools/subset-fonts.py 生成）：fontsource 切片里没有的字，排在它之后先用这里的。
+import '../styles/paper-fonts.css';
 import Page from './Page.astro';
 
 // 每页一份标题字体子集（tools/subset-fonts.py）：预加载，首次渲染就用标题字体，不再换字体。
@@ -32,10 +34,12 @@ const t = (hans: string, tw: string) => (hant ? tw : hans);
 const [self, other] = hant ? [HANT + path, path] : [path, HANT + path];
 const dir = hant ? 'gua-hant' : 'gua';
 const table: Record<string, string> = hant ? rangesHant : ranges;
+// 主子集必须有，缺了就让构建失败；补字子集（-wk）只有缺字的页才有。
+if (!table[subset]) throw new Error(`ranges.json 里没有 ${dir}/${subset}：重跑 tools/subset-fonts.py`);
 const fonts = [subset, `${subset}-wk`]
   .filter((k) => table[k])
   .map((k) => ({ url: SUBSETS[`../fonts/${dir}/${k}.woff2`], range: table[k] }));
-if (!fonts.length || fonts.some((f) => !f.url)) throw new Error(`缺标题字体子集 ${dir}/${subset}：重跑 tools/subset-fonts.py`);
+if (fonts.some((f) => !f.url)) throw new Error(`缺标题字体子集 ${dir}/${subset}：重跑 tools/subset-fonts.py`);
 // 只在本页内联：各页的 unicode-range 互相重叠，合进一个样式表会取到别页的文件。
 // 排在 fontsource 之后，同一个字就先用这个小文件。
 const family = hant ? 'Iansui' : 'ZCOOL XiaoWei';
@@ -61,16 +65,17 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
         {!index && <a href={hant ? `${HANT}/gua/` : '/gua/'}>六十四卦</a>}
         <a class="desk" href="/?history">往卦</a>
         {/* 语言切换（设计稿 14、D11，方案 B）：两页都是「简 | 繁」，当前那个不是链接。
-            单字读屏只念一个字，各补一段视觉隐藏的「体中文」「體中文」。 */}
+            单字读屏只念一个字，各补一段视觉隐藏的「体中文」「體中文」；当前那个再说一声「当前」（繁体页「目前」）：
+            Chrome 的无障碍树不暴露 aria-current，不能只靠它。 */}
         <span class="lang" role="group" aria-label={t('语言', '語言')}>
           {hant ? (
             <a href={other} hreflang="zh-Hans" lang="zh-Hans">简<span class="sr">体中文</span></a>
           ) : (
-            <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文</span></span>
+            <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文（当前）</span></span>
           )}
           <span class="bar" aria-hidden="true"></span>
           {hant ? (
-            <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文</span></span>
+            <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文（目前）</span></span>
           ) : (
             <a href={other} hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>
           )}
@@ -108,38 +113,6 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
   :focus-visible {
     outline: 1px solid var(--ink);
     outline-offset: 3px;
-  }
-
-  /* 语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形（tools/subset-fonts.py），同名补进正文字体。
-     「简」Noto Serif TC 根本没有，不补就回退到系统字体；当前语言那个字是 600 字重，读屏补字有「体」「體」，
-     走 fontsource 时一个字就要多下载一整片（三五十 KB）。排在 fontsource 的声明之后，这几个字先用这里的小文件。 */
-  @font-face {
-    font-family: 'Noto Serif TC';
-    font-weight: 400;
-    font-display: swap;
-    src: url('../fonts/lang-400.woff2') format('woff2');
-    unicode-range: U+4F53, U+7B80;
-  }
-  @font-face {
-    font-family: 'Noto Serif SC';
-    font-weight: 400;
-    font-display: swap;
-    src: url('../fonts/lang-400.woff2') format('woff2');
-    unicode-range: U+9AD4;
-  }
-  @font-face {
-    font-family: 'Noto Serif TC';
-    font-weight: 600;
-    font-display: swap;
-    src: url('../fonts/lang-600.woff2') format('woff2');
-    unicode-range: U+7E41;
-  }
-  @font-face {
-    font-family: 'Noto Serif SC';
-    font-weight: 600;
-    font-display: swap;
-    src: url('../fonts/lang-600.woff2') format('woff2');
-    unicode-range: U+7B80;
   }
 </style>
 

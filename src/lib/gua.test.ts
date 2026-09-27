@@ -95,9 +95,25 @@ describe("guaci-hant.json 与 guaci.json 逐卦对应（抓转录时漏掉、多
 		}
 	});
 
-	it("繁体里没有混入简化字（「无」是原文用字，不算）", () => {
-		// 维基文库原文混入的「觌」「济」已改为「覿」「濟」，见 NOTICE
-		for (const [name, text] of Object.entries(HANT)) expect(text, name).not.toMatch(/[觌济经为风泽离兑]/);
+	it("繁体的每个字都在 Big5 里，判据同 NOTICE（原文混入的「觌」「济」已改正）", () => {
+		// 标准 Big5 的字：逐个码位用 WHATWG 的 big5 解码器解出来。它含香港增补字符集，所以只取标准 Big5 的
+		// 码位段（首字节 A1–F9），跳过 C6A1–C8FE 这段扩展区。
+		const decoder = new TextDecoder("big5");
+		const big5 = new Set<string>();
+		for (let lead = 0xa1; lead <= 0xf9; lead++)
+			for (let trail = 0x40; trail <= 0xfe; trail++) {
+				const code = lead * 256 + trail;
+				if ((trail > 0x7e && trail < 0xa1) || (code >= 0xc6a1 && code <= 0xc8fe)) continue;
+				const ch = decoder.decode(new Uint8Array([lead, trail]));
+				if ([...ch].length === 1 && ch !== "�") big5.add(ch);
+			}
+		// 不在 Big5 里、但照原文保留的字：「无」是经文用字（维基文库特意标了不转换），牀、羣、衆是传统写法的
+		// 异体，不是简化字。
+		const allowed = new Set("无牀羣衆");
+		for (const [name, text] of Object.entries(HANT)) {
+			const outside = [...new Set(text)].filter((ch) => !/\s/.test(ch) && !big5.has(ch) && !allowed.has(ch));
+			expect(outside.join(""), name).toBe("");
+		}
 	});
 });
 

@@ -7,7 +7,7 @@
 并写出 src/styles/fonts.css：它在 fontsource 之后声明，unicode-range 只含这些字，
 浏览器遇到这些字就用小文件，不再去拉大切片。其余的字照旧走 fontsource。
 
-首屏文案改了就重跑（在测试服务器上，不在本机）：
+首屏文案改了就重跑（在测试服务器上，不在本机；要先装好依赖，正文补字要读 node_modules 里的 fontsource 切片）：
   ssh $STAGE 'cd ~/liuyao && docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v ~/liuyao:/app -w /app \
     python:3.12-slim sh -c "pip install -q --user fonttools==4.* brotli && python tools/subset-fonts.py"'
   然后把 src/fonts/ 和 src/styles/fonts.css 拷回本机提交。
@@ -21,7 +21,15 @@
 每组一个 ranges.json（每个文件的 unicode-range，取自子集实际含有的字），卦页在自己的 <head> 里内联 @font-face。
 改了 guaci.json、guaci-hant.json、gua-slugs.ts 或这些页面上用标题字体的文案，就重跑，把 src/fonts/ 一起拷回提交。
 
-另有 src/fonts/lang-400.woff2、lang-600.woff2：页头语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形，
+卦页、目录页的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
+- src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
+  （卦爻辞全文、卦辞白话、爻辞白话）却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
+  实际 cmap 自动算（切片 CSS 的 unicode-range 比实际字多，不能信），所以要先 pnpm install。每批白话加了字就重跑；
+  src/data/content.test.ts 会在缺字时报错。
+- src/fonts/lang-400.woff2、lang-600.woff2：页头语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形。
+  「简」Noto Serif TC 根本没有；其余几个字（当前语言那个字是 600 字重，读屏补字）要是走 fontsource，
+  一个字就要多下载一整片（三五十 KB）。
+| 繁」用的几个字，取 Noto Serif SC 的字形，
 在 Paper.astro 里以 Noto Serif SC / TC 的名义补上。「简」Noto Serif TC 根本没有；其余几个字（当前语言那个字是
 600 字重，读屏补字「体」「體」）要是走 fontsource，一个字就要多下载一整片（三五十 KB）。
 
@@ -30,6 +38,7 @@
 import hashlib
 import io
 import json
+import os
 import re
 import urllib.request
 
@@ -48,6 +57,10 @@ SOURCES = {
     "serif-sc": (
         f"{REPO}/notoserifsc/NotoSerifSC%5Bwght%5D.ttf",
         "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9",
+    ),
+    "serif-tc": (
+        f"{REPO}/notoseriftc/NotoSerifTC%5Bwght%5D.ttf",
+        "0077e18f57c6908f4a000969880940bdb0dad057c0e8d98b49dc364c3d1b09c6",
     ),
     # 芫荽 Iansui v1.012
     "iansui": (
@@ -71,8 +84,19 @@ TEXT = {
     "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + " ·　",
 }
 
-# 语言切换用的字，按字重分（Paper.astro 的 @font-face 按这些字写 unicode-range）
-LANG = {400: "简体體", 600: "简繁"}
+# 语言切换「简 | 繁」用的字：(补进哪个字体族, 字重) → 字，字形都取 Noto Serif SC。
+LANG = {
+    ("Noto Serif TC", 400): "简体",  # 繁体页：链接「简」，读屏补字「体」
+    ("Noto Serif SC", 400): "體",  # 简体页：读屏补字「體」
+    ("Noto Serif TC", 600): "繁",  # 繁体页：当前语言
+    ("Noto Serif SC", 600): "简",  # 简体页：当前语言
+}
+
+# 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
+BODY = {
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json"]),
+}
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
@@ -180,6 +204,69 @@ def gua_hant() -> None:
             print(f"  {slug}: {a} + {b} B（文楷补 {missing}）")
 
 
+def fontsource_chars(pkg: str) -> set[int]:
+    """fontsource 400 字重切片实际有的字：读 400.css 引用的每个文件的 cmap。"""
+    base = f"node_modules/@fontsource/{pkg}"
+    try:
+        css = open(f"{base}/400.css", encoding="utf-8").read()
+    except FileNotFoundError:
+        raise SystemExit(f"找不到 {base}：先 pnpm install")
+    has: set[int] = set()
+    for f in re.findall(r"url\(\./files/([^)]+\.woff2)\)", css):
+        has |= set(TTFont(f"{base}/files/{f}", lazy=True).getBestCmap())
+    return has
+
+
+def data_chars(files: list[str]) -> set[str]:
+    text = ""
+    for f in files:
+        for v in json.load(open(f"src/data/{f}", encoding="utf-8")).values():
+            text += "".join(v.values()) if isinstance(v, dict) else v
+    return {c for c in text if not c.isspace()}
+
+
+def face(family: str, wght: int, file: str, rng: str) -> str:
+    return (
+        "@font-face {\n"
+        f"  font-family: '{family}';\n"
+        "  font-style: normal;\n"
+        f"  font-weight: {wght};\n"
+        "  font-display: swap;\n"
+        f"  src: url('../fonts/{file}.woff2') format('woff2');\n"
+        f"  unicode-range: {rng};\n"
+        "}"
+    )
+
+
+def paper_fonts() -> None:
+    """卦页、目录页的正文补字与语言切换用字，写出 src/styles/paper-fonts.css。"""
+    css = [
+        "/* 生成文件，勿手改：tools/subset-fonts.py。卦页、目录页由 Paper.astro 引入，排在 fontsource 的声明之后，\n"
+        "   这些字先用这里的小文件：正文补字是 fontsource 切片里没有的字，语言切换用字免得为一个字多下一整片。 */"
+    ]
+    for lang, (family, src, pkg, files) in BODY.items():
+        have, full = fontsource_chars(pkg), cmap(src)
+        missing = "".join(sorted(c for c in data_chars(files) if ord(c) not in have))
+        lost = [c for c in missing if ord(c) not in full]
+        if lost:
+            raise SystemExit(f"{family} 完整字体也没有 {''.join(lost)}")
+        path = f"src/fonts/body-{lang}.woff2"
+        if not missing:
+            if os.path.exists(path):
+                os.remove(path)
+            continue
+        rng, size = save(make_subset(load(src), missing), path)
+        css.append(face(family, 400, f"body-{lang}", rng))
+        print(path, len(missing), "chars", size, "B:", missing)
+    for wght in sorted({w for _, w in LANG}):
+        text = "".join(t for (_, w), t in LANG.items() if w == wght)
+        make_subset(load("serif-sc"), text, wght).save(f"src/fonts/lang-{wght}.woff2")
+    for (family, wght), text in LANG.items():
+        css.append(face(family, wght, f"lang-{wght}", ranges(text)))
+    with open("src/styles/paper-fonts.css", "w", encoding="utf-8") as f:
+        f.write("\n".join(css) + "\n")
+
+
 def main() -> None:
     css = [
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
@@ -202,8 +289,7 @@ def main() -> None:
     with open("src/styles/fonts.css", "w", encoding="utf-8") as f:
         f.write("\n".join(css) + "\n")
 
-    for wght, text in LANG.items():
-        make_subset(load("serif-sc"), text, wght).save(f"src/fonts/lang-{wght}.woff2")
+    paper_fonts()
     gua_hans()
     gua_hant()
 
