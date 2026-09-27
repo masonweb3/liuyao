@@ -274,9 +274,11 @@ $("[data-remind-get]", remind).addEventListener("click", () => {
 	a.download = ics.name;
 	a.click();
 	setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-	keep({ remind: { days, at: now.toISOString() } });
+	const kept = keep({ remind: { days, at: now.toISOString() } });
 	const msg = $<HTMLTemplateElement>("[data-remind-done]", remind).content.cloneNode(true) as DocumentFragment;
 	fill(msg, { due: monthDay(ics.start) });
+	// 文件照样下了，但往卦里没记上：回访卡不会按提醒那天出，要说清楚
+	if (!kept) msg.lastElementChild?.append(` ${card.dataset.unsaved ?? ""}`);
 	got.replaceChildren(msg);
 });
 
