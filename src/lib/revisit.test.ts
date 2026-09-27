@@ -217,23 +217,38 @@ describe(".ics", () => {
 		expect(name).toBe("sixyao-2026-10-04.ics");
 	});
 
-	it("描述只有起卦日期、卦名和链接：没有所问、吉凶、附言", () => {
+	/** 文件里的每个物理行：不超过 75 字节，单独拿出来也是完整的 UTF-8（没有一个字被折行拆开）。 */
+	const physical = (text: string) => {
+		const utf8 = new TextEncoder();
+		const strict = new TextDecoder("utf-8", { fatal: true });
+		for (const line of text.split("\r\n")) {
+			const bytes = utf8.encode(line);
+			expect(bytes.length).toBeLessThanOrEqual(75);
+			// 拆开的四字节字会成为孤立的代理项，编码时被换成替换字符，解回来就对不上
+			expect(strict.decode(bytes)).toBe(line);
+		}
+	};
+
+	it("描述是起卦日期、卦名、「用同一台设备打开」和链接：没有所问、吉凶、附言", () => {
 		const p = entry({ review: { outcome: "no", note: "对方爽约，心里难过。", at: day(1).toISOString() } });
 		const { text } = reminder(p, "兑为泽之天水讼", 3, now, newUid(), copy);
-		const plain = unfold(text).replace(/\\n/g, "\n");
-		expect(plain).toContain(`DESCRIPTION:${dayLabel(new Date(p.at), now)}起的一卦：兑为泽之天水讼。\nhttps://sixyao.app/?history`);
+		const desc =
+			`${dayLabel(new Date(p.at), now)}起的一卦：兑为泽之天水讼。过些日子了，回来看看后来怎样。` +
+			"往卦只保存在起卦那台设备的浏览器里，请用同一台设备打开。\\nhttps://sixyao.app/?history";
+		expect(unfold(text).split("\r\n")).toContain(`DESCRIPTION:${desc}`);
+		// 这段中文按字节折了好几行
+		const lines = text.split("\r\n");
+		const at = lines.findIndex((l) => l.startsWith("DESCRIPTION:"));
+		expect(lines.slice(at + 1, at + 3).every((l) => l.startsWith(" "))).toBe(true);
+		physical(text);
+		const plain = unfold(text);
 		for (const leak of [p.question, "跳槽", "爽约", "吉", "凶", "应了", "没应"]) expect(plain).not.toContain(leak);
 	});
 
 	it("每行不超过 75 字节，折行不切断中文，展开后一字不差", () => {
 		const long = "一卦".repeat(60) + "𝌆，a;b\\c";
 		const { text } = reminder(entry(), long, 30, now, newUid(), { ...copy, summary: long });
-		const utf8 = new TextEncoder();
-		for (const line of text.split("\r\n")) {
-			expect(utf8.encode(line).length).toBeLessThanOrEqual(75);
-			// 拆开的字会成为孤立的代理项，编码时变成替换字符
-			expect(line).not.toMatch(/[\uD800-\uDBFF]$|^ ?[\uDC00-\uDFFF]/);
-		}
+		physical(text);
 		// 确实折了好几行
 		expect(text.split("\r\n").filter((l) => l.startsWith(" ")).length).toBeGreaterThan(2);
 		const summary = unfold(text).split("\r\n").find((l) => l.startsWith("SUMMARY:"));
