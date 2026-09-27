@@ -1,0 +1,234 @@
+---
+// 纸面的知识页（卦页、六十四卦目录）：页头、页脚和纸色底。不带起卦脚本。
+import ranges from '../fonts/gua/ranges.json';
+import Page from './Page.astro';
+
+// 每页一份站酷小薇子集（tools/subset-fonts.py）：预加载，首次渲染就用小薇，不再换字体。
+const SUBSETS = import.meta.glob<string>('../fonts/gua/*.woff2', { query: '?url', import: 'default', eager: true });
+
+interface Props {
+  title: string;
+  description: string;
+  path: string;
+  /** 目录页：页头不再链「六十四卦」，手机上改链「起卦」。 */
+  index?: boolean;
+  /** 本页的小薇子集：卦的 slug，目录页是 index */
+  subset: string;
+}
+
+const { title, description, path, index = false, subset } = Astro.props;
+const font = SUBSETS[`../fonts/gua/${subset}.woff2`];
+const range = (ranges as Record<string, string>)[subset];
+if (!font || !range) throw new Error(`缺小薇子集 ${subset}：重跑 tools/subset-fonts.py`);
+// 只在本页内联：各页的 unicode-range 互相重叠，合进一个样式表会取到别页的文件。
+// 排在 fontsource 之后，同一个字就先用这个小文件。
+const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weight:400;font-display:swap;src:url(${font}) format('woff2');unicode-range:${range}}`;
+---
+
+<Page title={title} description={description} path={path} themeColor="#f8f4ed">
+  <Fragment slot="head">
+    <link rel="preload" href={font} as="font" type="font/woff2" crossorigin />
+    <style is:inline set:html={face} />
+  </Fragment>
+  <div class:list={['page', { index }]}>
+    <header class="top">
+      <a class="brand" href="/" aria-label="六爻首页">
+        <span class="seal" aria-hidden="true">爻</span>
+        <span class="name" aria-hidden="true">六爻</span>
+      </a>
+      <nav aria-label="站内">
+        {!index && <a href="/gua/">六十四卦</a>}
+        <a class="desk" href="/?history">往卦</a>
+        <a class="ask" href="/?ask">起卦</a>
+      </nav>
+    </header>
+    <slot />
+    {index ? (
+      <footer class="foot">
+        <p>
+          卦爻辞原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创 · 仅供传统文化参考与娱乐
+        </p>
+      </footer>
+    ) : (
+      <footer class="foot">
+        <p>
+          卦爻辞、彖传、象传原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创<span class="stop">。</span>
+        </p>
+        <p>仅供传统文化参考与娱乐<span class="stop">。</span></p>
+      </footer>
+    )}
+  </div>
+</Page>
+
+<style is:global>
+  html,
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+  }
+</style>
+
+<style>
+  /* 行高全部写死：字体异步换上时行数、高度不变，不产生布局偏移。 */
+  .page {
+    --gap: 40px;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    padding: max(16px, env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right))
+      max(56px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+    line-height: 1.8;
+  }
+  .page.index {
+    --gap: 36px;
+  }
+
+  .top {
+    height: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .top a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .brand {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .seal {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    background: var(--seal);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: 17px;
+    line-height: 1;
+    border-radius: var(--radius);
+  }
+  .name {
+    font-size: var(--fs-s);
+    letter-spacing: 0.4em;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  nav a {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+  }
+  /* 手机：卦页右上只有「六十四卦」，目录页只有「起卦」 */
+  nav .desk,
+  nav .ask {
+    display: none;
+  }
+  .index nav .ask {
+    display: flex;
+    letter-spacing: 0.3em;
+  }
+
+  .foot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .foot p {
+    margin: 0;
+  }
+  .foot a {
+    color: inherit;
+    text-underline-offset: 3px;
+  }
+
+  /* 768–1023：沿用手机版式，内容居中，最宽 640px */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .page {
+      padding-inline: max(var(--gutter), calc(50% - 320px));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page {
+      --gap: 56px;
+      padding: 32px 64px 72px;
+    }
+    .page.index {
+      --gap: 48px;
+    }
+    .top {
+      height: 48px;
+    }
+    .brand {
+      gap: 12px;
+    }
+    .seal {
+      width: 30px;
+      height: 30px;
+      font-size: 19px;
+    }
+    .name {
+      font-size: 15px;
+    }
+    nav .desk {
+      display: flex;
+    }
+    nav .ask,
+    .index nav .ask {
+      display: flex;
+      padding: 0 22px;
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      letter-spacing: 0.4em;
+    }
+    .foot {
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      flex-direction: row;
+      justify-content: center;
+      gap: 0;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+    }
+    /* 桌面并成一行，两句之间用间隔号 */
+    .stop {
+      display: none;
+    }
+    .foot p + p::before {
+      content: "·";
+      margin-inline: 0.6em;
+    }
+    /* 目录页（设计稿 D10）：与格子同宽，左对齐，没有分隔线 */
+    .index .foot {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      padding-top: 0;
+      border-top: none;
+      justify-content: flex-start;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.06em;
+    }
+  }
+</style>

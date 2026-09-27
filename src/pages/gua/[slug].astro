@@ -1,0 +1,511 @@
+---
+// 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文与卦辞白话。知识页，不带所问、不断吉凶。
+import Invite from '../../components/Invite.astro';
+import baihua from '../../data/baihua.json';
+import { GUA, guaPath } from '../../data/gua-slugs';
+import guaci from '../../data/guaci.json';
+import Paper from '../../layouts/Paper.astro';
+import { STROKES, yaoTitle } from '../../lib/flow';
+import { fontOf, gongOf, markOf, neighbors, parseGua, related, shortName } from '../../lib/gua';
+
+export function getStaticPaths() {
+  return GUA.map(([name, slug]) => ({ params: { slug }, props: { name, slug } }));
+}
+
+const TEXT: Record<string, string> = guaci;
+const BAIHUA: Record<string, string> = baihua;
+const { name, slug } = Astro.props as { name: string; slug: string };
+const short = shortName(name);
+const g = parseGua(TEXT[name]!);
+const bh = BAIHUA[name]!;
+const mark = markOf(name);
+const gong = gongOf(name);
+// 第十一卦 → 第十一
+const near = (n?: string) => n && { name: n, no: parseGua(TEXT[n]!).no.slice(0, -1) };
+const { prev, next } = neighbors(name);
+const before = near(prev);
+const after = near(next);
+
+/** 上爻在上；乾坤的用九、用六排在六爻之后，不配爻画。 */
+const yao = [
+  ...g.yao.slice(0, 6).map((y, k) => ({ ...y, id: k + 1, yang: mark[k] === '1' })).reverse(),
+  ...g.yao.slice(6).map((y) => ({ ...y, id: 7, yang: null })),
+];
+const lines = [...mark].map((b, k) => ({ yang: b === '1', label: `${yaoTitle(k, b === '1')} ${b === '1' ? '阳' : '阴'}` })).reverse();
+// 字体按区块定：卦名、卦辞各一块，全部爻辞算一块（一行缺字，整组改宋体）。
+const font = (text: string) => `font-family: var(${fontOf(text)})`;
+const yaoFont = font(g.yao.map((y) => y.text).join(''));
+
+const title = `${name}（${short}卦）卦辞、爻辞原文与白话 · 六爻`;
+const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附卦辞、彖传、象传与六爻爻辞原文。`;
+---
+
+<Paper title={title} description={description} path={guaPath(name)} subset={slug}>
+  <main class="layout">
+    <div class="lead">
+      <section class="gua" aria-label="卦象">
+        <p class="no">{g.no} · {short}</p>
+        <div class="row">
+          <div class="lines">
+            {lines.map((l) => (
+              <svg viewBox="0 0 240 24" role="img" aria-label={l.label}>
+                {STROKES[l.yang ? 'yang' : 'yin'].map((d) => <path d={d} />)}
+              </svg>
+            ))}
+          </div>
+          <div class="names">
+            <h1 style={font(name)}>{name}</h1>
+            <span class="tri">{g.upper}上{g.lower}下</span>
+          </div>
+        </div>
+        <p class="gong">{gong}</p>
+      </section>
+      <p class="bh">{bh}</p>
+      <section class="related" aria-labelledby="related">
+        <h2 id="related" class="sub">相关卦</h2>
+        <div class="cards">
+          {related(name).map(([kind, n]) => (
+            <a href={guaPath(n)}><span class="kind">{kind}</span><span class="n">{n}</span></a>
+          ))}
+        </div>
+      </section>
+      <div class="cta"><Invite aside /></div>
+    </div>
+
+    <div class="main">
+      <section class="ci-block">
+        <h2 class="head">卦辞</h2>
+        <p class="ci" style={font(g.ci)}>{g.ci}</p>
+      </section>
+      <div class="zhuan">
+        <section>
+          <h2 class="sub">彖传</h2>
+          <p class="prose">{g.tuan}</p>
+        </section>
+        <section>
+          <h2 class="sub">象传</h2>
+          <p class="prose">{g.xiang}</p>
+        </section>
+      </div>
+      <section class="yao">
+        <h2 class="head">六爻</h2>
+        {yao.map((y) => (
+          <article id={`yao-${y.id}`}>
+            <div class="pos">
+              <span class="title">{y.title}</span>
+              {y.yang !== null && (
+                <svg viewBox="0 0 240 24" aria-hidden="true">
+                  {STROKES[y.yang ? 'yang' : 'yin'].map((d) => <path d={d} />)}
+                </svg>
+              )}
+            </div>
+            <div class="words">
+              <p class="ci" style={yaoFont}>{y.text}</p>
+              <p class="xiang">{y.xiang}</p>
+            </div>
+          </article>
+        ))}
+      </section>
+      <nav class="pager" aria-label="上一卦与下一卦">
+        {before ? (
+          <a href={guaPath(before.name)}><span class="kind">上一卦 · {before.no}</span><span class="n">‹ {before.name}</span></a>
+        ) : <span />}
+        {after && (
+          <a class="next" href={guaPath(after.name)}><span class="kind">下一卦 · {after.no}</span><span class="n">{after.name} ›</span></a>
+        )}
+      </nav>
+    </div>
+  </main>
+</Paper>
+
+<style>
+  p,
+  h1,
+  h2 {
+    margin: 0;
+  }
+
+  /* 手机：一栏。左栏、右栏的外壳拆掉，相关卦、上下卦、起卦排到正文之后。 */
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .lead,
+  .main {
+    display: contents;
+  }
+  .main > * {
+    order: 1;
+  }
+  .related {
+    order: 2;
+  }
+  .main > .pager {
+    order: 3;
+  }
+  .cta {
+    order: 4;
+  }
+
+  .gua {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .no {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 4px;
+  }
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .lines svg {
+    display: block;
+    width: 150px;
+    height: 15px;
+    fill: var(--ink);
+  }
+  .names {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  h1 {
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: 0.24em;
+  }
+  .tri {
+    padding-top: 50px;
+    writing-mode: vertical-rl;
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .gong {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+  }
+  .bh {
+    margin-top: -8px;
+    padding: 22px 0;
+    border-block: 1px solid var(--rule);
+    font-size: 18px;
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+  }
+
+  /* 主标题带印章色小方块；次标题小字灰色 */
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .sub {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.4em;
+    color: var(--ink-2);
+  }
+
+  .ci-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ci-block .ci {
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    line-height: 1.5;
+    letter-spacing: 0.16em;
+  }
+  .zhuan {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .zhuan section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .prose {
+    font-size: 15px;
+    line-height: 1.95;
+  }
+
+  .yao h2 {
+    margin-bottom: 8px;
+  }
+  article {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .pos {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .title {
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: 0.16em;
+    color: var(--seal);
+  }
+  .pos svg {
+    width: 44px;
+    height: 6px;
+    fill: var(--ink-2);
+  }
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .yao .ci {
+    font-family: var(--font-display);
+    font-size: var(--fs-l);
+    line-height: 1.6;
+    letter-spacing: 0.12em;
+  }
+  .xiang {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+
+  /* 相关卦与上一卦、下一卦 */
+  .related {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .cards a {
+    min-height: 64px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    transition: border-color var(--t-hover);
+  }
+  .cards a:hover {
+    border-color: var(--ink);
+  }
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .kind {
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .n {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+  }
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .pager a {
+    min-height: var(--tap);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pager a:hover .n {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .pager .next {
+    align-items: flex-end;
+  }
+
+  @media (min-width: 1024px) {
+    .layout {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      column-gap: 96px;
+      align-items: start;
+    }
+    .lead,
+    .main {
+      display: flex;
+      flex-direction: column;
+    }
+    .lead {
+      gap: 32px;
+    }
+    .main {
+      gap: 48px;
+      padding-top: 8px;
+    }
+
+    .gua {
+      gap: 32px;
+    }
+    .no {
+      font-size: 13px;
+    }
+    .lines {
+      gap: 18px;
+    }
+    .lines svg {
+      width: 210px;
+      height: 20px;
+    }
+    .names {
+      gap: 16px;
+    }
+    h1 {
+      font-size: 60px;
+      letter-spacing: 0.22em;
+    }
+    .tri {
+      padding-top: 70px;
+      font-size: 17px;
+    }
+    .row {
+      padding-right: 0;
+    }
+    .gong {
+      font-size: 13px;
+    }
+    .bh {
+      margin-top: 0;
+      padding: 26px 0;
+      font-size: var(--fs-l);
+    }
+    .related {
+      gap: 12px;
+    }
+    .cards a {
+      padding: 10px 14px;
+    }
+
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .ci-block {
+      gap: 18px;
+    }
+    .ci-block .ci {
+      font-size: 34px;
+      letter-spacing: 0.18em;
+    }
+    .zhuan {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 48px;
+      padding-top: 28px;
+      border-top: 1px solid var(--rule);
+    }
+    .prose {
+      font-size: var(--fs-m);
+    }
+    .yao h2 {
+      margin-bottom: 4px;
+    }
+    article {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 32px;
+      padding: 28px 0;
+    }
+    .pos {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 6px;
+    }
+    .title {
+      font-size: 15px;
+      letter-spacing: 0.2em;
+    }
+    .pos svg {
+      width: 72px;
+      height: 9px;
+    }
+    .words {
+      gap: 12px;
+    }
+    .yao .ci {
+      font-size: 24px;
+    }
+    .xiang {
+      font-size: var(--fs-s);
+    }
+    .pager {
+      gap: 24px;
+      padding: 0;
+      border: none;
+    }
+    .pager .kind {
+      font-size: var(--fs-xs);
+    }
+    .pager .n {
+      font-size: 18px;
+    }
+  }
+
+  /* 左栏随滚动固定，只在窗口放得下整栏时：窗口矮时固定会让栏底的起卦块看不到。
+     左栏实测最高 977px（四字卦名、白话三行），加上顶部 32px 和余量。 */
+  @media (min-width: 1024px) and (min-height: 1040px) {
+    .lead {
+      position: sticky;
+      top: 32px;
+    }
+  }
+</style>

@@ -23,6 +23,15 @@ describe("卦例 A：亥月己丑日，兑为泽之天水讼，问事业", () =>
 		expect(x.bian?.short).toBe("讼");
 	});
 
+	it("本卦、变卦链到各自的卦页", () => {
+		expect(x.ben.href).toBe("/gua/dui-wei-ze/");
+		expect(x.bian?.href).toBe("/gua/tian-shui-song/");
+	});
+
+	it("卦名、卦辞、动爻都用站酷小薇", () => {
+		expect([x.ben.font, x.ben.ciFont, x.dong.font]).toEqual(["--font-display", "--font-display", "--font-display"]);
+	});
+
 	it("两爻齐动，以上爻为主", () => {
 		expect(x.dong.heading).toBe("动爻 · 两爻齐动，以上爻为主");
 		expect(x.dong.lines).toEqual([
@@ -65,7 +74,7 @@ describe("特殊卦形", () => {
 		const x = compose(cast([7, 7, 7, 7, 7, 7]), { topic: "自身" });
 		expect(x.bian).toBeNull();
 		expect(x.panel.bian).toBeNull();
-		expect(x.dong).toEqual({ heading: "静卦", lines: [], note: SPECIAL.jingGua });
+		expect(x.dong).toEqual({ heading: "静卦", lines: [], note: SPECIAL.jingGua, font: "--font-display" });
 	});
 
 	it("乾坤六爻皆动，占用九、用六", () => {
@@ -78,7 +87,16 @@ describe("特殊卦形", () => {
 
 	it("他卦六爻皆动，以变卦卦辞为归", () => {
 		const x = compose(cast([9, 6, 9, 6, 9, 6]), { topic: "自身" });
-		expect(x.dong).toEqual({ heading: "动爻 · 六爻皆动", lines: [], note: SPECIAL.quanDong });
+		expect(x.dong).toEqual({ heading: "动爻 · 六爻皆动", lines: [], note: SPECIAL.quanDong, font: "--font-display" });
+	});
+
+	it("站酷小薇缺字：卦名、卦辞各自整块改宋体，动爻几条算一块", () => {
+		// 天风姤，初六（系于金柅，「柅」小薇没有）与九二（包有鱼…）齐动
+		const x = compose(cast([6, 9, 7, 7, 7, 7]), { topic: "自身" });
+		expect(x.ben).toMatchObject({ name: "天风姤", short: "姤", font: "--font-body", ciFont: "--font-body" });
+		expect(x.bian).toMatchObject({ name: "天火同人", font: "--font-display", ciFont: "--font-display" });
+		expect(x.dong.lines.map((l) => l.title)).toEqual(["九二", "初六"]);
+		expect(x.dong.font).toBe("--font-body");
 	});
 
 	it("三爻以上齐动不标主爻", () => {

@@ -51,21 +51,28 @@ src/
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘）
-  components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦
+  lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、站酷小薇缺字规则 fontOf（零 DOM）
+  components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
+                    Invite.astro 是卦页、目录页底部的起卦块
+  layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、统计脚本
+  layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、本页小薇子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
+  scripts/view.ts   解读页的渲染与卦名字体（按需加载，页面 load 后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
+  data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
   pages/index.astro 首屏加完整起卦流程（单页）
+  pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/api/judge.ts 唯一的服务端路由：调用 Jev
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
   pages/robots.txt.ts  由 site 生成
   styles/tokens.css 颜色、字体、间距、动效时长
   styles/fonts.css  首屏字形子集的 @font-face（生成文件）
   styles/webfonts.css fontsource 全部切片，异步加载
-  fonts/            首屏字形子集（tools/subset-fonts.py 生成）
+  fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
 .github/workflows/  ci.yml：PR 上跑测试和构建；tag.yml：合并后打日期 tag
@@ -170,12 +177,21 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 卦名、标语、竖排文字用站酷小薇（`@fontsource/zcool-xiaowei`，OFL）。
   - 全部自托管，按 unicode-range 切片加载。
   - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。
+  - 首屏子集的 `fonts.css` 只由首页引入，不要放进公共布局：卦页会用上它，又没预加载，换字体时产生布局偏移。
+  - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
+  - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包：成卦页和解读页的渲染在按需加载的 `src/scripts/view.ts`，解读页和分享卡用 `compose()` 带出的字体。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。
   - 已经写出的爻就是进度。
   - 所问一直以小字悬在屏幕顶部。
   - 各步骤的节奏见 `docs/research.md` §6.2。
+- **卦页与目录（`/gua/`）：** 纸色知识页，设计稿画板 12、13、D9、D10。
+  - 不带所问、不断吉凶，没有「AI 辅助判断」那一行；页底暗色一块引回起卦（`/?ask`），桌面页头的「往卦」走 `/?history`。
+  - 文字只来自 `guaci.json`、`baihua.json` 和少量原创标签。爻辞白话没写之前不显示，也不留空位。
+  - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
+  - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
+  - 解读页上本卦、变卦的卦名链到卦页。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
@@ -199,8 +215,8 @@ README.md           英文说明；README.zh-CN.md 是中文版
 ```sh
 # 同步代码（在本机执行）
 rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .env.deploy --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
-# 构建并启动预览（workerd）
-ssh $STAGE 'cd ~/liuyao && docker compose up -d --build'
+# 构建并启动预览（workerd）。--force-recreate：只加 --build 时，容器有时仍在跑旧镜像
+ssh $STAGE 'cd ~/liuyao && docker compose up -d --build --force-recreate'
 # 跑测试
 ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 ```
@@ -230,7 +246,7 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 生产环境部署到 Cloudflare Workers，域名 `sixyao.app`（Cloudflare 注册）。它同时写在 `astro.config.mjs` 的 `site`（canonical、og:image 等绝对地址靠它）和 `wrangler.jsonc` 的 `routes`（绑定自定义域名），改域名两处一起改。
 - **合并到 `main` 即自动部署**：Worker `liuyao` 接了 Cloudflare Workers Builds，构建命令 `pnpm build`，部署命令 `npx wrangler deploy`。只有 `main` 触发，其他分支不构建（测试环境仍是局域网服务器）。构建变量 `NODE_VERSION`、`PNPM_VERSION` 在 Cloudflare 后台设，改 Node 或 pnpm 大版本时和 `package.json`、`ci.yml` 一起改。
 - 生产密钥用 `wrangler secret put TYPESAFE_API_KEY` 设置。
-- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本手动写在 `src/pages/index.astro` 的 `<head>`；以后加新页面，每页都要带上。Cloudflare 后台 sixyao.app 的 Web Analytics 自动注入（zone 的 RUM 设置）要保持关闭：它只给浏览器请求注入脚本，用 curl 默认请求头看不到；开着就会和手写的那段重复计数。
+- **统计**：只用 Cloudflare Web Analytics（无 cookie，不追踪个人），不接其他第三方统计。脚本写在公共布局 `src/layouts/Page.astro` 的 `<head>` 里，用这个布局的页面自动带上；新页面要用这个布局（纸面知识页用套在它外面的 `Paper.astro`），不要再手写一段。Cloudflare 后台 sixyao.app 的 Web Analytics 自动注入（zone 的 RUM 设置）要保持关闭：它只给浏览器请求注入脚本，用 curl 默认请求头看不到；开着就会和手写的那段重复计数。
 - 应急时可以从测试服务器手动部署，命令和凭据见 `CLAUDE.local.md`。部署凭据不要放进 `.dev.vars`：那个文件存的是 Worker 自己的变量。
 
 每次部署都在 `CHANGELOG.md` 记一条：版本号用部署当天的北京时间日期 `YYYY.MM.DD`，同一天多次部署并入当天那条。写用户看得到的变化，以及以后改代码时需要知道的决定和原因。这一条**写在 PR 里**，日期按预计合并的那天；拖到别的日子才合并，合并前改过来。同名 annotated tag 由 `.github/workflows/tag.yml` 在合并后自动打，同一天再合并会把 tag 移到新提交。

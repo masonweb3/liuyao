@@ -39,8 +39,8 @@ const facts = [
       <section class="gua" aria-label="卦象">
         <div class="lines" data-lines></div>
         <div class="names">
-          <h1 tabindex="-1" data-name data-autofocus></h1>
-          <span class="zhi" data-zhi></span>
+          <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
+          <span class="zhi" data-zhi>之<a class="to-gua" data-zhi-name></a></span>
         </div>
       </section>
       <p class="gz" data-gz></p>
@@ -293,6 +293,24 @@ const facts = [
     letter-spacing: 0.24em;
     line-height: 1;
     outline: none;
+  }
+  /* 卦名链到卦页：不抢眼，颜色随文字；竖排时常驻的下划线像一条分隔线，只在悬停、聚焦时出现。 */
+  .to-gua {
+    color: inherit;
+    text-decoration: none;
+    text-underline-offset: 0.3em;
+  }
+  .to-gua:hover,
+  .to-gua:focus-visible {
+    text-decoration: underline 1px;
+  }
+  /* 「之X」字小，可点区域撑到 24px 以上，不改变排版。只往左右和下方撑，不压到上面的「之」；
+     焦点框贴着这块区域画，不外扩，也就不盖住「之」。 */
+  .zhi .to-gua {
+    display: inline-block;
+    padding: 0 6px 6px;
+    margin: 0 -6px -6px;
+    outline-offset: 0;
   }
   .zhi {
     padding-top: 50px;
