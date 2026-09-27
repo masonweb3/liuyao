@@ -1,0 +1,15 @@
+/* 繁体页的正文字体：fontsource 的全部切片声明，同 webfonts.css，由 Page.astro 异步引入。
+   标题字体（芫荽、霞鹜文楷 TC）不在这里：卦页每页一份子集，已含本页全部标题字。 */
+@import '@fontsource/noto-serif-tc/400.css';
+@import '@fontsource/noto-serif-tc/600.css';
+
+/* Noto Serif TC 没有「简」（页头切换链接「简体」），借 Noto Serif SC 同一套设计的字形补上，
+   不让这一个字回退到系统字体。文件由 tools/subset-fonts.py 生成。 */
+@font-face {
+  font-family: 'Noto Serif TC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/hant-body-extra.woff2') format('woff2');
+  unicode-range: U+7B80;
+}

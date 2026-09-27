@@ -1,0 +1,12 @@
+---
+// 繁体卦页。没配 Astro i18n：全站预渲染，它只多一个挂在 /api/judge 前面的中间件和用不上的 helper，
+// 网址前缀一行就够（gua-slugs.ts 的 HANT）。
+import Gua from '../../../components/Gua.astro';
+import { GUA } from '../../../data/gua-slugs';
+
+export function getStaticPaths() {
+  return GUA.map(([name, slug]) => ({ params: { slug }, props: { name, slug } }));
+}
+---
+
+<Gua {...(Astro.props as { name: string; slug: string })} hant />

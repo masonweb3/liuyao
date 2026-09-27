@@ -3,14 +3,17 @@
 interface Props {
   /** 卦页：多一句说明；桌面放进左栏，文字左对齐。 */
   aside?: boolean;
+  /** 繁体页。起卦流程的繁体是 M12b，按钮仍去简体首页。 */
+  hant?: boolean;
 }
-const { aside = false } = Astro.props;
+const { aside = false, hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
 ---
 
 <section class:list={['invite', { aside }]} aria-label="起卦">
-  <p class="slogan">心有所疑，不妨一问</p>
+  <p class="slogan">{t('心有所疑，不妨一问', '心有所疑，不妨一問')}</p>
   <p class="why">
-    卦是摇出来的，不是挑出来的。{aside && <><br />写下一件事，摇六次铜钱，看它落在哪一卦。</>}
+    {t('卦是摇出来的，不是挑出来的。', '卦是搖出來的，不是挑出來的。')}{aside && <><br />{t('写下一件事，摇六次铜钱，看它落在哪一卦。', '寫下一件事，搖六次銅錢，看它落在哪一卦。')}</>}
   </p>
   <a class="go" href="/?ask">起卦</a>
 </section>

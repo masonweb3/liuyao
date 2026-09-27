@@ -78,9 +78,12 @@ export const GUA: readonly (readonly [name: string, slug: string])[] = [
 	["火水未济", "huo-shui-wei-ji"],
 ];
 
-/** 卦页网址，带尾斜杠（canonical、sitemap、站内链接都用这一种）：/gua/di-tian-tai/ */
-export function guaPath(name: string): string {
+/** 繁体页的网址前缀：/zh-hant/gua/di-tian-tai/。简体不带前缀。 */
+export const HANT = "/zh-hant";
+
+/** 卦页网址，带尾斜杠（canonical、sitemap、站内链接都用这一种）：/gua/di-tian-tai/，繁体 /zh-hant/gua/di-tian-tai/ */
+export function guaPath(name: string, hant = false): string {
 	const slug = GUA.find(([n]) => n === name)?.[1];
 	if (!slug) throw new Error(`不认识的卦名：${name}`);
-	return `/gua/${slug}/`;
+	return `${hant ? HANT : ""}/gua/${slug}/`;
 }

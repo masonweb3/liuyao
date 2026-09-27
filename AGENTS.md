@@ -1,6 +1,6 @@
 # AGENTS.md
 
-中国风六爻起卦网站。用户先写下所问，再摇六次铜钱成卦，程序排盘并断出吉凶，然后给出白话解读。TypeSafe **Jev** 负责语义判断：把问题分类到用神、做安全拦截。面向海外华人，免费、无广告、不登录。
+中国风六爻起卦网站。用户先写下所问，再摇六次铜钱成卦，程序排盘并断出吉凶，然后给出白话解读。TypeSafe **Jev** 负责语义判断：把问题分类到用神、做安全拦截。面向海外华人，繁体以台湾用语为准，免费、无广告、不登录。
 
 立项调研和各项决策的依据见 `docs/research.md`，路线图见 `docs/roadmap.md`；`docs/` 只在本地，不进 git。上线后的变化和决定记在 `CHANGELOG.md`。本文件与它们冲突时，以本文件为准。
 
@@ -51,29 +51,34 @@ src/
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘）
-  lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、站酷小薇缺字规则 fontOf（零 DOM）
+  lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、卦宫、站酷小薇缺字规则 fontOf（零 DOM）
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
+                    Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是卦页、目录页底部的起卦块
-  layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、统计脚本
-  layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、本页小薇子集
+  layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
+  layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、简繁切换链接、本页标题字体子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
   scripts/view.ts   解读页的渲染与卦名字体（按需加载，页面 load 后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
+  data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
+  data/baihua-hant.json 卦辞白话的繁体（s2twp 转换后逐条校对，入库，浏览器里不跑 opencc）
   data/yao-baihua.json 爻辞白话，以卦全名和爻题作键（本项目原创，CC BY-NC-SA 4.0；分批写，见 §6）
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
+  pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
   pages/api/judge.ts 唯一的服务端路由：调用 Jev
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
   pages/robots.txt.ts  由 site 生成
   styles/tokens.css 颜色、字体、间距、动效时长
   styles/fonts.css  首屏字形子集的 @font-face（生成文件）
-  styles/webfonts.css fontsource 全部切片，异步加载
-  fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集（都由 tools/subset-fonts.py 生成）
+  styles/webfonts.css fontsource 全部切片，异步加载；webfonts-hant.css 是繁体页的（Noto Serif TC）
+  fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
+                    芫荽子集（缺字另有 -wk 文楷子集）（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
 .github/workflows/  ci.yml：PR 上跑测试和构建；tag.yml：合并后打日期 tag
@@ -181,6 +186,11 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 首屏子集的 `fonts.css` 只由首页引入，不要放进公共布局：卦页会用上它，又没预加载，换字体时产生布局偏移。
   - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
   - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包：成卦页和解读页的渲染在按需加载的 `src/scripts/view.ts`，解读页和分享卡用 `compose()` 带出的字体。
+  - **繁体（`/zh-hant/`）**：`<html lang="zh-Hant-TW">`，`tokens.css` 按 `:lang(zh-Hant)` 换两个字体变量。
+    - 正文用 Noto Serif TC（`@fontsource/noto-serif-tc`，切片声明在 `webfonts-hant.css`）。它没有的字（目前只有切换链接「简体」的「简」）从 Noto Serif SC 截一字补上，同名声明。
+    - 标题用芫荽（Iansui，台湾标准字形），不用站酷小薇（缺两千多个繁体常用字）。芫荽缺的二十来个生僻字用霞鹜文楷 TC v1.522（GitHub 版，fontsource 上是缺字的旧版）补：两条同名 `@font-face`，第二条只带这些字的 `unicode-range`。
+    - 繁体不套用 `fontOf` 的整块换宋体：补字的文楷和芫荽同出 Klee One，看不出差别。卦页每页各一份芫荽子集和（有缺字时）文楷子集，同样内联并预加载；两款都缺的字 `subset-fonts.py` 会直接报错。
+    - 繁体文字一律入库、人工校对，不在浏览器里转换。s2twp 常见误转：凶→兇、占→佔、征→徵、咸→鹹、复→覆、斗→鬥、蒙→矇、运行→執行、回归→迴歸；卦名简称照维基文库原文（遯、无妄、恒）。`content.test.ts` 核对繁体白话开头的卦名。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。
@@ -189,11 +199,12 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 各步骤的节奏见 `docs/research.md` §6.2。
 - **卦页与目录（`/gua/`）：** 纸色知识页，设计稿画板 12、13、D9、D10。
   - 不带所问、不断吉凶，没有「AI 辅助判断」那一行；页底暗色一块引回起卦（`/?ask`），桌面页头的「往卦」走 `/?history`。
-  - 文字只来自 `guaci.json`、`baihua.json`、`yao-baihua.json` 和少量原创标签。爻辞白话没写之前不显示，也不留空位。
+  - 文字只来自 `guaci.json`、`baihua.json`、`yao-baihua.json`（繁体页是各自的 `-hant`）和少量原创标签。爻辞白话没写之前不显示，也不留空位。
   - 爻辞白话显示在卦页每条爻辞下、解读页每个动爻的爻辞下，用宋体。用九、用六的白话在卦页照常显示；解读页只在乾或坤六爻全动时显示。只从爻辞原文和小象出发写，不看任何现代译注（§1.3）。
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。
+  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头「往卦」后有纯文字切换链接（简体页「繁體」、繁体页「简体」）。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
@@ -257,6 +268,6 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 
 ## 9. 文案与代码风格
 
-- **界面文案**：简体中文，文雅、克制、短句。不堆砌术语。专业信息折叠在「完整盘面」里。
+- **界面文案**：简体中文，文雅、克制、短句。不堆砌术语。专业信息折叠在「完整盘面」里。繁体版用台湾用语，从简体转写、逐条校对（见 §6「繁体」）。
 - **代码**：TypeScript strict 模式。注释只解释「为什么」。命名用英文。六爻术语在代码里用拼音或英文，第一次出现时注上中文，例如 `yongShen // 用神`。
 - **测试**：引擎和解读组装必须有测试；纯展示组件不写测试。

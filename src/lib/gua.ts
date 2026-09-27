@@ -20,6 +20,9 @@ const NO_XIAOWEI = /[㧑刲卼咥咷嗃夬姤寘愬柅洟牿甃畬禴稊窞繘�
  * 本该用站酷小薇的一块文字实际用哪种字体：含小薇缺的字就整块改用宋体，不让浏览器逐字回退、
  * 一块里混着两种字体。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（调用方拼起来传入），
  * 免得爻辞一行小薇一行宋体。返回 tokens.css 的变量名，页面写 `var(…)`，canvas 读它的值。
+ *
+ * 只管简体。繁体页不用它：标题字体芫荽缺的字由霞鹜文楷 TC 补，两者同出 Klee One，都是楷书，
+ * 补上的字和周围看不出差别；整块换成宋体反倒突兀。
  */
 export const fontOf = (text: string) => (NO_XIAOWEI.test(text) ? "--font-body" : "--font-display");
 
@@ -35,6 +38,9 @@ export interface YaoCi {
 export interface GuaCi {
 	/** 第十一卦 */
 	no: string;
+	/** 首行的卦名全称与简称：天山遁、遯（繁体：天山遯、遯）。简体页的简称用 shortName，遁卦不写「遯」。 */
+	name: string;
+	short: string;
 	/** 上卦、下卦：坤、乾 */
 	upper: string;
 	lower: string;
@@ -49,18 +55,18 @@ export interface GuaCi {
 }
 
 /**
- * 拆开 guaci.json 的一卦。格式：首行「《易经》第十一卦 泰 地天泰 坤上乾下」，
- * 然后卦辞、彖、象各一行，一个空行，再是每爻一行爻辞、一行小象。
+ * 拆开 guaci.json（或 guaci-hant.json）的一卦。格式：首行「《易经》第十一卦 泰 地天泰 坤上乾下」
+ * （繁体是「《易經》」），然后卦辞、彖、象各一行，一个空行，再是每爻一行爻辞、一行小象。
  */
 export function parseGua(text: string): GuaCi {
 	const [head = "", ci = "", tuan = "", xiang = "", , ...rest] = text.split("\n");
-	const [no = "", , , trigrams = ""] = head.replace("《易经》", "").split(" ");
+	const [no = "", short = "", name = "", trigrams = ""] = head.replace(/《易[经經]》/, "").split(" ");
 	const yao: YaoCi[] = [];
 	for (let i = 0; i < rest.length; i += 2) {
 		const line = rest[i] as string;
 		yao.push({ title: line.slice(0, 2), text: line.slice(3), xiang: rest[i + 1] ?? "" });
 	}
-	return { no, upper: trigrams.slice(0, 1), lower: trigrams.slice(2, 3), ci, tuan, xiang, yao };
+	return { no, name, short, upper: trigrams.slice(0, 1), lower: trigrams.slice(2, 3), ci, tuan, xiang, yao };
 }
 
 /** 卦码：六位，初爻在前，1 阳 0 阴（见 const.ts 的 GUA64）。 */
@@ -82,12 +88,16 @@ export function related(name: string): [kind: string, name: string][] {
 	];
 }
 
-/** 卦宫与世：坤宫 · 三世卦，乾宫 · 八纯卦，乾宫 · 游魂卦。 */
-export function gongOf(name: string): string {
+/** 繁体卦宫要换的字：只有这几个（八卦名里的离、兑，加宫、纯、游魂、归魂）。 */
+const GONG_HANT: Record<string, string> = { 宫: "宮", 纯: "純", 游: "遊", 归: "歸", 离: "離", 兑: "兌" };
+
+/** 卦宫与世：坤宫 · 三世卦，乾宫 · 八纯卦，乾宫 · 游魂卦；繁体：乾宮 · 遊魂卦。 */
+export function gongOf(name: string, hant = false): string {
 	const m = markOf(name);
 	const { shi } = setShiYao(m);
 	const hun = soul(m);
-	return `${GUAS[palace(m, shi)]}宫 · ${hun ? `${hun}卦` : shi === 6 ? "八纯卦" : `${"一二三四五"[shi - 1]}世卦`}`;
+	const s = `${GUAS[palace(m, shi)]}宫 · ${hun ? `${hun}卦` : shi === 6 ? "八纯卦" : `${"一二三四五"[shi - 1]}世卦`}`;
+	return hant ? s.replace(/[宫纯游归离兑]/g, (c) => GONG_HANT[c] as string) : s;
 }
 
 /** 通行本卦序的上一卦、下一卦。乾没有上一卦，未济没有下一卦，不循环。 */

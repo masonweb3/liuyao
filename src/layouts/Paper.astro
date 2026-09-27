@@ -1,44 +1,70 @@
 ---
 // 纸面的知识页（卦页、六十四卦目录）：页头、页脚和纸色底。不带起卦脚本。
+// 简体与繁体（/zh-hant/）共用；界面文字两种写法并排写在 t() 里。
+import rangesHant from '../fonts/gua-hant/ranges.json';
 import ranges from '../fonts/gua/ranges.json';
+import { HANT } from '../data/gua-slugs';
 import Page from './Page.astro';
 
-// 每页一份站酷小薇子集（tools/subset-fonts.py）：预加载，首次渲染就用小薇，不再换字体。
-const SUBSETS = import.meta.glob<string>('../fonts/gua/*.woff2', { query: '?url', import: 'default', eager: true });
+// 每页一份标题字体子集（tools/subset-fonts.py）：预加载，首次渲染就用标题字体，不再换字体。
+// 简体是站酷小薇；繁体是芫荽，它缺的字另有一份霞鹜文楷 TC 子集（{slug}-wk），两条 @font-face 同名，
+// 按 unicode-range 分工。
+const SUBSETS = import.meta.glob<string>(['../fonts/gua/*.woff2', '../fonts/gua-hant/*.woff2'], {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
 
 interface Props {
   title: string;
   description: string;
+  /** 简体页的路径（/gua/…/）；繁体页自动加 /zh-hant 前缀 */
   path: string;
   /** 目录页：页头不再链「六十四卦」，手机上改链「起卦」。 */
   index?: boolean;
-  /** 本页的小薇子集：卦的 slug，目录页是 index */
+  /** 本页的标题字体子集：卦的 slug，目录页是 index */
   subset: string;
+  hant?: boolean;
 }
 
-const { title, description, path, index = false, subset } = Astro.props;
-const font = SUBSETS[`../fonts/gua/${subset}.woff2`];
-const range = (ranges as Record<string, string>)[subset];
-if (!font || !range) throw new Error(`缺小薇子集 ${subset}：重跑 tools/subset-fonts.py`);
+const { title, description, path, index = false, subset, hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const [self, other] = hant ? [HANT + path, path] : [path, HANT + path];
+const dir = hant ? 'gua-hant' : 'gua';
+const table: Record<string, string> = hant ? rangesHant : ranges;
+const fonts = [subset, `${subset}-wk`]
+  .filter((k) => table[k])
+  .map((k) => ({ url: SUBSETS[`../fonts/${dir}/${k}.woff2`], range: table[k] }));
+if (!fonts.length || fonts.some((f) => !f.url)) throw new Error(`缺标题字体子集 ${dir}/${subset}：重跑 tools/subset-fonts.py`);
 // 只在本页内联：各页的 unicode-range 互相重叠，合进一个样式表会取到别页的文件。
 // 排在 fontsource 之后，同一个字就先用这个小文件。
-const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weight:400;font-display:swap;src:url(${font}) format('woff2');unicode-range:${range}}`;
+const family = hant ? 'Iansui' : 'ZCOOL XiaoWei';
+const face = fonts
+  .map((f) => `@font-face{font-family:'${family}';font-style:normal;font-weight:400;font-display:swap;src:url(${f.url}) format('woff2');unicode-range:${f.range}}`)
+  .join('');
+const wikisource = 'https://zh.wikisource.org/wiki/周易';
+const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'zh-hant' : 'zh-hans'}`;
 ---
 
-<Page title={title} description={description} path={path} themeColor="#f8f4ed">
+<Page title={title} description={description} path={self} alternate={other} hant={hant} themeColor="#f8f4ed">
   <Fragment slot="head">
-    <link rel="preload" href={font} as="font" type="font/woff2" crossorigin />
+    {fonts.map((f) => <link rel="preload" href={f.url} as="font" type="font/woff2" crossorigin />)}
     <style is:inline set:html={face} />
   </Fragment>
   <div class:list={['page', { index }]}>
     <header class="top">
-      <a class="brand" href="/" aria-label="六爻首页">
+      <a class="brand" href="/" aria-label={t('六爻首页', '六爻首頁')}>
         <span class="seal" aria-hidden="true">爻</span>
         <span class="name" aria-hidden="true">六爻</span>
       </a>
-      <nav aria-label="站内">
-        {!index && <a href="/gua/">六十四卦</a>}
+      <nav aria-label={t('站内', '站內')}>
+        {!index && <a href={hant ? `${HANT}/gua/` : '/gua/'}>六十四卦</a>}
         <a class="desk" href="/?history">往卦</a>
+        {hant ? (
+          <a href={other} hreflang="zh-Hans" lang="zh-Hans">简体</a>
+        ) : (
+          <a href={other} hreflang="zh-Hant" lang="zh-Hant">繁體</a>
+        )}
         <a class="ask" href="/?ask">起卦</a>
       </nav>
     </header>
@@ -46,15 +72,15 @@ const face = `@font-face{font-family:'ZCOOL XiaoWei';font-style:normal;font-weig
     {index ? (
       <footer class="foot">
         <p>
-          卦爻辞原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创 · 仅供传统文化参考与娱乐
+          {t('卦爻辞原文取自', '卦爻辭原文取自')}<a href={wikisource} rel="noopener">{t('维基文库', '維基文庫')}</a>（<a href={license} rel="license noopener">CC BY-SA 4.0</a>）；{t('白话为本站原创 · 仅供传统文化参考与娱乐', '白話為本站原創 · 僅供傳統文化參考與娛樂')}
         </p>
       </footer>
     ) : (
       <footer class="foot">
         <p>
-          卦爻辞、彖传、象传原文取自<a href="https://zh.wikisource.org/wiki/周易" rel="noopener">维基文库</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hans" rel="license noopener">CC BY-SA 4.0</a>）；白话为本站原创<span class="stop">。</span>
+          {t('卦爻辞、彖传、象传原文取自', '卦爻辭、彖傳、象傳原文取自')}<a href={wikisource} rel="noopener">{t('维基文库', '維基文庫')}</a>（<a href={license} rel="license noopener">CC BY-SA 4.0</a>）；{t('白话为本站原创', '白話為本站原創')}<span class="stop">。</span>
         </p>
-        <p>仅供传统文化参考与娱乐<span class="stop">。</span></p>
+        <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
       </footer>
     )}
   </div>

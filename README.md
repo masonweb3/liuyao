@@ -2,7 +2,7 @@
 
 **[sixyao.app](https://sixyao.app)** · [中文](README.zh-CN.md)
 
-A six-line (六爻, *liùyáo*) I Ching divination site in a quiet Chinese style. Write down your question, settle your mind, toss three coins six times, and read the hexagram. The interface is in Simplified Chinese.
+A six-line (六爻, *liùyáo*) I Ching divination site in a quiet Chinese style. Write down your question, settle your mind, toss three coins six times, and read the hexagram. The interface is in Simplified Chinese; the 64 hexagram pages also come in Traditional Chinese (Taiwan usage) under `/zh-hant/gua/`.
 
 - **The chart is computed, not generated.** Najia (纳甲), the six relations, world and response lines, six spirits, void branches, hidden spirits and strength are all worked out by deterministic code. The same cast always gives the same chart. Tests cover the worked examples from *Zengshan Buyi* (增删卜易) and 4,096 parity fixtures.
 - **Good or bad is decided by rules**, with the reasons shown, never by a language model.
