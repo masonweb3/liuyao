@@ -76,8 +76,13 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	text("bian", "变卦", x.bian);
 
 	set("[data-dong-heading]", x.dong.heading);
+	// 爻辞白话另起一行写在爻辞下面；没写白话的卦不出这一行。
 	$("[data-dong-lines]", root).innerHTML = x.dong.lines
-		.map((l) => `<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span><p style="font-family: var(${x.dong.font})">${l.text}</p></div>`)
+		.map(
+			(l) =>
+				`<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span>` +
+				`<p style="font-family: var(${x.dong.font})">${l.text}</p>${l.baihua ? `<p class="ybh">${l.baihua}</p>` : ""}</div>`,
+		)
 		.join("");
 	set("[data-dong-note]", x.dong.note);
 

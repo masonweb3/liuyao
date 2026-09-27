@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { SPECIAL, TEMPLATES } from "../data/templates.js";
+import yaoBaihua from "../data/yao-baihua.json" with { type: "json" };
 import { cast } from "./liuyao/najia.js";
 import { compose } from "./reading.js";
 
 const at = (iso: string) => ({ date: new Date(`${iso}+08:00`) });
+const YAO: Record<string, Record<string, string>> = yaoBaihua;
 
 describe("卦例 A：亥月己丑日，兑为泽之天水讼，问事业", () => {
 	const x = compose(cast([9, 7, 8, 7, 7, 6], at("2022-12-02T10:00:00")), { topic: "事业" });
@@ -38,6 +40,10 @@ describe("卦例 A：亥月己丑日，兑为泽之天水讼，问事业", () =>
 			{ title: "上六", text: "引兑。", main: true },
 			{ title: "初九", text: "和兑，吉。", main: false },
 		]);
+	});
+
+	it("兑卦的爻辞白话还没写：不带白话", () => {
+		expect(x.dong.lines.map((l) => l.baihua)).toEqual([undefined, undefined]);
 	});
 
 	it("完整盘面", () => {
@@ -77,12 +83,15 @@ describe("特殊卦形", () => {
 		expect(x.dong).toEqual({ heading: "静卦", lines: [], note: SPECIAL.jingGua, font: "--font-display" });
 	});
 
-	it("乾坤六爻皆动，占用九、用六", () => {
+	it("乾坤六爻皆动，占用九、用六，带各自的白话", () => {
 		const qian = compose(cast([9, 9, 9, 9, 9, 9]), { topic: "自身" });
-		expect(qian.dong.lines).toEqual([{ title: "用九", text: "见群龙无首，吉。", main: true }]);
+		expect(qian.dong.lines).toEqual([
+			{ title: "用九", text: "见群龙无首，吉。", main: true, baihua: YAO.乾为天?.用九 },
+		]);
 		expect(qian.dong.note).toBe(SPECIAL.yongJiu);
 		const kun = compose(cast([6, 6, 6, 6, 6, 6]), { topic: "自身" });
-		expect(kun.dong.lines).toEqual([{ title: "用六", text: "利永贞。", main: true }]);
+		expect(kun.dong.lines).toEqual([{ title: "用六", text: "利永贞。", main: true, baihua: YAO.坤为地?.用六 }]);
+		expect([qian, kun].map((x) => x.dong.lines[0]?.baihua)).not.toContain(undefined);
 	});
 
 	it("他卦六爻皆动，以变卦卦辞为归", () => {
@@ -123,5 +132,39 @@ describe("特殊卦形", () => {
 		const self = compose(r, { topic: "自身" });
 		expect(self.basis).toBe("所问属「自身」，以世爻为用神。");
 		expect(self.panel.rows.findIndex((row) => row.yong)).toBe(0);
+	});
+});
+
+describe("爻辞白话", () => {
+	it("单个动爻带出这一爻的白话：屯卦初九", () => {
+		const x = compose(cast([9, 8, 8, 8, 7, 8]), { topic: "自身" });
+		expect(x.ben.name).toBe("水雷屯");
+		expect(x.dong.lines).toEqual([
+			{ title: "初九", text: "磐桓，利居贞，利建侯。", main: false, baihua: YAO.水雷屯?.初九 },
+		]);
+	});
+
+	it("阴爻动取「六」字爻题的白话：屯卦六三", () => {
+		const x = compose(cast([7, 8, 6, 8, 7, 8]), { topic: "自身" });
+		expect(x.dong.lines.map((l) => [l.title, l.baihua])).toEqual([["六三", YAO.水雷屯?.六三]]);
+	});
+
+	it("两爻齐动各带各的白话：讼卦九二、上九", () => {
+		const x = compose(cast([8, 9, 8, 7, 7, 9]), { topic: "自身" });
+		expect(x.ben.name).toBe("天水讼");
+		expect(x.dong.lines.map((l) => [l.title, l.main, l.baihua])).toEqual([
+			["上九", true, YAO.天水讼?.上九],
+			["九二", false, YAO.天水讼?.九二],
+		]);
+	});
+
+	it("乾卦不是六爻全动时，不带用九", () => {
+		const x = compose(cast([9, 7, 7, 7, 7, 9]), { topic: "自身" });
+		expect(x.dong.lines.map((l) => l.title)).toEqual(["上九", "初九"]);
+		expect(x.dong.lines.map((l) => l.baihua)).toEqual([YAO.乾为天?.上九, YAO.乾为天?.初九]);
+	});
+
+	it("静卦没有动爻，也就没有爻辞白话", () => {
+		expect(compose(cast([7, 8, 8, 8, 7, 8]), { topic: "自身" }).dong.lines).toEqual([]);
 	});
 });
