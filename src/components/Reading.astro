@@ -842,8 +842,14 @@ const facts = [
     font-size: 13px;
     color: var(--seal);
   }
-  .alert:empty {
-    display: none;
+  /* 提示（role=alert、role=status）空着时也留在无障碍树里，之后填进来的字读屏才会念；只是不占地方 */
+  .alert:empty,
+  .got:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
   .opts {
     display: grid;
@@ -1090,9 +1096,6 @@ const facts = [
     gap: 8px;
     font-size: var(--fs-s);
     line-height: 1.75;
-  }
-  .got:empty {
-    display: none;
   }
   .got :global(svg) {
     flex-shrink: 0;
