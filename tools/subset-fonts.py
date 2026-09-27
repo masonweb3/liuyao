@@ -25,13 +25,10 @@
 - src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
   （卦爻辞全文、卦辞白话、爻辞白话）却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
   实际 cmap 自动算（切片 CSS 的 unicode-range 比实际字多，不能信），所以要先 pnpm install。每批白话加了字就重跑；
-  src/data/content.test.ts 会在缺字时报错。
+  src/data/glyphs.test.ts 会在缺字时报错。
 - src/fonts/lang-400.woff2、lang-600.woff2：页头语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形。
   「简」Noto Serif TC 根本没有；其余几个字（当前语言那个字是 600 字重，读屏补字）要是走 fontsource，
   一个字就要多下载一整片（三五十 KB）。
-| 繁」用的几个字，取 Noto Serif SC 的字形，
-在 Paper.astro 里以 Noto Serif SC / TC 的名义补上。「简」Noto Serif TC 根本没有；其余几个字（当前语言那个字是
-600 字重，读屏补字「体」「體」）要是走 fontsource，一个字就要多下载一整片（三五十 KB）。
 
 字体源文件不进 git：按下面固定的地址下载，核对 sha256，结果可复现。
 """
