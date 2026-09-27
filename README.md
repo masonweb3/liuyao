@@ -9,7 +9,7 @@ A six-line (六爻, *liùyáo*) I Ching divination site in a quiet Chinese style
 - **[TypeSafe Jev](https://docs.typesafe.ai) only reads the question**: it sorts it into a topic, which picks the use god (用神), and screens out self-harm, emergencies and gambling. If Jev is unavailable, you pick the topic yourself and everything still works.
 - **Readings** pair the original judgments and line texts (public domain) with plain-language commentary written for this project.
 - **On a phone** you can hold the 摇 button, or turn on shake mode and shake the phone itself.
-- **Free, no ads, no sign-in.** Visits are counted with Cloudflare Web Analytics, which sets no cookies and does not track individuals; there are no other trackers. Past casts stay in your browser. The question is sent once to Jev for classification and is not logged.
+- **Free, no ads, no sign-in.** Visits are counted with Cloudflare Web Analytics, which sets no cookies and does not track individuals; there are no other trackers. Past casts, and what you later note about how things turned out, stay in your browser; the optional reminder is a calendar file generated on your device, with no email and no push notifications. The question is sent once to Jev for classification and is not logged.
 
 ## Stack
 

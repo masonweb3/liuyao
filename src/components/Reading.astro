@@ -1,7 +1,10 @@
 ---
-import { DISCLAIMER, ERRORS } from "../data/copy";
+import { DISCLAIMER, ERRORS, REMIND, REVIEW } from "../data/copy";
+import { DAYS, NOTE_MAX, OUTCOMES } from "../lib/revisit";
+import Slots from "./Slots.astro";
 
-// 内容由 ritual.ts 按 src/lib/reading.ts 的结果填入。
+// 内容由 src/scripts/view.ts 按 src/lib/reading.ts 的结果填入；回访卡、到时提醒见 src/lib/revisit.ts。
+const history = Astro.site ? new URL("/?history", Astro.site).href : "/?history";
 const facts = [
   ["四柱", "pillars"],
   ["月建", "yue"],
@@ -29,6 +32,61 @@ const facts = [
       </button>
     </nav>
   </header>
+
+  <!-- 回访卡：从往卦点开、到了日子的卦（设计稿 17、D14）。卡上没有起卦、重摇、再问的入口（一事一占）。 -->
+  <section
+    class="visit"
+    aria-labelledby="visit-ask"
+    hidden
+    data-visit
+    data-outcomes={JSON.stringify(REVIEW.outcomes)}
+    data-pick={REVIEW.pick}
+    data-saved={REVIEW.saved}
+    data-unsaved={ERRORS.storage}
+  >
+    <form class="visit-form" data-visit-form>
+      <fieldset>
+        <legend id="visit-ask" tabindex="-1">
+          <span class="kick">{REVIEW.kicker}</span>
+          <span class="recall"><Slots text={REVIEW.ask} /></span>
+        </legend>
+        <p class="alert" role="alert" data-visit-alert></p>
+        <div class="opts">
+          {OUTCOMES.map((k) => (
+            <Fragment>
+              {k === "pending" && <span class="split" aria-hidden="true" />}
+              <label class="chip"><input class="sr-only" type="radio" name="outcome" value={k} />{REVIEW.outcomes[k]}</label>
+            </Fragment>
+          ))}
+        </div>
+      </fieldset>
+      <label class="note">
+        <span>{REVIEW.note}</span>
+        <input type="text" name="note" maxlength={NOTE_MAX} autocomplete="off" />
+      </label>
+      <span class="local">{REVIEW.local}</span>
+      <button class="keep" type="submit">{REVIEW.save}</button>
+    </form>
+    <div class="visit-done" hidden data-visit-done>
+      <h2 id="visit-told" tabindex="-1">
+        <span class="kick"><Slots text={REVIEW.doneKicker} /></span>
+        <span class="recall"><Slots text={REVIEW.doneAsk} /></span>
+      </h2>
+      <div class="told">
+        <p><Slots text={REVIEW.told} /></p>
+        <p class="told-note" data-visit-note>「<span data-slot="note"></span>」</p>
+      </div>
+      <button type="button" class="edit" aria-label={REVIEW.editLabel} data-visit-edit>{REVIEW.edit}</button>
+      <p class="local">{REVIEW.local}</p>
+    </div>
+    <div class="visit-skip" hidden data-visit-skip>
+      <h2 id="visit-skip" tabindex="-1">{REVIEW.skipped}</h2>
+      <span aria-hidden="true">·</span>
+      <button type="button" class="edit-link" aria-label={REVIEW.editLabel} data-visit-edit>{REVIEW.edit}</button>
+    </div>
+    <p class="bless" data-visit-bless>{REVIEW.bless}</p>
+    <p class="sr-only" role="status" data-visit-status></p>
+  </section>
 
   <div class="layout">
     <div class="lead">
@@ -62,6 +120,43 @@ const facts = [
       <section class="block">
         <h2 class="head">建议</h2>
         <ul class="list advice" data-advice></ul>
+      </section>
+      <!-- 到时提醒我：收在答的末尾（设计稿 16、D13）。只在本机生成 .ics，不收邮箱、不推送。 -->
+      <section
+        class="remind"
+        aria-label={REMIND.label}
+        hidden
+        data-remind
+        data-summary={REMIND.ics.summary}
+        data-body={REMIND.ics.body}
+        data-url={history}
+      >
+        <button type="button" class="remind-head" aria-expanded="false" aria-controls="remind-panel" data-remind-toggle>
+          <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="1"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>
+          <span class="rt"><span class="t">{REMIND.title}</span><span class="s">{REMIND.lede}</span></span>
+          <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <div class="remind-panel" id="remind-panel" hidden>
+          <fieldset>
+            <legend>{REMIND.legend}</legend>
+            <div class="days">
+              {DAYS.map((d) => (
+                <label class="chip">
+                  <input class="sr-only" type="radio" name="remind-days" value={d} checked={d === 7} />
+                  <span>{REMIND.day.replace("{n}", String(d))}</span>
+                  <span class="due" data-due={d}></span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <button type="button" class="get" data-remind-get>{REMIND.get}</button>
+          <p class="got" role="status" data-remind-status></p>
+          <p class="fine">{REMIND.fine}</p>
+          <template data-remind-done>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            <span><Slots text={REMIND.done} /></span>
+          </template>
+        </div>
       </section>
       <div class="texts">
         {["ben", "bian"].map((k) => (
@@ -110,7 +205,7 @@ const facts = [
   </div>
 
   <footer class="end">
-    <a class="again" href="/?ask">再问一事</a>
+    <a class="again" href="/?ask" data-again>再问一事</a>
     <p>同一件事，一卦为定</p>
     <p class="warn" data-storage hidden>{ERRORS.storage}</p>
     <p>{DISCLAIMER[0]}<br />{DISCLAIMER[1]}</p>
@@ -666,6 +761,351 @@ const facts = [
     color: var(--seal);
   }
 
+  /* 单选片（回访、提醒共用）：原生 radio 视觉隐藏，方向键照常。选中不只靠颜色：线加粗、字加重。 */
+  .chip {
+    min-height: var(--tap);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .chip:has(:checked) {
+    border: 1.5px solid var(--ink);
+    font-weight: 600;
+  }
+  .chip:has(:focus-visible) {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  legend {
+    padding: 0;
+  }
+
+  /* 回访卡：卡底同完整盘面，不用印章红 */
+  .visit {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 16px;
+    background: var(--paper-2);
+    border-radius: var(--radius);
+  }
+  .visit .kick {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.4em;
+    color: var(--ink-2);
+  }
+  .visit legend,
+  .visit h2 {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-weight: 400;
+    outline: none;
+  }
+  /* legend 不参与 fieldset 的 flex，间距另给 */
+  .visit-form legend {
+    margin-bottom: 14px;
+  }
+  .visit-form legend .recall {
+    font-size: 17px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+  }
+  .visit-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "set set" "note note" "local keep";
+    align-items: center;
+    gap: 14px 12px;
+  }
+  .visit-form fieldset {
+    grid-area: set;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .alert {
+    margin: -6px 0 0;
+    font-size: 13px;
+    color: var(--seal);
+  }
+  .alert:empty {
+    display: none;
+  }
+  .opts {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .opts .chip {
+    grid-column: span 2;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+  .opts .split + .chip,
+  .opts .split + .chip + .chip {
+    grid-column: span 3;
+  }
+  .split {
+    display: none;
+  }
+  .note {
+    grid-area: note;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .note span {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .note input {
+    height: var(--tap);
+    box-sizing: border-box;
+    padding: 0 12px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .note input:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .visit .local {
+    grid-area: local;
+    margin: 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .keep,
+  .edit {
+    min-height: var(--tap);
+    background: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background-color var(--t-hover);
+  }
+  .keep {
+    grid-area: keep;
+    min-width: 96px;
+    padding: 0 16px 0 calc(16px + 0.4em);
+    border: 1px solid var(--ink);
+    font-size: 15px;
+    letter-spacing: 0.4em;
+  }
+  .keep:hover,
+  .edit:hover {
+    background: rgb(45 46 54 / 0.05);
+  }
+  .visit-done {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title title" "told edit" "local local";
+    align-items: start;
+    gap: 12px;
+  }
+  .visit-done h2 {
+    grid-area: title;
+  }
+  .visit-done .recall {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .told {
+    grid-area: told;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .told p {
+    margin: 0;
+    font-size: 17px;
+    letter-spacing: 0.06em;
+  }
+  .told :global([data-slot="outcome"]) {
+    font-weight: 600;
+  }
+  .told .told-note {
+    font-size: 15px;
+    line-height: 1.7;
+    letter-spacing: normal;
+    overflow-wrap: anywhere;
+  }
+  .edit {
+    grid-area: edit;
+    min-width: 64px;
+    border: 1px solid var(--rule);
+    font-size: var(--fs-s);
+    letter-spacing: 0.2em;
+  }
+  .visit-skip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .visit-skip h2 {
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+  }
+  .edit-link {
+    min-height: var(--tap);
+    padding: 0 4px;
+    background: none;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .bless {
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 0.14em;
+  }
+
+  /* 到时提醒我：默认收起只占一行 */
+  .remind {
+    border-block: 1px solid var(--rule);
+  }
+  .remind-head {
+    width: 100%;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .remind-head svg {
+    flex-shrink: 0;
+    color: var(--ink-2);
+  }
+  .cal {
+    width: 20px;
+    height: 20px;
+  }
+  .remind-head[aria-expanded="true"] .chev {
+    transform: rotate(180deg);
+  }
+  .rt {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rt .t {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+  }
+  .rt .s {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .remind-panel {
+    display: grid;
+    grid-template-areas: "set" "get" "fine";
+    gap: 14px;
+    padding: 4px 0 20px;
+  }
+  /* 下载之后按钮下多一句提示；没有时不留空行 */
+  .remind-panel:has(.got:not(:empty)) {
+    grid-template-areas: "set" "get" "got" "fine";
+  }
+  .remind-panel fieldset {
+    grid-area: set;
+  }
+  .remind-panel legend {
+    margin-bottom: 10px;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .days {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .days .chip {
+    min-height: 56px;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 15px;
+  }
+  .days .due {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .get {
+    grid-area: get;
+    min-height: 48px;
+    padding: 0 0 0 0.3em;
+    background: none;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: 15px;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    transition: background-color var(--t-hover);
+  }
+  .get:hover {
+    background: rgb(45 46 54 / 0.05);
+  }
+  .got {
+    grid-area: got;
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: var(--fs-s);
+    line-height: 1.75;
+  }
+  .got:empty {
+    display: none;
+  }
+  .got :global(svg) {
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .fine {
+    grid-area: fine;
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+
   .share {
     width: min(440px, 100% - 32px);
     max-height: calc(100dvh - 32px);
@@ -984,6 +1424,138 @@ const facts = [
       font-size: 18px;
     }
     .end p {
+      font-size: 13px;
+    }
+
+    /* 回访卡在两栏之上、宽同两栏，不进左栏的 sticky */
+    .visit {
+      width: min(1120px, 100%);
+      box-sizing: border-box;
+      margin-inline: auto;
+      gap: 18px;
+      padding: 28px 32px;
+    }
+    .visit:has(.visit-done:not([hidden])) {
+      padding: 24px 32px;
+    }
+    .visit-form {
+      grid-template-areas: "set set" "note keep" "local local";
+      gap: 18px 16px;
+    }
+    .visit-form fieldset {
+      gap: 16px;
+    }
+    .visit-form legend {
+      margin-bottom: 16px;
+    }
+    .visit-form legend .recall {
+      font-size: var(--fs-l);
+    }
+    .opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .opts .chip {
+      min-width: 104px;
+      min-height: 48px;
+      padding: 0 20px;
+      font-size: var(--fs-m);
+    }
+    /* 有结果的与没结果的之间一条细线 */
+    .split {
+      display: block;
+      width: 1px;
+      margin: 10px 6px;
+      background: var(--rule);
+    }
+    .note {
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+    }
+    .note span {
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+    .note input {
+      flex-grow: 1;
+    }
+    .keep {
+      min-width: 112px;
+      padding: 0 18px 0 calc(18px + 0.4em);
+    }
+    .visit-done {
+      grid-template-areas: "title edit" "told edit" "local edit";
+      align-items: center;
+      gap: 10px 32px;
+    }
+    .visit-done h2 {
+      gap: 6px;
+    }
+    .told {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 20px;
+      padding-top: 0;
+    }
+    .told p {
+      font-size: 18px;
+    }
+    .told .told-note {
+      font-size: var(--fs-m);
+    }
+    .edit {
+      min-width: 88px;
+    }
+    .bless {
+      padding-top: 16px;
+      font-size: var(--fs-l);
+    }
+
+    .remind-head {
+      min-height: 76px;
+      gap: 16px;
+    }
+    .cal {
+      width: 22px;
+      height: 22px;
+    }
+    .rt .t {
+      font-size: var(--fs-m);
+    }
+    .rt .s {
+      font-size: var(--fs-s);
+    }
+    /* 展开的内容和标题文字对齐 */
+    .remind-panel {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas: "set set" "get fine";
+      align-items: center;
+      gap: 16px 20px;
+      padding: 4px 0 24px 38px;
+    }
+    .remind-panel:has(.got:not(:empty)) {
+      grid-template-areas: "set set" "get ." "got got" "fine fine";
+    }
+    .days {
+      grid-template-columns: repeat(3, 150px);
+      gap: 10px;
+    }
+    .days .chip {
+      min-height: 60px;
+      font-size: var(--fs-m);
+    }
+    .get {
+      padding: 0 28px 0 calc(28px + 0.3em);
+    }
+    .got {
+      font-size: 15px;
+    }
+    .got :global(svg) {
+      margin-top: 6px;
+    }
+    .fine {
       font-size: 13px;
     }
   }

@@ -1,7 +1,8 @@
 /**
  * 界面文案 the design artboards do not already carry. Pages that do have an
  * artboard (首屏、写下所问、择类、自伤拦截、彩票赌博、往卦、解读页) take their copy
- * verbatim from the design. Original copy, CC BY-NC-SA 4.0 (see NOTICE).
+ * verbatim from the design; 往卦复盘 (M14) is kept here too, so 繁体 (M12b) finds it in
+ * one place. Original copy, CC BY-NC-SA 4.0 (see NOTICE).
  */
 
 /** 结果页与分享卡常驻 (AGENTS.md §1.5). */
@@ -47,4 +48,48 @@ export const ERRORS = {
 	when: "请填 1900 至 2100 年之间的起卦时间。",
 	storage: "这台设备暂时无法保存往卦，本次结果不会留下记录。",
 	share: "分享卡没能生成，请稍后再试。",
+} as const;
+
+// 往卦复盘（M14，设计稿 16–18、D13–D15）。{name} 是留给 view.ts 填的空：Reading.astro、History.astro
+// 在构建时把这些字写进页面，按需加载的 view.ts 只填数字、日期、所问和附言，首屏脚本里没有这些字。
+
+/** 解读页「到时提醒我」和它生成的 .ics。 */
+export const REMIND = {
+	label: "到时提醒",
+	title: "到时提醒我",
+	lede: "过些日子回来，记下后来怎样。",
+	legend: "几天后提醒",
+	/** 天数片，{n} 为 3、7、30；片的第二行是到期日。 */
+	day: "{n} 天后",
+	get: "下载日历提醒",
+	fine: "不收邮箱，不推送。文件里不写你问的事。",
+	done: "已生成 {due}的日历提醒。打开下载的文件，加进日历即可；到那天，在往卦里点开这一卦。",
+	/** 日历同步到云端、共享给别人：只写起卦日期和卦名，不写所问、吉凶、附言。 */
+	ics: { summary: "六爻 · 回看一卦", body: "{date}起的一卦：{gua}。" },
+} as const;
+
+/** 回访卡。选项的键存进往卦（src/lib/revisit.ts 的 OUTCOMES），显示用这里的字。 */
+export const REVIEW = {
+	kicker: "回访",
+	ask: "{ago}你问「{q}」，后来怎样了？",
+	outcomes: { yes: "应了", half: "一半", no: "没应", pending: "还没结果", skip: "不想记" },
+	note: "附一句（可不写）",
+	local: "只存在这台设备的浏览器里",
+	save: "记下",
+	pick: "先选一项",
+	saved: "已记下",
+	doneKicker: "回访 · {at}记下",
+	doneAsk: "{ago}你问「{q}」",
+	told: "你记下：{outcome}",
+	skipped: "这一卦不记",
+	edit: "修改",
+	editLabel: "修改回访",
+	/** 凶卦的回访卡以这句收尾，不加别的话。 */
+	bless: "不论结果如何，愿你安好。",
+} as const;
+
+/** 往卦列表：个人复盘一行与「自记」列。N 为 0 时整行不出现。 */
+export const TALLY = {
+	line: "你记下的 {n} 卦里，自认应验 {x} 卦",
+	mine: "自记",
 } as const;

@@ -1,0 +1,9 @@
+---
+/** A line of copy.ts with {name} holes: the words are written at build time, view.ts fills each [data-slot]. */
+interface Props {
+  text: string;
+}
+const parts = Astro.props.text.split(/\{(\w+)\}/);
+---
+
+{parts.map((s, i) => (i % 2 ? <span data-slot={s} /> : s))}

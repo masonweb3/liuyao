@@ -50,15 +50,17 @@ src/
   lib/liuyao/       纯 TS 排盘引擎，零 DOM，浏览器和测试都能直接跑
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
-  lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘）
+  lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘；在首屏包里）
+  lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 生成
   lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、卦宫、站酷小薇缺字规则 fontOf（零 DOM）
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
-                    Invite.astro 是卦页、目录页底部的起卦块
+                    Invite.astro 是卦页、目录页底部的起卦块；
+                    Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
   layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、简繁切换链接、本页标题字体子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
-  scripts/view.ts   解读页的渲染与卦名字体（按需加载，页面 load 后预热；不进首屏包）
+  scripts/view.ts   解读页与往卦列表的渲染、卦名字体、回访卡与到时提醒（按需加载，页面 load 后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
@@ -67,6 +69,7 @@ src/
   data/baihua-hant.json 卦辞白话的繁体（s2twp 转换后逐条校对，入库，浏览器里不跑 opencc）
   data/yao-baihua.json 爻辞白话，以卦全名和爻题作键（本项目原创，CC BY-NC-SA 4.0；分批写，见 §6）
   data/yao-baihua-hant.json 爻辞白话的繁体（同上，s2twp 转换后逐条校对；简繁覆盖的卦和爻题必须一致）
+  data/copy.ts      界面文案（含往卦复盘）。它在首屏包里：按需加载的脚本要用的字由 Astro 构建时写进页面，不从这里 import
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
   pages/index.astro 首屏加完整起卦流程（单页）
@@ -223,6 +226,12 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 在客户端用 canvas 生成，3:4，1242×1656。
   - 所问默认不上卡。
   - 用 `<img>` 展示，让用户长按保存。
+- **往卦复盘（M14，设计稿 16–18、D13–D15）：** 一切只存在本机，不上传、不收邮箱、不推送。
+  - **到时提醒我**：解读页「建议」之后，默认收起。刚起完的卦能设；从往卦点开的旧卦，没设过提醒、也没记下结果（「还没结果」不算结果）也能补设。手动排盘没有所问，不出。3、7、30 天从设的那天算，到期那天本地 20:00，在浏览器里生成 `.ics` 下载。
+  - **`.ics`**（`revisit.ts` 的 `reminder`）：CRLF；按 75 字节折行、不切断字；浮动时间（不带 TZID）；VALARM 在开始时提醒；描述只写起卦日期、卦名和 `https://sixyao.app/?history`，**不写所问、吉凶、附言**（日历会同步到云端、共享给别人）。
+  - **回访卡**：只在从往卦点开的卦上，出现在解读页最上面（桌面在两栏之上）。设过提醒的从提醒那天起出，没设的起卦满 3 天出，记下过的以后都出；手动排盘不出。出卡时焦点落在卡的标题上，底部「再问一事」藏起。凶卦的卡以「不论结果如何，愿你安好。」收尾。卡上没有起卦、重摇、再问的入口（§1.6）。
+  - **个人复盘**：往卦标题下「你记下的 N 卦里，自认应验 x 卦」。N 只算应了、一半、没应，x 只算应了；N 为 0 时整行不出。列表多一列「自记」（手机是所问下一行小字），不想记的不显示。
+  - **存储**：往卦记录多两个可选字段 `review`（`outcome` 存英文键 yes/half/no/pending/skip，显示用 copy.ts 的字；`note` ≤ 100 字；`at`）和 `remind`（`days`、`at`）。旧记录没有这两个字段照常读；字段坏了只丢这个字段，不丢这一卦。记录没有 id，按起卦时刻 `at` 找到那一条整表写回。首屏的 `history.ts` 不认识这两个字段，原样带着读写；新逻辑都在按需加载的 `revisit.ts`、`view.ts`，文案由 Astro 在构建时写进页面（`Slots.astro`），首屏脚本零增长。
 
 ## 7. 开发与测试流程（在局域网测试服务器上做）
 
@@ -231,7 +240,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
 
 ```sh
 # 同步代码（在本机执行）
-rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .env.deploy --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp ./ $STAGE:~/liuyao/
+rsync -az --delete --exclude node_modules --exclude dist --exclude .astro --exclude .dev.vars --exclude .env.deploy --exclude .git --exclude CLAUDE.local.md --exclude .playwright-mcp --exclude .claude ./ $STAGE:~/liuyao/
 # 构建并启动预览（workerd）。--force-recreate：只加 --build 时，容器有时仍在跑旧镜像
 ssh $STAGE 'cd ~/liuyao && docker compose up -d --build --force-recreate'
 # 跑测试

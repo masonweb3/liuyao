@@ -1,7 +1,8 @@
 ---
-import { HISTORY_EMPTY } from "../data/copy";
+import { HISTORY_EMPTY, REVIEW, TALLY } from "../data/copy";
+import Slots from "./Slots.astro";
 
-// 条目由 ritual.ts 按 src/lib/history.ts 的记录重新排盘后填入。
+// 条目由 src/scripts/view.ts 按 src/lib/history.ts 的记录重新排盘后填入；自记与复盘一行见 src/lib/revisit.ts。
 ---
 
 <section class="screen history" data-screen="history" tabindex="-1" hidden>
@@ -20,10 +21,11 @@ import { HISTORY_EMPTY } from "../data/copy";
     <div class="title">
       <h1 tabindex="-1" data-autofocus>往卦</h1>
       <p>记录只保存在这台设备的浏览器里。</p>
+      <p class="tally" hidden data-tally><Slots text={TALLY.line} /></p>
     </div>
     <div class="records">
-      <div class="thead" aria-hidden="true"><span>日期</span><span>卦</span><span>所问</span><span>断</span></div>
-      <ol class="list" aria-label="往卦记录" data-list></ol>
+      <div class="thead" aria-hidden="true"><span>日期</span><span>卦</span><span>所问</span><span>{TALLY.mine}</span><span>断</span></div>
+      <ol class="list" aria-label="往卦记录" data-list data-outcomes={JSON.stringify(REVIEW.outcomes)}></ol>
     </div>
     <button class="clear" data-forget data-confirm="再点一次，全部清除">清除全部记录</button>
     <div class="none">
@@ -39,6 +41,7 @@ import { HISTORY_EMPTY } from "../data/copy";
         <span class="date"></span>
         <span class="gua"></span>
         <span class="q"></span>
+        <span class="mine"><span class="k">{TALLY.mine} · </span><span class="v"></span></span>
         <span class="duan"></span>
       </button>
     </li>
@@ -103,6 +106,16 @@ import { HISTORY_EMPTY } from "../data/copy";
     letter-spacing: 0.06em;
     color: var(--ink-2);
   }
+  /* 个人复盘：只在本机算，只给自己看 */
+  .title .tally {
+    margin-top: 6px;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+  .tally :global([data-slot]) {
+    font-weight: 600;
+  }
 
   .thead {
     display: none;
@@ -156,6 +169,22 @@ import { HISTORY_EMPTY } from "../data/copy";
   }
   .rec :global(.q:empty) {
     display: none;
+  }
+  /* 自记：没记、不想记的不显示 */
+  .rec:not(:has(.v:empty)) {
+    grid-template-areas: "date duan" "gua duan" "q duan" "mine duan";
+  }
+  .rec :global(.mine) {
+    grid-area: mine;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .rec :global(.mine:has(.v:empty)) {
+    display: none;
+  }
+  .rec :global(.v) {
+    color: var(--ink);
   }
   /* 断语印章：吉红底白字，平墨线框，凶墨底白字 */
   .rec :global(.duan) {
@@ -280,7 +309,7 @@ import { HISTORY_EMPTY } from "../data/copy";
       background: rgb(45 46 54 / 0.05);
     }
     .col {
-      width: min(960px, 100%);
+      width: min(1040px, 100%);
       margin-inline: auto;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -309,8 +338,8 @@ import { HISTORY_EMPTY } from "../data/copy";
     .thead,
     .rec {
       display: grid;
-      grid-template-columns: 180px 260px minmax(0, 1fr) 48px;
-      grid-template-areas: "date gua q duan";
+      grid-template-columns: 170px 250px minmax(0, 1fr) 96px 48px;
+      grid-template-areas: "date gua q mine duan";
       gap: 24px;
       align-items: center;
     }
@@ -345,6 +374,26 @@ import { HISTORY_EMPTY } from "../data/copy";
     }
     .rec :global(.q:empty) {
       display: block;
+    }
+    .rec:not(:has(.v:empty)) {
+      grid-template-areas: "date gua q mine duan";
+    }
+    .rec :global(.mine) {
+      font-size: 15px;
+      letter-spacing: normal;
+    }
+    /* 列头是「自记」，桌面只显示结果；前缀留给读屏（列头对读屏隐藏） */
+    .rec :global(.k) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .title .tally {
+      margin-top: 4px;
+      font-size: var(--fs-m);
     }
     .rec :global(.duan) {
       width: 36px;

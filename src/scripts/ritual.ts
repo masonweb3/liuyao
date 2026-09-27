@@ -10,7 +10,6 @@ import { ERRORS } from "../data/copy.js";
 import {
 	afterJudge,
 	benLines,
-	dayLabel,
 	FALLBACK,
 	fromBeijingInput,
 	isMoving,
@@ -29,7 +28,7 @@ import {
 	yaoHtml,
 	yaoTitle,
 } from "../lib/flow.js";
-import { asked, type Entry, entries, forget, record } from "../lib/history.js";
+import { asked, entries, forget, record } from "../lib/history.js";
 import type { LateZiSect } from "../lib/liuyao/calendar.js";
 import type { Gender, Question, Topic } from "../lib/liuyao/duan.js";
 import type { CastResult, Yao } from "../lib/liuyao/najia.js";
@@ -523,20 +522,21 @@ async function read() {
 	const { ask } = session;
 	if (!NEXT[current].includes("reading") || !ask) return;
 	const r = session.result ?? formed(cast(session.params, castOptions()));
-	show(view, r, compose(r, ask), session.question);
+	show(view, r, compose(r, ask), session.question, (session.date as Date).toISOString());
 	go("reading");
 }
 
 /** What the reading page shows now; the 分享卡 is drawn from it. */
 let shown: { question: string; r: CastResult; x: Reading } | undefined;
 
-function show(view: View, r: CastResult, x: Reading, question: string) {
+/** `at`: the moment of the cast, which finds its 往卦 record (回访卡、到时提醒). */
+function show(view: View, r: CastResult, x: Reading, question: string, at: string) {
 	shown = { question, r, x };
 	// 所问默认不上卡
 	withQ.checked = false;
 	$("[data-with-q-label]", shareEl).hidden = !question;
 	cardImg.removeAttribute("src");
-	view.render(readingEl, r, x, question);
+	view.render(readingEl, r, x, question, at, fromHistory);
 }
 
 // ---------------------------------------------------------------- 分享卡
@@ -577,47 +577,21 @@ withQ.addEventListener("change", () => void drawCard());
 // ---------------------------------------------------------------- 往卦
 
 const historyEl = screen("history");
-const list = $("[data-list]", historyEl);
-const itemTemplate = $<HTMLTemplateElement>("[data-item]", historyEl);
 const forgetBtn = $<HTMLButtonElement>("[data-forget]", historyEl);
 const back = $("[data-back]", readingEl);
 /** The reading on show was opened from 往卦, so its back arrow returns there. */
 let fromHistory = false;
 
-/** Cast every entry again: the list shows exactly what its reading will. */
+/** The list is drawn by view.ts (自记、个人复盘); opening a record comes back here. */
 async function showHistory() {
 	disarm();
-	const past = store ? entries(store) : [];
-	historyEl.classList.toggle("empty", past.length === 0);
-	if (!past.length) return list.replaceChildren();
-	const [{ cast }, { compose }, view] = await Promise.all([loadEngine(), loadReading(), loadView()]);
-	list.replaceChildren(
-		...past.flatMap((e) => {
-			try {
-				const r = cast(e.params, { date: new Date(e.at), lateZi: e.lateZi });
-				return [pastItem(view, e, r, compose(r, e.ask))];
-			} catch {
-				return []; // a date the calendar cannot place
-			}
-		}),
-	);
-}
-
-function pastItem(view: View, e: Entry, r: CastResult, x: Reading): Node {
-	const li = $("li", itemTemplate.content).cloneNode(true) as HTMLElement;
-	$(".date", li).textContent = `${dayLabel(new Date(e.at))} · ${r.ganzhi.day}日`;
-	$(".gua", li).innerHTML = r.bian ? `${r.gua.name} <small>之</small> ${r.bian.name}` : r.gua.name;
-	$(".q", li).textContent = e.question;
-	const d = $(".duan", li);
-	d.textContent = x.verdict;
-	d.dataset.verdict = x.verdict;
-	$("button", li).addEventListener("click", () => {
+	const view = await loadView();
+	void view.list(historyEl, () => Promise.all([loadEngine(), loadReading()]), (e, r, x) => {
 		fromHistory = true;
 		back.setAttribute("aria-label", "回到往卦");
-		show(view, r, x, e.question);
+		show(view, r, x, e.question, e.at);
 		go("reading");
 	});
-	return li;
 }
 
 back.addEventListener("click", (e) => {
