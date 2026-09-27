@@ -800,6 +800,10 @@ const facts = [
     background: var(--paper-2);
     border-radius: var(--radius);
   }
+  /* 截短的所问旁边那份全文：留给读屏，不占地方。它是行内元素，读屏名称里不会多出空格 */
+  .visit :global(.sr-inline) {
+    font-size: 0;
+  }
   .visit .kick {
     font-size: var(--fs-xs);
     letter-spacing: 0.4em;
@@ -977,6 +981,7 @@ const facts = [
     color: var(--ink);
   }
   .edit-link {
+    min-width: var(--tap);
     min-height: var(--tap);
     padding: 0 4px;
     background: none;

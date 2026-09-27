@@ -34,6 +34,12 @@ export const HISTORY_EMPTY = {
 	action: "起一卦",
 } as const;
 
+/**
+ * 往卦列表的按需包没载入。浏览器记住了失败，页内重试不会再发请求，所以请人重新打开。
+ * History.astro 写进页面；不放进 ERRORS：ERRORS 整个在首屏包里。
+ */
+export const HISTORY_FAIL = "往卦没能打开，网络似乎不太顺畅。请稍后重新打开本页。";
+
 export const ERRORS = {
 	empty: "先写下想问的事。",
 	tooLong: "所问请在 200 字以内。",

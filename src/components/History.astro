@@ -1,5 +1,5 @@
 ---
-import { HISTORY_EMPTY, REVIEW, TALLY } from "../data/copy";
+import { HISTORY_EMPTY, HISTORY_FAIL, REVIEW, TALLY } from "../data/copy";
 import Slots from "./Slots.astro";
 
 // 条目由 src/scripts/view.ts 按 src/lib/history.ts 的记录重新排盘后填入；自记与复盘一行见 src/lib/revisit.ts。
@@ -23,6 +23,7 @@ import Slots from "./Slots.astro";
       <p>记录只保存在这台设备的浏览器里。</p>
       <p class="tally" hidden data-tally><Slots text={TALLY.line} /></p>
     </div>
+    <p class="fail" role="alert" data-fail={HISTORY_FAIL}></p>
     <div class="records">
       <div class="thead" aria-hidden="true"><span>日期</span><span>卦</span><span>所问</span><span>{TALLY.mine}</span><span>断</span></div>
       <ol class="list" aria-label="往卦记录" data-list data-outcomes={JSON.stringify(REVIEW.outcomes)}></ol>
@@ -210,6 +211,29 @@ import Slots from "./Slots.astro";
     color: var(--paper);
   }
 
+  /* 没载入的提示：空着时也留在无障碍树里，出字时读屏才会念 */
+  .fail {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.8;
+    color: var(--seal);
+  }
+  .fail:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .history:has(.fail:not(:empty)) .records {
+    display: none;
+  }
+  /* 列表出来之前、没能载入时不给「清除全部记录」：别让人以为记录坏了而去清空 */
+  .history:has([aria-busy="true"]) .clear,
+  .history:has(.fail:not(:empty)) .clear {
+    visibility: hidden;
+  }
+
   .clear {
     margin-top: auto;
     align-self: center;
@@ -332,6 +356,7 @@ import Slots from "./Slots.astro";
       margin: 0;
     }
     .records,
+    .fail,
     .none {
       grid-column: 1 / -1;
     }

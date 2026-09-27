@@ -577,21 +577,37 @@ withQ.addEventListener("change", () => void drawCard());
 // ---------------------------------------------------------------- 往卦
 
 const historyEl = screen("history");
+const pastList = $("[data-list]", historyEl);
+const pastFail = $("[data-fail]", historyEl);
 const forgetBtn = $<HTMLButtonElement>("[data-forget]", historyEl);
 const back = $("[data-back]", readingEl);
 /** The reading on show was opened from 往卦, so its back arrow returns there. */
 let fromHistory = false;
 
-/** The list is drawn by view.ts (自记、个人复盘); opening a record comes back here. */
+/**
+ * The list is drawn by view.ts (自记、个人复盘); opening a record comes back here.
+ * Whether there is anything to list is known here, so 还没有往卦 shows without the lazy chunks.
+ */
 async function showHistory() {
 	disarm();
-	const view = await loadView();
-	void view.list(historyEl, () => Promise.all([loadEngine(), loadReading()]), (e, r, x) => {
-		fromHistory = true;
-		back.setAttribute("aria-label", "回到往卦");
-		show(view, r, x, e.question, e.at);
-		go("reading");
-	});
+	const empty = !store || !entries(store).length;
+	historyEl.classList.toggle("empty", empty);
+	pastFail.textContent = "";
+	if (empty) return;
+	pastList.setAttribute("aria-busy", "true");
+	try {
+		const view = await loadView();
+		await view.list(historyEl, () => Promise.all([loadEngine(), loadReading()]), (e, r, x) => {
+			fromHistory = true;
+			back.setAttribute("aria-label", "回到往卦");
+			show(view, r, x, e.question, e.at);
+			go("reading");
+		});
+	} catch {
+		// Chromium 记住了失败的动态 import，在页内重试不会再发请求：提示里请人重新打开页面。
+		pastFail.textContent = pastFail.dataset.fail ?? "";
+	}
+	pastList.removeAttribute("aria-busy");
 }
 
 back.addEventListener("click", (e) => {

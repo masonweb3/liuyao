@@ -163,8 +163,9 @@ function quote(el: Element, q: string) {
 	const cut = document.createElement("span");
 	cut.setAttribute("aria-hidden", "true");
 	cut.textContent = `${chars.slice(0, CLIP - 1).join("")}…`;
+	// 不用 .sr-only：它是绝对定位的块，读屏名称里引号内侧会多出空格
 	const all = document.createElement("span");
-	all.className = "sr-only";
+	all.className = "sr-inline";
 	all.textContent = q;
 	el.replaceChildren(cut, all);
 }
@@ -288,18 +289,16 @@ type Load = () => Promise<[typeof import("../lib/liuyao/najia.js"), typeof impor
 
 /**
  * 往卦: every record cast again, so the list shows exactly what its reading will.
- * The engine and the reading load only when there is something to list.
+ * ritual.ts calls this only when there is something to list, and tells the user when it fails.
  */
 export async function list(root: HTMLElement, load: Load, open: (p: Past, r: CastResult, x: Reading) => void) {
+	const [{ cast }, { compose }] = await load();
 	const past = store ? pasts(store) : [];
 	const { n, x: yes } = tally(past);
 	const line = $("[data-tally]", root);
 	line.hidden = n === 0;
 	fill(line, { n: String(n), x: String(yes) });
-	root.classList.toggle("empty", past.length === 0);
 	const ol = $("[data-list]", root);
-	if (!past.length) return ol.replaceChildren();
-	const [{ cast }, { compose }] = await load();
 	const names: Record<Outcome, string> = JSON.parse(ol.dataset.outcomes ?? "{}");
 	const tpl = $<HTMLTemplateElement>("[data-item]", root);
 	ol.replaceChildren(
