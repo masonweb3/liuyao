@@ -18,7 +18,7 @@ const items = GUA.map(([name]) => {
   const g = parseGua(TEXT[name]!);
   return {
     name,
-    // 繁体照原文首行（遯、无妄），简体用 shortName（遁）
+    // 繁体取首行（遯、無妄），简体用 shortName（遁）
     short: hant ? g.short : shortName(name),
     // 第十一卦 → 第十一
     no: g.no.slice(0, -1),

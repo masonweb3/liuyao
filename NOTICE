@@ -60,7 +60,8 @@ src/data/guaci-hant.json：同上《周易》经文、彖传、象传的繁体�
 「无袛悔」改为「无祗悔」）。「无」「于」等用字一律照原文。另改两处原文混入的简化字（不在 Big5，
 繁体字体可能没有）：火雷豐上六「三歲不觌」改为「覿」（泽水困初六同句作「覿」），坎为水六四小象
 「剛柔济也」改为「濟」。首行（「《易經》第八卦 比 水地比 坎上坤下」）不是维基文库的文字，由卦序、
-维基文库的页名（遯、无妄、恒等照原文）和维基文库页首的「坤下坎上」拼成，所以没有 guaci.json 那处笔误。
+卦名和维基文库页首的「坤下坎上」拼成，所以没有 guaci.json 那处笔误。卦名用维基文库的页名（如遯），
+只有无妄、恒两卦按台湾常见写法作「無妄」「恆」；这只改首行，经文照原文。
 按 najia 同一函数转回简体后，与 guaci.json 逐字相同，只有遯卦全名一处不同（这里照原文作「天山遯」）。
 src/lib/gua.test.ts 逐卦核对两份文件的行数、爻题、象曰的位置。
 
@@ -70,8 +71,8 @@ src/lib/gua.test.ts 逐卦核对两份文件的行数、爻题、象曰的位置
 src/data/baihua.json（六十四卦卦辞白话）、src/data/yao-baihua.json（爻辞白话）、
 src/data/templates.ts（断语与建议）、src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
 （https://creativecommons.org/licenses/by-nc-sa/4.0/）。
-src/data/baihua-hant.json 是 baihua.json 的繁体（台湾用语）版，用 opencc-js 1.4.2 的 s2twp 转换一次后
-逐条人工校对，许可同上。
+src/data/baihua-hant.json、src/data/yao-baihua-hant.json 是 baihua.json、yao-baihua.json 的繁体（台湾用语）
+版，用 opencc-js 1.4.2 的 s2twp 转换一次后逐条人工校对，许可同上。
 
 ---------------------------------------------------------------------------
 依赖

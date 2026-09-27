@@ -1,11 +1,13 @@
 ---
-// 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文与卦辞白话。知识页，不带所问、不断吉凶。
+// 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文，卦辞白话与爻辞白话。知识页，不带所问、不断吉凶。
 // 简体 /gua/{slug}/ 与繁体 /zh-hant/gua/{slug}/ 共用；界面文字两种写法并排写在 t() 里。
 import baihuaHant from '../data/baihua-hant.json';
 import baihua from '../data/baihua.json';
 import { guaPath } from '../data/gua-slugs';
 import guaciHant from '../data/guaci-hant.json';
 import guaci from '../data/guaci.json';
+import yaoBaihuaHant from '../data/yao-baihua-hant.json';
+import yaoBaihua from '../data/yao-baihua.json';
 import Paper from '../layouts/Paper.astro';
 import { STROKES, yaoTitle } from '../lib/flow';
 import { fontOf, gongOf, markOf, neighbors, parseGua, related, shortName } from '../lib/gua';
@@ -23,10 +25,13 @@ const t = (hans: string, tw: string) => (hant ? tw : hans);
 const KIND_HANT: Record<string, string> = { 错卦: '錯卦', 综卦: '綜卦', 互卦: '互卦' };
 const TEXT: Record<string, string> = hant ? guaciHant : guaci;
 const BAIHUA: Record<string, string> = hant ? baihuaHant : baihua;
+const YAO_BAIHUA: Record<string, Record<string, string>> = hant ? yaoBaihuaHant : yaoBaihua;
 const g = parseGua(TEXT[name]!);
-// 繁体的卦名、简称照原文首行（遯、无妄）；简体的简称用 shortName（遁，不用首行的「遯」）。
+// 繁体的卦名、简称取首行（遯；無妄、恆见 build-guaci-hant.py）；简体的简称用 shortName（遁，不用首行的「遯」）。
 const short = hant ? g.short : shortName(name);
 const bh = BAIHUA[name]!;
+// 爻辞白话分批写（M13），没写的卦没有这一项：那一行不渲染，也不留空位。
+const yaoBh = YAO_BAIHUA[name] ?? {};
 const mark = markOf(name);
 const gong = gongOf(name, hant);
 const shown = (n: string) => parseGua(TEXT[n]!).name;
@@ -112,6 +117,7 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
             </div>
             <div class="words">
               <p class="ci" style={yaoFont}>{y.text}</p>
+              {yaoBh[y.title] && <p class="ybh">{yaoBh[y.title]}</p>}
               <p class="xiang">{y.xiang}</p>
             </div>
           </article>
@@ -311,6 +317,10 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
     line-height: 1.6;
     letter-spacing: 0.12em;
   }
+  .ybh {
+    font-size: 15px;
+    line-height: 1.9;
+  }
   .xiang {
     font-size: 13px;
     line-height: 1.8;
@@ -494,6 +504,9 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
     }
     .yao .ci {
       font-size: 24px;
+    }
+    .ybh {
+      font-size: 17px;
     }
     .xiang {
       font-size: var(--fs-s);

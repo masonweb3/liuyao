@@ -17,6 +17,7 @@ import * as copy from "./copy.js";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
+import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
@@ -64,6 +65,7 @@ describe("覆盖", () => {
 // 爻辞白话分批写（M13）：只查已经写了的卦，全部写完后再要求 64 卦都有。
 describe("爻辞白话", () => {
 	const written = Object.entries(yaoBaihua as Record<string, Record<string, string>>);
+	const hant = yaoBaihuaHant as Record<string, Record<string, string>>;
 
 	it("写了的卦都写全：爻题与 guaci.json 逐条对应（乾、坤另有用九、用六）", () => {
 		expect(written.length).toBeGreaterThan(0);
@@ -74,8 +76,13 @@ describe("爻辞白话", () => {
 		}
 	});
 
-	it("每条是一两句完整的话，长短与卦辞白话相当", () => {
-		for (const [name, lines] of written)
+	it("繁体与简体覆盖的卦、爻题完全一致（繁体转写后校对，不单独增删）", () => {
+		expect(Object.keys(hant)).toEqual(written.map(([name]) => name));
+		for (const [name, lines] of written) expect(Object.keys(hant[name]!), name).toEqual(Object.keys(lines));
+	});
+
+	it("每条是一两句完整的话，长短与卦辞白话相当（简繁都查）", () => {
+		for (const [name, lines] of [...written, ...Object.entries(hant)])
 			for (const [title, s] of Object.entries(lines)) {
 				expect(s, `${name}${title}`).toMatch(/^[^\s].*。$/);
 				expect(s.length, `${name}${title}`).toBeGreaterThanOrEqual(20);
@@ -84,7 +91,12 @@ describe("爻辞白话", () => {
 	});
 
 	it("讲爻义本身：第三人称，不对读者说话；讼卦不给输赢结论", () => {
-		for (const s of strings(yaoBaihua)) expect(s).not.toMatch(/你|您|官司|胜诉|败诉|打赢|打输/);
+		for (const s of [...strings(yaoBaihua), ...strings(hant)])
+			expect(s).not.toMatch(/你|您|官司|胜诉|勝訴|败诉|敗訴|打赢|打贏|打输|打輸/);
+	});
+
+	it("繁体白话没有 s2twp 的常见误转（兇、矇、佔、鹹）", () => {
+		for (const s of [...strings(baihuaHant), ...strings(hant)]) expect(s).not.toMatch(/[兇矇佔鹹]/);
 	});
 });
 
@@ -93,6 +105,7 @@ describe("红线（简繁都查）", () => {
 		...strings(baihua),
 		...strings(baihuaHant),
 		...strings(yaoBaihua),
+		...strings(yaoBaihuaHant),
 		...strings(TEMPLATES),
 		...strings(SPECIAL),
 		...strings(copy),

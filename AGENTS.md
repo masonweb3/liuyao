@@ -66,6 +66,7 @@ src/
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
   data/baihua-hant.json 卦辞白话的繁体（s2twp 转换后逐条校对，入库，浏览器里不跑 opencc）
   data/yao-baihua.json 爻辞白话，以卦全名和爻题作键（本项目原创，CC BY-NC-SA 4.0；分批写，见 §6）
+  data/yao-baihua-hant.json 爻辞白话的繁体（同上，s2twp 转换后逐条校对；简繁覆盖的卦和爻题必须一致）
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
   pages/index.astro 首屏加完整起卦流程（单页）
@@ -190,7 +191,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
     - 正文用 Noto Serif TC（`@fontsource/noto-serif-tc`，切片声明在 `webfonts-hant.css`）。它没有的字（目前只有切换链接「简体」的「简」）从 Noto Serif SC 截一字补上，同名声明。
     - 标题用芫荽（Iansui，台湾标准字形），不用站酷小薇（缺两千多个繁体常用字）。芫荽缺的二十来个生僻字用霞鹜文楷 TC v1.522（GitHub 版，fontsource 上是缺字的旧版）补：两条同名 `@font-face`，第二条只带这些字的 `unicode-range`。
     - 繁体不套用 `fontOf` 的整块换宋体：补字的文楷和芫荽同出 Klee One，看不出差别。卦页每页各一份芫荽子集和（有缺字时）文楷子集，同样内联并预加载；两款都缺的字 `subset-fonts.py` 会直接报错。
-    - 繁体文字一律入库、人工校对，不在浏览器里转换。s2twp 常见误转：凶→兇、占→佔、征→徵、咸→鹹、复→覆、斗→鬥、蒙→矇、运行→執行、回归→迴歸；卦名简称照维基文库原文（遯、无妄、恒）。`content.test.ts` 核对繁体白话开头的卦名。
+    - 繁体文字一律入库、人工校对，不在浏览器里转换。s2twp 常见误转：凶→兇、占→佔、征→徵、咸→鹹、复→覆、斗→鬥、蒙→矇、运行→執行、回归→迴歸；卦名照维基文库页名（遯），只有無妄、恆用台湾常见写法（台湾读者和搜索都这样写，映射在 `tools/build-guaci-hant.py` 的 `NAMES`，只改 `guaci-hant.json` 首行）；经文照原文，卦辞里仍是「无妄」。`content.test.ts` 核对繁体白话开头的卦名，并禁兇、矇、佔、鹹。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。
@@ -204,7 +205,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。
-  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头「往卦」后有纯文字切换链接（简体页「繁體」、繁体页「简体」）。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
+  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头「往卦」后有纯文字切换链接（简体页「繁體」、繁体页「简体」）。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。

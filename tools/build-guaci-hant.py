@@ -5,7 +5,7 @@
 所以重跑的结果不随维基文库之后的编辑变化（2026-09-27 就有 35 页被人加了异文注）。
 解析规则照 najia 的 tools/build-guaci.py（commit 108d13a）：删去异文夹注，否卦爻题后的逗号改冒号，
 坤卦分三行的卦辞并为一行；只是不做繁转简，「无」「于」等用字照原文。改正的讹误见 CORRECTIONS，
-每一条都要在 NOTICE 登记。首行不是维基文库的文字，由卦序、页名（遯、无妄、恒照原文）和页首的
+每一条都要在 NOTICE 登记。首行不是维基文库的文字，由卦序、卦名（维基文库的页名，只有 NAMES 里的两个换写法）和页首的
 「坤下坎上」拼成。
 
 写出后，用 najia 的同一个函数把结果转回简体，与 guaci.json 逐行比对：除了 EXPECTED 里的已知差异，
@@ -52,6 +52,10 @@ CORRECTIONS = {
     29: [("剛柔济也", "剛柔濟也")],
     55: [("三歲不觌", "三歲不覿")],
 }
+
+# 首行卦名换成台湾常见写法：台湾读者和搜索都写「無妄」「恆」，维基文库页名作「无妄」「恒」。只换首行
+# （卦页的卦名、标题、目录由它而来），经文照原文。遯是台湾常见写法，不换。转回简体后与 guaci.json 相同。
+NAMES = {"无妄": "無妄", "恒": "恆"}
 
 # 转回简体后允许与 guaci.json 不同的行：遯卦全名照原文作「天山遯」，guaci.json 作「天山遁」
 EXPECTED = {("天山遁", 0)}
@@ -163,7 +167,8 @@ def main() -> None:
     for name, stext in simp.items():
         no, _, sfull, _ = stext.split("\n")[0].replace("《易经》", "").split(" ")
         n = cn2int(no[1:-1])
-        short, wikitext = pages[n]
+        page, wikitext = pages[n]
+        short = NAMES.get(page, page)
         lines = [clean(l) for l in re.sub(r"</?span[^>]*>", "", wikitext).split("\n")]
         heads = [l.strip() for l in lines if re.fullmatch(r"\s*(.)下(.)上\s*", l)]
         if len(heads) != 1 or not {heads[0][0], heads[0][2]} <= TRIGRAMS:

@@ -81,10 +81,13 @@ describe("guaci-hant.json 与 guaci.json 逐卦对应（抓转录时漏掉、多
 		}
 	});
 
-	it("繁体首行：卦名、简称照维基文库原文，全名以简称结尾", () => {
+	it("繁体首行：卦名用维基文库页名，只有無妄、恆换成台湾常见写法；经文照原文", () => {
 		const g = (name: string) => parseGua(HANT[name] as string);
 		expect([g("天山遁").name, g("天山遁").short]).toEqual(["天山遯", "遯"]);
-		expect([g("天雷无妄").name, g("雷风恒").name, g("离为火").name]).toEqual(["天雷无妄", "雷風恒", "離為火"]);
+		expect([g("天雷无妄").name, g("天雷无妄").short]).toEqual(["天雷無妄", "無妄"]);
+		expect([g("雷风恒").name, g("雷风恒").short]).toEqual(["雷風恆", "恆"]);
+		expect(g("离为火").name).toBe("離為火");
+		expect(g("天雷无妄").ci).toMatch(/^无妄：/);
 		for (const name of Object.keys(HANT)) {
 			const { name: full, short } = g(name);
 			expect(full.endsWith(short) || full.startsWith(`${short}為`), name).toBe(true);
