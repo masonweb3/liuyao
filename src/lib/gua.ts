@@ -38,7 +38,7 @@ export interface YaoCi {
 export interface GuaCi {
 	/** 第十一卦 */
 	no: string;
-	/** 首行的卦名全称与简称：天山遁、遯（繁体：天山遯、遯）。简体页的简称用 shortName，遁卦不写「遯」。 */
+	/** 首行的卦名全称与简称：天山遁、遯（繁体：天山遯、遯；天雷無妄、雷風恆是台湾写法，不是原文）。简体页的简称用 shortName，遁卦不写「遯」。 */
 	name: string;
 	short: string;
 	/** 上卦、下卦：坤、乾 */

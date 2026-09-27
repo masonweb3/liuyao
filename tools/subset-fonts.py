@@ -125,7 +125,7 @@ def page_blocks(guaci_path: str, lang: str) -> dict[str, list[str]]:
     pages = {"index": [CHROME[lang], "六十四卦"]}  # 目录页的标题
     for name, slug in slugs:
         lines = guaci[name].split("\n")
-        # 卦名取首行（繁体是原文写法：天山遯）；简体首行的全名就是键。
+        # 卦名取首行（繁体多是维基文库页名，如天山遯；無妄、恆是台湾写法，见 build-guaci-hant.py）；简体首行的全名就是键。
         pages[slug] = [CHROME[lang], lines[0].split(" ")[2], lines[1], "".join(l[3:] for l in lines if YAO.match(l))]
     return pages
 
