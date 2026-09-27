@@ -21,8 +21,9 @@
 每组一个 ranges.json（每个文件的 unicode-range，取自子集实际含有的字），卦页在自己的 <head> 里内联 @font-face。
 改了 guaci.json、guaci-hant.json、gua-slugs.ts 或这些页面上用标题字体的文案，就重跑，把 src/fonts/ 一起拷回提交。
 
-另有 src/fonts/hant-body-extra.woff2：Noto Serif TC 没有、繁体页正文却要显示的字（切换链接「简体」的「简」），
-取 Noto Serif SC 的字形，webfonts-hant.css 里同名补上。
+另有 src/fonts/lang-400.woff2、lang-600.woff2：页头语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形，
+在 Paper.astro 里以 Noto Serif SC / TC 的名义补上。「简」Noto Serif TC 根本没有；其余几个字（当前语言那个字是
+600 字重，读屏补字「体」「體」）要是走 fontsource，一个字就要多下载一整片（三五十 KB）。
 
 字体源文件不进 git：按下面固定的地址下载，核对 sha256，结果可复现。
 """
@@ -70,8 +71,8 @@ TEXT = {
     "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + " ·　",
 }
 
-# 繁体页正文要显示、Noto Serif TC 却没有的字
-HANT_BODY_EXTRA = "简"
+# 语言切换用的字，按字重分（Paper.astro 的 @font-face 按这些字写 unicode-range）
+LANG = {400: "简体體", 600: "简繁"}
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
@@ -97,12 +98,12 @@ def cmap(key: str) -> dict[int, str]:
     return TTFont(io.BytesIO(load(key)), lazy=True).getBestCmap()
 
 
-def make_subset(raw: bytes, text: str) -> TTFont:
+def make_subset(raw: bytes, text: str, wght: int = 400) -> TTFont:
     # 不写入当前时间，重跑结果逐字节相同，git 里不出现无谓的改动。
     font = TTFont(io.BytesIO(raw), recalcTimestamp=False)
     if "fvar" in font:
-        # 名称表里仍写 ExtraLight（instancer 不改名），字形确是 400，不影响使用。
-        font = instancer.instantiateVariableFont(font, {"wght": 400})
+        # 名称表里仍写 ExtraLight（instancer 不改名），字形确是所给字重，不影响使用。
+        font = instancer.instantiateVariableFont(font, {"wght": wght})
     options = subset.Options()
     options.flavor = "woff2"
     options.layout_features = ["*"]  # 竖排要用 vert / vrt2
@@ -201,7 +202,8 @@ def main() -> None:
     with open("src/styles/fonts.css", "w", encoding="utf-8") as f:
         f.write("\n".join(css) + "\n")
 
-    make_subset(load("serif-sc"), HANT_BODY_EXTRA).save("src/fonts/hant-body-extra.woff2")
+    for wght, text in LANG.items():
+        make_subset(load("serif-sc"), text, wght).save(f"src/fonts/lang-{wght}.woff2")
     gua_hans()
     gua_hant()
 

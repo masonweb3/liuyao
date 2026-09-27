@@ -188,7 +188,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
   - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包：成卦页和解读页的渲染在按需加载的 `src/scripts/view.ts`，解读页和分享卡用 `compose()` 带出的字体。
   - **繁体（`/zh-hant/`）**：`<html lang="zh-Hant-TW">`，`tokens.css` 按 `:lang(zh-Hant)` 换两个字体变量。
-    - 正文用 Noto Serif TC（`@fontsource/noto-serif-tc`，切片声明在 `webfonts-hant.css`）。它没有的字（目前只有切换链接「简体」的「简」）从 Noto Serif SC 截一字补上，同名声明。
+    - 正文用 Noto Serif TC（`@fontsource/noto-serif-tc`，切片声明在 `webfonts-hant.css`）。它没有「简」字（语言切换用），和切换里另外几个字一起从 Noto Serif SC 截成小文件（`src/fonts/lang-400.woff2`、`lang-600.woff2`），在 `Paper.astro` 里以 Noto Serif SC / TC 的名义补上：当前语言那个字是 600 字重，读屏补字有「体」「體」，走 fontsource 时一个字就要多下载一整片。
     - 标题用芫荽（Iansui，台湾标准字形），不用站酷小薇（缺两千多个繁体常用字）。芫荽缺的二十来个生僻字用霞鹜文楷 TC v1.522（GitHub 版，fontsource 上是缺字的旧版）补：两条同名 `@font-face`，第二条只带这些字的 `unicode-range`。
     - 繁体不套用 `fontOf` 的整块换宋体：补字的文楷和芫荽同出 Klee One，看不出差别。卦页每页各一份芫荽子集和（有缺字时）文楷子集，同样内联并预加载；两款都缺的字 `subset-fonts.py` 会直接报错。
     - 繁体文字一律入库、人工校对，不在浏览器里转换。s2twp 常见误转：凶→兇、占→佔、征→徵、咸→鹹、复→覆、斗→鬥、蒙→矇、运行→執行、回归→迴歸；卦名照维基文库页名（遯），只有無妄、恆用台湾常见写法（台湾读者和搜索都这样写，映射在 `tools/build-guaci-hant.py` 的 `NAMES`，只改 `guaci-hant.json` 首行）；经文照原文，卦辞里仍是「无妄」。`content.test.ts` 核对繁体白话开头的卦名，并禁兇、矇、佔、鹹。
@@ -205,7 +205,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。
-  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头「往卦」后有纯文字切换链接（简体页「繁體」、繁体页「简体」）。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
+  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头导航最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B；桌面在「起卦」按钮前）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。

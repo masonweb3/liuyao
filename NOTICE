@@ -94,5 +94,5 @@ src/fonts/home-*.woff2 与 src/fonts/gua/*.woff2 是 tools/subset-fonts.py 从 g
 - 霞鹜文楷 TC LXGW WenKai TC v1.522（Copyright 2022-2026 LXGW，https://github.com/lxgw/LxgwWenkaiTC；
   Copyright 2020 The Klee Project Authors），补芫荽缺的字。
 src/fonts/gua-hant/*.woff2 是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
-霞鹜文楷 TC 取自其 GitHub 发布的 v1.522；src/fonts/hant-body-extra.woff2 是 Noto Serif SC 的一字子集
-（Noto Serif TC 没有的「简」）。都保留原字体里的版权与许可信息。
+霞鹜文楷 TC 取自其 GitHub 发布的 v1.522；src/fonts/lang-400.woff2、lang-600.woff2 是 Noto Serif SC 的几字子集
+（页头语言切换「简 | 繁」用的字，Noto Serif TC 没有「简」）。都保留原字体里的版权与许可信息。

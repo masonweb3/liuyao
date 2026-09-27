@@ -60,11 +60,21 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
       <nav aria-label={t('站内', '站內')}>
         {!index && <a href={hant ? `${HANT}/gua/` : '/gua/'}>六十四卦</a>}
         <a class="desk" href="/?history">往卦</a>
-        {hant ? (
-          <a href={other} hreflang="zh-Hans" lang="zh-Hans">简体</a>
-        ) : (
-          <a href={other} hreflang="zh-Hant" lang="zh-Hant">繁體</a>
-        )}
+        {/* 语言切换（设计稿 14、D11，方案 B）：两页都是「简 | 繁」，当前那个不是链接。
+            单字读屏只念一个字，各补一段视觉隐藏的「体中文」「體中文」。 */}
+        <span class="lang" role="group" aria-label={t('语言', '語言')}>
+          {hant ? (
+            <a href={other} hreflang="zh-Hans" lang="zh-Hans">简<span class="sr">体中文</span></a>
+          ) : (
+            <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文</span></span>
+          )}
+          <span class="bar" aria-hidden="true"></span>
+          {hant ? (
+            <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文</span></span>
+          ) : (
+            <a href={other} hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>
+          )}
+        </span>
         <a class="ask" href="/?ask">起卦</a>
       </nav>
     </header>
@@ -98,6 +108,38 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
   :focus-visible {
     outline: 1px solid var(--ink);
     outline-offset: 3px;
+  }
+
+  /* 语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形（tools/subset-fonts.py），同名补进正文字体。
+     「简」Noto Serif TC 根本没有，不补就回退到系统字体；当前语言那个字是 600 字重，读屏补字有「体」「體」，
+     走 fontsource 时一个字就要多下载一整片（三五十 KB）。排在 fontsource 的声明之后，这几个字先用这里的小文件。 */
+  @font-face {
+    font-family: 'Noto Serif TC';
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/lang-400.woff2') format('woff2');
+    unicode-range: U+4F53, U+7B80;
+  }
+  @font-face {
+    font-family: 'Noto Serif SC';
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/lang-400.woff2') format('woff2');
+    unicode-range: U+9AD4;
+  }
+  @font-face {
+    font-family: 'Noto Serif TC';
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/lang-600.woff2') format('woff2');
+    unicode-range: U+7E41;
+  }
+  @font-face {
+    font-family: 'Noto Serif SC';
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/lang-600.woff2') format('woff2');
+    unicode-range: U+7B80;
   }
 </style>
 
@@ -150,10 +192,11 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     font-size: var(--fs-s);
     letter-spacing: 0.4em;
   }
+  /* 手机上间距 12px：语言切换每个字左右各有 15px 的点击区，看上去和别的项仍是二十多像素（设计稿 14）。 */
   nav {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 12px;
   }
   nav a {
     min-height: var(--tap);
@@ -170,6 +213,47 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
   .index nav .ask {
     display: flex;
     letter-spacing: 0.3em;
+  }
+
+  /* 语言切换「简 | 繁」（设计稿 14、D11，方案 B）：当前语言墨色加粗、不是链接；另一个是次要色的链接，
+     悬停变墨色。都不带下划线：纸面链接都不带，给当前那个加下划线反倒像能点。 */
+  .lang {
+    display: flex;
+    align-items: center;
+  }
+  .lang > a,
+  .lang > span[aria-current] {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    font-size: var(--fs-s);
+    letter-spacing: 0;
+  }
+  .lang > span[aria-current] {
+    font-weight: 600;
+  }
+  .top .lang > a {
+    color: var(--ink-2);
+    transition: color var(--t-hover);
+  }
+  .top .lang > a:hover {
+    color: var(--ink);
+  }
+  .bar {
+    width: 1px;
+    height: 12px;
+    background: var(--rule);
+  }
+  /* 视觉隐藏、读屏照念。字重固定 400：看不见的字也会触发字体下载，跟着当前语言用 600 就要多下切片。 */
+  .sr {
+    font-weight: 400;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .foot {
@@ -217,8 +301,16 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     .name {
       font-size: 15px;
     }
+    nav {
+      gap: 28px;
+    }
     nav .desk {
       display: flex;
+    }
+    /* 桌面每个字 34×44 */
+    .lang > a,
+    .lang > span[aria-current] {
+      padding: 0 10px;
     }
     nav .ask,
     .index nav .ask {
