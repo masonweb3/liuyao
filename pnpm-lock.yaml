@@ -172,6 +172,9 @@ importers:
       '@fontsource/noto-serif-sc':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/noto-serif-tc':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/zcool-xiaowei':
         specifier: ^5.3.0
         version: 5.3.0
@@ -749,6 +752,9 @@ packages:
 
   '@fontsource/noto-serif-sc@5.3.0':
     resolution: {integrity: sha512-0/zaEFkidiWldE62rTeD74x8ygUsQvejiSNtO0LQxQk3qpaHnlMZ3w4C7yH80B4KTIg8VKeFP4oSgwWMchY9+g==}
+
+  '@fontsource/noto-serif-tc@5.3.0':
+    resolution: {integrity: sha512-6ZvCwAxmIV9axb7PMdLFMRv9h0MAKFpgHB54dngBAt/pGXBfcdXMCV9MBhqIqPV16szpR6FFrXYGuC9fcPFJIw==}
 
   '@fontsource/zcool-xiaowei@5.3.0':
     resolution: {integrity: sha512-iRuUPl9ONFbYzi6JcEshpE4VedINyzQ4hv0Z5XEt0cB0pMPiQeqc2Qvv1NwJCNzkPwG02VCdcO+cF2K8ylYn2A==}
@@ -2394,6 +2400,8 @@ snapshots:
     optional: true
 
   '@fontsource/noto-serif-sc@5.3.0': {}
+
+  '@fontsource/noto-serif-tc@5.3.0': {}
 
   '@fontsource/zcool-xiaowei@5.3.0': {}
 
