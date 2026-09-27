@@ -477,6 +477,25 @@ const facts = [
     line-height: 1.6;
     letter-spacing: 0.16em;
   }
+  /* 爻辞白话：另起一行、顶格，同卦页手机版；宋体，字号行高同卦页的爻辞白话。
+     爻辞占满爻题右边的余宽，不被挤到下一行。一爻一组，组间比组内疏。 */
+  .yaoci:has(.ybh) {
+    gap: 24px;
+  }
+  .yaoci :global(.yc:has(.ybh)) {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .yaoci :global(.yc:has(.ybh) p:not(.ybh)) {
+    flex: 1 1 0;
+  }
+  .yaoci :global(p.ybh) {
+    flex-basis: 100%;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.9;
+    letter-spacing: normal;
+  }
 
   /* 完整盘面：给专业用户看，手机默认收起，桌面默认展开 */
   .panel {
@@ -889,6 +908,17 @@ const facts = [
     }
     .yaoci :global(p) {
       font-size: 26px;
+    }
+    .yaoci :global(.yc:has(.ybh)) {
+      row-gap: 12px;
+    }
+    .yaoci :global(p.ybh) {
+      font-size: 17px;
+    }
+    /* 带白话时一爻一组上下排，不左右并排：两段白话挤在半栏里太窄 */
+    .yaoci:has(.ybh) {
+      flex-direction: column;
+      gap: 28px;
     }
     .panel {
       padding: 16px 32px 28px;

@@ -5,6 +5,7 @@
 import baihua from "../data/baihua.json" with { type: "json" };
 import { guaPath } from "../data/gua-slugs.js";
 import guaci from "../data/guaci.json" with { type: "json" };
+import yaoBaihua from "../data/yao-baihua.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "../data/templates.js";
 import { posName, yaoTitle } from "./flow.js";
 import { fontOf, shortName } from "./gua.js";
@@ -33,6 +34,8 @@ export interface YaoText {
 	title: string;
 	text: string;
 	main: boolean;
+	/** 爻辞白话；还没写的卦没有这一项 */
+	baihua?: string;
 }
 
 /** 完整盘面 one row. */
@@ -81,6 +84,8 @@ export interface Reading {
 
 const GUACI: Record<string, string> = guaci;
 const BAIHUA: Record<string, string> = baihua;
+/** 以爻题作键：{"乾为天": {"初九": …, "用九": …}}。分批写，缺的卦就没有键。 */
+const YAO_BAIHUA: Record<string, Record<string, string>> = yaoBaihua;
 
 /** Button names from 择类. */
 const LABEL: Partial<Record<Topic, string>> = { 子孙: "子女", 兄弟: "朋友" };
@@ -101,10 +106,13 @@ function guaText(name: string): GuaText {
 	};
 }
 
-/** 爻辞 for 爻题, without its 小象. */
+/**
+ * 爻辞 for 爻题, without its 小象, plus 白话 when written.
+ * 用九、用六只从 dong() 六爻皆动的分支取到（乾、坤），所以它们的白话也只在乾或坤六爻全动时显示。
+ */
 function yaoCi(name: string, title: string): YaoText {
 	const line = lines(name).find((l) => l.startsWith(`${title}：`)) as string;
-	return { title, text: line.slice(title.length + 1), main: false };
+	return { title, text: line.slice(title.length + 1), main: false, baihua: YAO_BAIHUA[name]?.[title] };
 }
 
 const NUM = "一二三四五六";

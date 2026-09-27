@@ -8,11 +8,14 @@
  * colon, each followed by its 小象; 用九/用六 exist only in 乾 and 坤.
  */
 import { describe, expect, it } from "vitest";
+import { yaoTitle } from "../lib/flow.js";
+import { parseGua } from "../lib/gua.js";
 import { GUA64 } from "../lib/liuyao/const.js";
 import baihua from "./baihua.json" with { type: "json" };
 import * as copy from "./copy.js";
 import guaci from "./guaci.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
+import yaoBaihua from "./yao-baihua.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -38,15 +41,11 @@ describe("覆盖", () => {
 	});
 
 	it("卦辞的爻位与卦码一一对应，可按爻位取爻辞", () => {
-		const label = (i: number, yang: boolean) => {
-			const n = yang ? "九" : "六";
-			return i === 0 ? `初${n}` : i === 5 ? `上${n}` : `${n}${"二三四五"[i - 1]}`;
-		};
 		for (const [mark, name] of Object.entries(GUA64)) {
 			const lines = (guaci as Record<string, string>)[name]!.split("\n");
 			expect(lines[0], name).toContain(name);
 			const found = lines.flatMap((l) => l.match(/^(初[六九]|[六九][二三四五]|上[六九])：/)?.[1] ?? []);
-			expect(found, name).toEqual([...mark].map((bit, i) => label(i, bit === "1")));
+			expect(found, name).toEqual([...mark].map((bit, i) => yaoTitle(i, bit === "1")));
 		}
 		const yong = Object.entries(guaci).flatMap(([name, text]) =>
 			/\n用[九六]：/.test(text) ? [name] : [],
@@ -55,8 +54,41 @@ describe("覆盖", () => {
 	});
 });
 
+// 爻辞白话分批写（M13）：只查已经写了的卦，全部写完后再要求 64 卦都有。
+describe("爻辞白话", () => {
+	const written = Object.entries(yaoBaihua as Record<string, Record<string, string>>);
+
+	it("写了的卦都写全：爻题与 guaci.json 逐条对应（乾、坤另有用九、用六）", () => {
+		expect(written.length).toBeGreaterThan(0);
+		for (const [name, lines] of written) {
+			const text = (guaci as Record<string, string>)[name];
+			expect(text, `${name} 不在 guaci.json 里`).toBeDefined();
+			expect(Object.keys(lines), name).toEqual(parseGua(text!).yao.map((y) => y.title));
+		}
+	});
+
+	it("每条是一两句完整的话，长短与卦辞白话相当", () => {
+		for (const [name, lines] of written)
+			for (const [title, s] of Object.entries(lines)) {
+				expect(s, `${name}${title}`).toMatch(/^[^\s].*。$/);
+				expect(s.length, `${name}${title}`).toBeGreaterThanOrEqual(20);
+				expect(s.length, `${name}${title}`).toBeLessThanOrEqual(48);
+			}
+	});
+
+	it("讲爻义本身：第三人称，不对读者说话；讼卦不给输赢结论", () => {
+		for (const s of strings(yaoBaihua)) expect(s).not.toMatch(/你|您|官司|胜诉|败诉|打赢|打输/);
+	});
+});
+
 describe("红线", () => {
-	const all = [...strings(baihua), ...strings(TEMPLATES), ...strings(SPECIAL), ...strings(copy)];
+	const all = [
+		...strings(baihua),
+		...strings(yaoBaihua),
+		...strings(TEMPLATES),
+		...strings(SPECIAL),
+		...strings(copy),
+	];
 
 	it("不出现改命、转运、化解之类的字样", () => {
 		expect(strings(copy).length).toBeGreaterThan(10);

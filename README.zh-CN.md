@@ -25,7 +25,7 @@ Astro 7 · Cloudflare Workers · TypeScript · [tyme4ts](https://github.com/6tai
 本项目**源码公开（source-available），禁止商业使用**，不属于 OSI 定义的开源软件。
 
 - 代码：[PolyForm Noncommercial License 1.0.0](LICENSE.md)。允许个人学习、研究和其他非商业用途；商业使用须另外取得书面授权。
-- 原创文案与美术资源：CC BY-NC-SA 4.0。
+- 原创文案（卦辞与爻辞的白话、断语与建议、界面文案）与美术资源：CC BY-NC-SA 4.0。
 - 第三方内容按各自的许可，见 [NOTICE](NOTICE)。
 
 本站内容仅供传统文化参考与娱乐，不构成医疗、法律或投资建议。

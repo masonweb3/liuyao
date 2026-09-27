@@ -54,8 +54,8 @@ src/data/guaci.json：《周易》经文、彖传、象传。原文属公有领�
 ---------------------------------------------------------------------------
 原创文案
 
-src/data/baihua.json（六十四卦卦辞白话）、src/data/templates.ts（断语与建议）、
-src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
+src/data/baihua.json（六十四卦卦辞白话）、src/data/yao-baihua.json（爻辞白话）、
+src/data/templates.ts（断语与建议）、src/data/copy.ts（界面文案）为本项目原创，采用 CC BY-NC-SA 4.0
 （https://creativecommons.org/licenses/by-nc-sa/4.0/）。
 
 ---------------------------------------------------------------------------

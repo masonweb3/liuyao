@@ -25,7 +25,7 @@ Astro 7 on Cloudflare Workers, TypeScript, [tyme4ts](https://github.com/6tail/ty
 Source-available, **not open source**: commercial use is not allowed.
 
 - Code: [PolyForm Noncommercial License 1.0.0](LICENSE.md). Personal study, research and other noncommercial use are allowed; commercial use needs written permission.
-- Original copy and artwork: CC BY-NC-SA 4.0.
+- Original copy (the plain-language commentary on hexagrams and lines, verdicts and advice, interface text) and artwork: CC BY-NC-SA 4.0.
 - Third-party content keeps its own license; see [NOTICE](NOTICE).
 
 For traditional-culture reference and entertainment only. Not medical, legal or investment advice.

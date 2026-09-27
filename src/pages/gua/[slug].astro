@@ -1,7 +1,8 @@
 ---
-// 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文与卦辞白话。知识页，不带所问、不断吉凶。
+// 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文，卦辞白话与爻辞白话。知识页，不带所问、不断吉凶。
 import Invite from '../../components/Invite.astro';
 import baihua from '../../data/baihua.json';
+import yaoBaihua from '../../data/yao-baihua.json';
 import { GUA, guaPath } from '../../data/gua-slugs';
 import guaci from '../../data/guaci.json';
 import Paper from '../../layouts/Paper.astro';
@@ -14,10 +15,13 @@ export function getStaticPaths() {
 
 const TEXT: Record<string, string> = guaci;
 const BAIHUA: Record<string, string> = baihua;
+const YAO_BAIHUA: Record<string, Record<string, string>> = yaoBaihua;
 const { name, slug } = Astro.props as { name: string; slug: string };
 const short = shortName(name);
 const g = parseGua(TEXT[name]!);
 const bh = BAIHUA[name]!;
+// 爻辞白话分批写（M13），没写的卦没有这一项：那一行不渲染，也不留空位。
+const yaoBh = YAO_BAIHUA[name] ?? {};
 const mark = markOf(name);
 const gong = gongOf(name);
 // 第十一卦 → 第十一
@@ -101,6 +105,7 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附
             </div>
             <div class="words">
               <p class="ci" style={yaoFont}>{y.text}</p>
+              {yaoBh[y.title] && <p class="ybh">{yaoBh[y.title]}</p>}
               <p class="xiang">{y.xiang}</p>
             </div>
           </article>
@@ -300,6 +305,10 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附
     line-height: 1.6;
     letter-spacing: 0.12em;
   }
+  .ybh {
+    font-size: 15px;
+    line-height: 1.9;
+  }
   .xiang {
     font-size: 13px;
     line-height: 1.8;
@@ -483,6 +492,9 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。附
     }
     .yao .ci {
       font-size: 24px;
+    }
+    .ybh {
+      font-size: 17px;
     }
     .xiang {
       font-size: var(--fs-s);
