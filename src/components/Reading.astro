@@ -477,7 +477,7 @@ const facts = [
     line-height: 1.6;
     letter-spacing: 0.16em;
   }
-  /* 爻辞白话：另起一行、顶格，同卦页手机版；宋体，字号行高同卦页的爻辞白话。
+  /* 爻辞白话：另起一行、顶格，同卦页手机版；宋体，字号行高同本页的卦辞白话（.bh）。
      爻辞占满爻题右边的余宽，不被挤到下一行。一爻一组，组间比组内疏。 */
   .yaoci:has(.ybh) {
     gap: 24px;
@@ -493,7 +493,7 @@ const facts = [
     flex-basis: 100%;
     font-family: var(--font-body);
     font-size: 15px;
-    line-height: 1.9;
+    line-height: 1.95;
     letter-spacing: normal;
   }
 
@@ -913,7 +913,7 @@ const facts = [
       row-gap: 12px;
     }
     .yaoci :global(p.ybh) {
-      font-size: 17px;
+      font-size: var(--fs-m);
     }
     /* 带白话时一爻一组上下排，不左右并排：两段白话挤在半栏里太窄 */
     .yaoci:has(.ybh) {
