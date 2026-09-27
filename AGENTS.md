@@ -57,6 +57,7 @@ src/
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、统计脚本
   layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、本页小薇子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
+  scripts/view.ts   解读页的渲染与卦名字体（按需加载，页面 load 后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
@@ -178,7 +179,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。
   - 首屏子集的 `fonts.css` 只由首页引入，不要放进公共布局：卦页会用上它，又没预加载，换字体时产生布局偏移。
   - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
-  - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包，成卦页按需加载，解读页和分享卡用 `compose()` 带出的字体。
+  - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包：成卦页和解读页的渲染在按需加载的 `src/scripts/view.ts`，解读页和分享卡用 `compose()` 带出的字体。
 - **禁止：** 大红大金、龙纹、祥云素材、满屏八卦图、紫色星空、金色倒角高光、进度条。
 - **流程：** 首屏 → 写下所问 → 静心 → 摇卦 ×6 → 成卦 → 解读。
   - 一屏只做一件事。

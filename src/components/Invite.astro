@@ -26,6 +26,10 @@ const { aside = false } = Astro.props;
     background: var(--night);
     text-align: center;
   }
+  /* 目录页（画板 13）的起卦块带圆角；卦页那块出血到屏幕边，不带 */
+  .invite:not(.aside) {
+    border-radius: var(--radius);
+  }
   .aside {
     gap: 18px;
   }

@@ -304,11 +304,13 @@ const facts = [
   .to-gua:focus-visible {
     text-decoration: underline 1px;
   }
-  /* 「之X」字小，可点区域撑到 24px 以上，不改变排版 */
+  /* 「之X」字小，可点区域撑到 24px 以上，不改变排版。只往左右和下方撑，不压到上面的「之」；
+     焦点框贴着这块区域画，不外扩，也就不盖住「之」。 */
   .zhi .to-gua {
     display: inline-block;
-    padding: 6px;
-    margin: -6px;
+    padding: 0 6px 6px;
+    margin: 0 -6px -6px;
+    outline-offset: 0;
   }
   .zhi {
     padding-top: 50px;

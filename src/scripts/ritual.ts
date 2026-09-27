@@ -9,6 +9,7 @@
 import { ERRORS } from "../data/copy.js";
 import {
 	afterJudge,
+	benLines,
 	dayLabel,
 	FALLBACK,
 	fromBeijingInput,
@@ -21,17 +22,18 @@ import {
 	posName,
 	type Screen,
 	settled,
-	STROKES,
+	stack,
 	toBeijingInput,
 	tossCaption,
 	YAO_NAME,
+	yaoHtml,
 	yaoTitle,
 } from "../lib/flow.js";
 import { asked, type Entry, entries, forget, record } from "../lib/history.js";
 import type { LateZiSect } from "../lib/liuyao/calendar.js";
 import type { Gender, Question, Topic } from "../lib/liuyao/duan.js";
 import type { CastResult, Yao } from "../lib/liuyao/najia.js";
-import type { GuaText, Reading, Row } from "../lib/reading.js";
+import type { Reading } from "../lib/reading.js";
 import { coinsSound, qingSound, setSound, soundOn, unlock } from "./sound.js";
 
 const MAX_LENGTH = 200;
@@ -57,8 +59,9 @@ function lazy<T>(load: () => Promise<T>): () => Promise<T> {
 // keep both out of the first screen.
 const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
 const loadReading = lazy(() => import("../lib/reading.js"));
-// 卦名的字体规则（站酷小薇缺字）也按需加载，不进首屏包；解读页的字体由 compose() 带出。
-const loadGua = lazy(() => import("../lib/gua.js"));
+// 解读页的渲染和卦名字体规则也按需加载，不进首屏包；页面 load 之后就预热（见文件末尾）。
+const loadView = lazy(() => import("./view.js"));
+type View = Awaited<ReturnType<typeof loadView>>;
 const loadCard = lazy(() => import("./card.js"));
 
 /** localStorage, or `null` where the browser blocks it. */
@@ -422,13 +425,6 @@ function onMotion(e: DeviceMotionEvent) {
 	}, MOTION_QUIET_MS);
 }
 
-/** 一爻的毛笔笔触：阳一笔，阴两笔；动爻加 ○ ×. */
-function yaoHtml(yang: boolean, moving: boolean, label: string): string {
-	const mark = moving ? `<span class="mark" aria-hidden="true">${yang ? "○" : "×"}</span>` : "";
-	const paths = STROKES[yang ? "yang" : "yin"].map((d) => `<path d="${d}"/>`).join("");
-	return `<div class="yao${moving ? " moving" : ""}"><svg viewBox="0 0 240 24" role="img" aria-label="${label}"><g filter="url(#ink)">${paths}</g></svg>${mark}</div>`;
-}
-
 const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${YAO_NAME[y]}${isMoving(y) ? " 动" : ""}`;
 
 /** Resolves once the coins land; the yao is written in the background (`written`). */
@@ -475,23 +471,6 @@ async function writeYao(i: number, yao: Yao) {
 
 const revealEl = screen("reveal");
 
-/** 上爻 on top. */
-const stack = (html: string[]) => html.reverse().join("");
-
-/** 卦名、卦辞、爻辞的字体：`font` 是 fontOf 给的变量名，含站酷小薇缺字的整块用宋体。 */
-function setText(el: HTMLElement, text: string, font: string) {
-	el.textContent = text;
-	el.style.fontFamily = `var(${font})`;
-}
-
-const benLines = (r: CastResult) =>
-	stack(
-		r.params.map((y, i) => {
-			const title = yaoTitle(i, isYang(y));
-			return yaoHtml(isYang(y), isMoving(y), isMoving(y) ? `${title} ${YAO_NAME[y]} 动` : title);
-		}),
-	);
-
 /** 成卦: from here the cast counts (一事一占), so it goes into 往卦 at once, before it is read. */
 function formed(r: CastResult): CastResult {
 	session.result = r;
@@ -511,18 +490,18 @@ function formed(r: CastResult): CastResult {
 }
 
 async function reveal() {
-	const [{ cast }, { fontOf }] = await Promise.all([loadEngine(), loadGua()]);
+	const [{ cast }, { setName }] = await Promise.all([loadEngine(), loadView()]);
 	const r = formed(cast(session.params, castOptions()));
 
-	$("[data-ben-lines]", revealEl).innerHTML = benLines(r);
-	setText($("[data-ben-name]", revealEl), r.gua.name, fontOf(r.gua.name));
+	$("[data-ben-lines]", revealEl).innerHTML = benLines(r.params);
+	setName($("[data-ben-name]", revealEl), r.gua.name);
 
 	for (const el of $$("[data-bian]", revealEl)) el.hidden = r.bian === null;
 	if (r.bian) {
 		$("[data-bian-lines]", revealEl).innerHTML = stack(
 			[...r.bian.mark].map((bit, i) => yaoHtml(bit === "1", false, yaoTitle(i, bit === "1"))),
 		);
-		setText($("[data-bian-name]", revealEl), r.bian.name, fontOf(r.bian.name));
+		setName($("[data-bian-name]", revealEl), r.bian.name);
 	}
 
 	const g = r.ganzhi;
@@ -537,91 +516,27 @@ $("[data-read]", revealEl).addEventListener("click", () => void read());
 // ---------------------------------------------------------------- 解读
 
 const readingEl = screen("reading");
-const CN = "一二三四五六七八九十";
 
 /** 展卷 from 成卦, or straight from 择类 after 手动排盘. */
 async function read() {
-	const [{ cast }, { compose }] = await Promise.all([loadEngine(), loadReading()]);
+	const [{ cast }, { compose }, view] = await Promise.all([loadEngine(), loadReading(), loadView()]);
 	const { ask } = session;
 	if (!NEXT[current].includes("reading") || !ask) return;
 	const r = session.result ?? formed(cast(session.params, castOptions()));
-	render(r, compose(r, ask), session.question);
+	show(view, r, compose(r, ask), session.question);
 	go("reading");
 }
-
-const item = (mark: string, text: string) =>
-	`<li><span class="n" aria-hidden="true">${mark}</span><span>${text}</span></li>`;
-
-const rowHtml = (w: Row) =>
-	`<tr${w.yong ? ' class="yong"' : ""}>` +
-	`<td class="pos">${w.title}</td>` +
-	`<td class="god">${w.god}</td>` +
-	`<td class="ben">${w.qin} ${w.gz}${w.yong ? ' <span class="tag">用神</span>' : ""}</td>` +
-	`<td>${yaoHtml(w.yang, w.moving, `${w.yang ? "阳" : "阴"}${w.moving ? " 动" : ""}`)}</td>` +
-	`<td class="sy${w.shiYing === "世" ? " shi" : ""}">${w.shiYing}</td>` +
-	`<td>${w.bian ? `${w.bian.qin} ${w.bian.gz}${w.bian.hua ? ` <span class="hua">${w.bian.hua}</span>` : ""}` : ""}</td>` +
-	"</tr>";
 
 /** What the reading page shows now; the 分享卡 is drawn from it. */
 let shown: { question: string; r: CastResult; x: Reading } | undefined;
 
-/** Everything but the question is our own text, so innerHTML is safe here. */
-function render(r: CastResult, x: Reading, question: string) {
-	const set = (sel: string, text: string, root: ParentNode = readingEl) => {
-		$(sel, root).textContent = text;
-	};
+function show(view: View, r: CastResult, x: Reading, question: string) {
 	shown = { question, r, x };
-	set("[data-question]", question);
 	// 所问默认不上卡
 	withQ.checked = false;
 	$("[data-with-q-label]", shareEl).hidden = !question;
 	cardImg.removeAttribute("src");
-	$<HTMLDetailsElement>("[data-panel]", readingEl).open = matchMedia("(min-width: 1024px)").matches;
-	const g = r.ganzhi;
-	$("[data-lines]", readingEl).innerHTML = benLines(r);
-	// 本卦、变卦的卦名链到卦页
-	const name = $<HTMLAnchorElement>("[data-name]", readingEl);
-	const zhi = $<HTMLAnchorElement>("[data-zhi-name]", readingEl);
-	setText(name, x.ben.name, x.ben.font);
-	name.href = x.ben.href;
-	$("[data-zhi]", readingEl).hidden = !x.bian;
-	zhi.textContent = x.bian?.name ?? "";
-	zhi.href = x.bian?.href ?? "";
-	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}时 · 旬空 ${g.xkong}`);
-
-	const duan = $("[data-duan]", readingEl);
-	duan.textContent = x.verdict;
-	duan.dataset.verdict = x.verdict;
-	duan.setAttribute("aria-label", `断：${x.verdict}`);
-	set("[data-conclusion]", x.conclusion);
-	set("[data-basis]", x.basis);
-	set("[data-note]", x.note);
-	$("[data-note]", readingEl).hidden = !x.note;
-
-	$("[data-reasons]", readingEl).innerHTML = x.reasons.map((s, i) => item(CN[i] ?? String(i + 1), s)).join("");
-	$("[data-advice]", readingEl).innerHTML = x.advice.map((s) => item("·", s)).join("");
-
-	const text = (key: string, label: string, t: GuaText | null) => {
-		const s = $(`[data-text="${key}"]`, readingEl);
-		s.hidden = !t;
-		if (!t) return;
-		set("[data-kicker]", `${label} · ${t.short}`, s);
-		setText($("[data-ci]", s), t.ci, t.ciFont);
-		set("[data-bh]", t.baihua, s);
-	};
-	text("ben", "卦辞", x.ben);
-	text("bian", "变卦", x.bian);
-
-	set("[data-dong-heading]", x.dong.heading);
-	$("[data-dong-lines]", readingEl).innerHTML = x.dong.lines
-		.map((l) => `<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span><p style="font-family: var(${x.dong.font})">${l.text}</p></div>`)
-		.join("");
-	set("[data-dong-note]", x.dong.note);
-
-	const p = x.panel;
-	for (const d of $$("[data-p]", readingEl)) d.textContent = p[d.dataset.p as "pillars"] ?? "";
-	$('[data-fact="bian"]', readingEl).hidden = !p.bian;
-	$("[data-rows]", readingEl).innerHTML = p.rows.map(rowHtml).join("");
+	view.render(readingEl, r, x, question);
 }
 
 // ---------------------------------------------------------------- 分享卡
@@ -675,12 +590,12 @@ async function showHistory() {
 	const past = store ? entries(store) : [];
 	historyEl.classList.toggle("empty", past.length === 0);
 	if (!past.length) return list.replaceChildren();
-	const [{ cast }, { compose }] = await Promise.all([loadEngine(), loadReading()]);
+	const [{ cast }, { compose }, view] = await Promise.all([loadEngine(), loadReading(), loadView()]);
 	list.replaceChildren(
 		...past.flatMap((e) => {
 			try {
 				const r = cast(e.params, { date: new Date(e.at), lateZi: e.lateZi });
-				return [pastItem(e, r, compose(r, e.ask))];
+				return [pastItem(view, e, r, compose(r, e.ask))];
 			} catch {
 				return []; // a date the calendar cannot place
 			}
@@ -688,7 +603,7 @@ async function showHistory() {
 	);
 }
 
-function pastItem(e: Entry, r: CastResult, x: Reading): Node {
+function pastItem(view: View, e: Entry, r: CastResult, x: Reading): Node {
 	const li = $("li", itemTemplate.content).cloneNode(true) as HTMLElement;
 	$(".date", li).textContent = `${dayLabel(new Date(e.at))} · ${r.ganzhi.day}日`;
 	$(".gua", li).innerHTML = r.bian ? `${r.gua.name} <small>之</small> ${r.bian.name}` : r.gua.name;
@@ -699,7 +614,7 @@ function pastItem(e: Entry, r: CastResult, x: Reading): Node {
 	$("button", li).addEventListener("click", () => {
 		fromHistory = true;
 		back.setAttribute("aria-label", "回到往卦");
-		render(r, x, e.question);
+		show(view, r, x, e.question);
 		go("reading");
 	});
 	return li;
@@ -778,11 +693,11 @@ addEventListener("keydown", unlock);
 // ---------------------------------------------------------------- 首屏日期
 
 // After load, so tyme4ts never weighs on the first screen; this also warms the engine
-// and the 卦名 font rule, so 成卦 does not wait on a fresh request when the sixth line lands.
+// and the reading view, so 成卦 and 展卷 do not wait on a fresh request.
 addEventListener("load", () =>
 	setTimeout(async () => {
 		try {
-			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine(), loadGua()]);
+			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine(), loadView()]);
 			const g = ganzhiFromDate(new Date());
 			$("[data-today]").textContent = `${g.year}年 ${g.month}月 ${g.day}日`;
 		} catch {

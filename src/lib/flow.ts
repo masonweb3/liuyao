@@ -110,6 +110,25 @@ export const STROKES = {
 	],
 };
 
+/** 一爻的毛笔笔触 HTML：阳一笔，阴两笔；动爻加 ○ ×。 */
+export function yaoHtml(yang: boolean, moving: boolean, label: string): string {
+	const mark = moving ? `<span class="mark" aria-hidden="true">${yang ? "○" : "×"}</span>` : "";
+	const paths = STROKES[yang ? "yang" : "yin"].map((d) => `<path d="${d}"/>`).join("");
+	return `<div class="yao${moving ? " moving" : ""}"><svg viewBox="0 0 240 24" role="img" aria-label="${label}"><g filter="url(#ink)">${paths}</g></svg>${mark}</div>`;
+}
+
+/** 上爻 on top. */
+export const stack = (html: string[]) => html.reverse().join("");
+
+/** 本卦六爻，动爻带标记，上爻在上。 */
+export const benLines = (params: readonly Yao[]) =>
+	stack(
+		params.map((y, i) => {
+			const title = yaoTitle(i, isYang(y));
+			return yaoHtml(isYang(y), isMoving(y), isMoving(y) ? `${title} ${YAO_NAME[y]} 动` : title);
+		}),
+	);
+
 /** 一背两字 · 少阳 */
 export const tossCaption = (y: Yao) => `${COINS[y]} · ${YAO_NAME[y]}`;
 
