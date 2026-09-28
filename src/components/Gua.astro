@@ -30,7 +30,6 @@ const g = parseGua(TEXT[name]!);
 // 繁体的卦名、简称取首行（遯；無妄、恆见 build-guaci-hant.py）；简体的简称用 shortName（遁，不用首行的「遯」）。
 const short = hant ? g.short : shortName(name);
 const bh = BAIHUA[name]!;
-// 爻辞白话分批写（M13），没写的卦没有这一项：那一行不渲染，也不留空位。
 const yaoBh = YAO_BAIHUA[name] ?? {};
 const mark = markOf(name);
 const gong = gongOf(name, hant);

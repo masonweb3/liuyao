@@ -37,13 +37,10 @@ describe("卦例 A：亥月己丑日，兑为泽之天水讼，问事业", () =>
 	it("两爻齐动，以上爻为主", () => {
 		expect(x.dong.heading).toBe("动爻 · 两爻齐动，以上爻为主");
 		expect(x.dong.lines).toEqual([
-			{ title: "上六", text: "引兑。", main: true },
-			{ title: "初九", text: "和兑，吉。", main: false },
+			{ title: "上六", text: "引兑。", main: true, baihua: YAO.兑为泽?.上六 },
+			{ title: "初九", text: "和兑，吉。", main: false, baihua: YAO.兑为泽?.初九 },
 		]);
-	});
-
-	it("兑卦的爻辞白话还没写：不带白话", () => {
-		expect(x.dong.lines.map((l) => l.baihua)).toEqual([undefined, undefined]);
+		expect(x.dong.lines.map((l) => l.baihua)).not.toContain(undefined);
 	});
 
 	it("完整盘面", () => {

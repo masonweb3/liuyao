@@ -67,7 +67,7 @@ src/
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
   data/baihua-hant.json 卦辞白话的繁体（s2twp 转换后逐条校对，入库，浏览器里不跑 opencc）
-  data/yao-baihua.json 爻辞白话，以卦全名和爻题作键（本项目原创，CC BY-NC-SA 4.0；分批写，见 §6）
+  data/yao-baihua.json 爻辞白话，以卦全名和爻题作键（本项目原创，CC BY-NC-SA 4.0；64 卦 386 条已写全，见 §6）
   data/yao-baihua-hant.json 爻辞白话的繁体（同上，s2twp 转换后逐条校对；简繁覆盖的卦和爻题必须一致）
   data/copy.ts      界面文案（含往卦复盘）。它在首屏包里：按需加载的脚本要用的字由 Astro 构建时写进页面，不从这里 import
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
@@ -206,8 +206,8 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 各步骤的节奏见 `docs/research.md` §6.2。
 - **卦页与目录（`/gua/`）：** 纸色知识页，设计稿画板 12、13、D9、D10。
   - 不带所问、不断吉凶，没有「AI 辅助判断」那一行；页底暗色一块引回起卦（`/?ask`），桌面页头的「往卦」走 `/?history`。
-  - 文字只来自 `guaci.json`、`baihua.json`、`yao-baihua.json`（繁体页是各自的 `-hant`）和少量原创标签。爻辞白话没写之前不显示，也不留空位。
-  - 爻辞白话显示在卦页每条爻辞下、解读页每个动爻的爻辞下，用宋体。用九、用六的白话在卦页照常显示；解读页只在乾或坤六爻全动时显示。只从爻辞原文和小象出发写，不看任何现代译注（§1.3）。
+  - 文字只来自 `guaci.json`、`baihua.json`、`yao-baihua.json`（繁体页是各自的 `-hant`）和少量原创标签。
+  - 爻辞白话 64 卦写全：384 爻加用九、用六共 386 条，简繁逐条对应，`content.test.ts` 要求全覆盖、卦序与 `gua-slugs.ts` 一致。显示在卦页每条爻辞下、解读页每个动爻的爻辞下，用宋体。用九、用六的白话在卦页照常显示；解读页只在乾或坤六爻全动时显示。只从爻辞原文和小象出发写，不看任何现代译注（§1.3）。
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。

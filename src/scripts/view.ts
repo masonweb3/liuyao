@@ -99,7 +99,7 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	text("bian", "变卦", x.bian);
 
 	set("[data-dong-heading]", x.dong.heading);
-	// 爻辞白话另起一行写在爻辞下面；没写白话的卦不出这一行。
+	// 爻辞白话另起一行写在爻辞下面。
 	$("[data-dong-lines]", root).innerHTML = x.dong.lines
 		.map(
 			(l) =>
