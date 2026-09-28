@@ -19,9 +19,14 @@ const t = (hans: string, tw: string) => (hant ? tw : hans);
 </section>
 
 <style>
+  /* 出血到屏幕边：外边距抵掉 Paper .page 的左右内边距，内边距再把文字和按钮让回安全区。
+     两边的表达式与 .page 逐字对应：横屏有刘海、挖孔时 .page 按安全区留边，比 --gutter 宽，只抵 --gutter 就铺不满。
+     左右分开写：安卓挖孔屏只有一侧有 inset。 */
   .invite {
-    margin-inline: calc(-1 * var(--gutter));
-    padding: 36px var(--gutter) 40px;
+    --edge-l: max(var(--gutter), env(safe-area-inset-left));
+    --edge-r: max(var(--gutter), env(safe-area-inset-right));
+    margin-inline: calc(-1 * var(--edge-l)) calc(-1 * var(--edge-r));
+    padding: 36px var(--edge-r) 40px var(--edge-l);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -75,10 +80,12 @@ const t = (hans: string, tw: string) => (hant ? tw : hans);
     outline-color: var(--gold-hi);
   }
 
-  /* 768–1023：内容列居中、最宽 640px。出血只多出一个边距，像浮在外面；改为与内容列对齐、带圆角。 */
+  /* 768–1023：内容列居中、最宽 640px。出血只多出一个边距，像浮在外面；改为与内容列对齐、带圆角。
+     内容列本就在安全区内（iPhone 横屏多在这一档），内边距不必再让。 */
   @media (min-width: 768px) and (max-width: 1023px) {
     .invite {
       margin-inline: 0;
+      padding-inline: var(--gutter);
       border-radius: var(--radius);
     }
   }

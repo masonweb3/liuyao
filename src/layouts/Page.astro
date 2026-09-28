@@ -25,9 +25,11 @@ interface Props {
   hant?: boolean;
   /** 另一种文字的同一页。给了才输出 hreflang 互指（两页都列自己和对方，x-default 指简体）；首页没有繁体，不给。 */
   alternate?: string;
+  /** 卦页是一篇一篇的内容，用 article；首页、目录是 website */
+  ogType?: 'website' | 'article';
 }
 
-const { title, description, path, ogTitle = title, themeColor = '#131824', jsonLd, hant = false, alternate } = Astro.props;
+const { title, description, path, ogTitle = title, themeColor = '#131824', jsonLd, hant = false, alternate, ogType = 'website' } = Astro.props;
 // 绝对地址要有正式域名（astro.config.mjs 的 site）；没填时这些标签不输出。
 const url = (p: string) => Astro.site && new URL(p, Astro.site).href;
 const [hansPath, hantPath] = hant ? [alternate, path] : [path, alternate];
@@ -48,7 +50,7 @@ const fontsheet = hant ? webfontsHant : webfonts;
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="六爻" />
     <meta property="og:locale" content={hant ? 'zh_TW' : 'zh_CN'} />
     {hant && <meta property="og:locale:alternate" content="zh_CN" />}
