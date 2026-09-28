@@ -50,7 +50,7 @@ const wikisource = 'https://zh.wikisource.org/wiki/周易';
 const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'zh-hant' : 'zh-hans'}`;
 ---
 
-<Page title={title} description={description} path={self} alternate={other} hant={hant} themeColor="#f8f4ed">
+<Page title={title} description={description} path={self} alternate={other} hant={hant} themeColor="#f8f4ed" ogType={index ? 'website' : 'article'}>
   <Fragment slot="head">
     {fonts.map((f) => <link rel="preload" href={f.url} as="font" type="font/woff2" crossorigin />)}
     <style is:inline set:html={face} />
@@ -117,7 +117,8 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
 </style>
 
 <style>
-  /* 行高全部写死：字体异步换上时行数、高度不变，不产生布局偏移。 */
+  /* 行高全部写死：字体异步换上时行数、高度不变，不产生布局偏移。
+     左右内边距改了，要同步 Invite.astro 的 --edge-l / --edge-r（起卦块靠它们出血到屏幕边）。 */
   .page {
     --gap: 40px;
     min-height: 100dvh;
