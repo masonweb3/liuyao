@@ -2,6 +2,10 @@
  * 往卦 —— casts kept in this browser's localStorage, newest first. Only the
  * inputs are stored and the page casts them again, so the list and the
  * reading can never disagree. Zero DOM: ritual.ts hands in the Storage.
+ *
+ * This module is in the first-screen bundle. 回访、提醒 (M14) live in revisit.ts,
+ * loaded on demand; their fields ride along here untouched, since valid() only
+ * checks what it needs and record() writes the parsed records back whole.
  */
 import type { LateZiSect } from "./liuyao/calendar.js";
 import type { Question } from "./liuyao/duan.js";
@@ -20,7 +24,7 @@ export interface Entry {
 
 type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-const KEY = "liuyao:history";
+export const KEY = "liuyao:history";
 const TOPICS = ["财", "事业", "父母", "子孙", "兄弟", "婚恋", "自身"];
 
 /** Hand edits or a future format are dropped, not trusted: a bad entry must not break the page. */

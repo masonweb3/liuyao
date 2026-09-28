@@ -6,3 +6,5 @@ dist
 .dev.vars
 .env*
 CLAUDE.local.md
+# 本机 agent 的 worktree（.claude/worktrees）：进了构建上下文，测试会多跑一遍
+.claude
