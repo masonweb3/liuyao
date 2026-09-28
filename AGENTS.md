@@ -50,6 +50,7 @@ src/
   lib/liuyao/       纯 TS 排盘引擎，零 DOM，浏览器和测试都能直接跑
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
+  lib/today.ts      首屏的今日干支（零 DOM）：不等 tyme4ts，临近交节才回退到 calendar.ts；是首页的 LCP，单独成包
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘；在首屏包里）
   lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 生成
   lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、卦宫、站酷小薇缺字规则 fontOf（零 DOM）
@@ -60,7 +61,7 @@ src/
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
   layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、简繁切换链接、本页标题字体子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
-  scripts/view.ts   解读页与往卦列表的渲染、卦名字体、回访卡与到时提醒（按需加载，页面 load 后预热；不进首屏包）
+  scripts/view.ts   解读页与往卦列表的渲染、卦名字体、回访卡与到时提醒（按需加载，页面 load、首屏入场动画播完后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）

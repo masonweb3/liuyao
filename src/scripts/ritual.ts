@@ -58,7 +58,7 @@ function lazy<T>(load: () => Promise<T>): () => Promise<T> {
 // keep both out of the first screen.
 const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
 const loadReading = lazy(() => import("../lib/reading.js"));
-// 解读页的渲染和卦名字体规则也按需加载，不进首屏包；页面 load 之后就预热（见文件末尾）。
+// 解读页的渲染和卦名字体规则也按需加载，不进首屏包；页面 load、首屏入场动画播完之后预热（见文件末尾）。
 const loadView = lazy(() => import("./view.js"));
 type View = Awaited<ReturnType<typeof loadView>>;
 const loadCard = lazy(() => import("./card.js"));
@@ -682,19 +682,21 @@ addEventListener("keydown", unlock);
 
 // ---------------------------------------------------------------- 首屏日期
 
-// After load, so tyme4ts never weighs on the first screen; this also warms the engine
-// and the reading view. The date (the page's LCP) does not wait for the view; if the
-// view fails to load here, submitting the question retries it and reports the network.
+// The date is the page's LCP: today.ts is tiny and pulls in tyme4ts only near a 节, so it
+// starts now. Offline, the date simply stays blank.
+import("../lib/today.js")
+	.then((m) => m.todayText())
+	.then((text) => {
+		$("[data-today]").textContent = text;
+	}, () => {});
+// Warm the engine and the reading view after load, once the first screen has played its entrance
+// (about 2s): tyme4ts then neither janks it nor counts toward the LCP, which a request finished
+// before the date is presented would. If either fails here, submitting the question retries it
+// and reports the network.
 addEventListener("load", () =>
-	setTimeout(async () => {
+	settle(screen("home")).then(() => {
 		loadView().catch(() => {});
-		try {
-			const [{ ganzhiFromDate }] = await Promise.all([import("../lib/liuyao/calendar.js"), loadEngine()]);
-			const g = ganzhiFromDate(new Date());
-			$("[data-today]").textContent = `${g.year}年 ${g.month}月 ${g.day}日`;
-		} catch {
-			// Offline: the date simply stays blank.
-		}
+		loadEngine().catch(() => {});
 	}),
 );
 
