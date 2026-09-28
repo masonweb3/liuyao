@@ -800,9 +800,11 @@ const facts = [
     background: var(--paper-2);
     border-radius: var(--radius);
   }
-  /* 截短的所问旁边那份全文：留给读屏，不占地方。它是行内元素，读屏名称里不会多出空格 */
+  /* 截短的所问旁边那份全文：留给读屏，不占地方。它是行内元素，读屏名称里不会多出空格。
+     letter-spacing 继承的是算好的 px，字号为 0 也照加（Chromium），不清零会在省略号和后引号之间空出一截 */
   .visit :global(.sr-inline) {
     font-size: 0;
+    letter-spacing: 0;
   }
   .visit .kick {
     font-size: var(--fs-xs);
