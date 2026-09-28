@@ -14,6 +14,7 @@ import { GUA64 } from "../lib/liuyao/const.js";
 import baihuaHant from "./baihua-hant.json" with { type: "json" };
 import baihua from "./baihua.json" with { type: "json" };
 import * as copy from "./copy.js";
+import { GUA } from "./gua-slugs.js";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
@@ -62,22 +63,20 @@ describe("覆盖", () => {
 	});
 });
 
-// 爻辞白话分批写（M13）：只查已经写了的卦，全部写完后再要求 64 卦都有。
 describe("爻辞白话", () => {
 	const written = Object.entries(yaoBaihua as Record<string, Record<string, string>>);
 	const hant = yaoBaihuaHant as Record<string, Record<string, string>>;
+	const ORDER = GUA.map(([name]) => name);
 
-	it("写了的卦都写全：爻题与 guaci.json 逐条对应（乾、坤另有用九、用六）", () => {
-		expect(written.length).toBeGreaterThan(0);
-		for (const [name, lines] of written) {
-			const text = (guaci as Record<string, string>)[name];
-			expect(text, `${name} 不在 guaci.json 里`).toBeDefined();
-			expect(Object.keys(lines), name).toEqual(parseGua(text!).yao.map((y) => y.title));
-		}
+	it("64 卦按卦序写全：爻题与 guaci.json 逐条对应（乾、坤另有用九、用六），共 386 条", () => {
+		expect(written.map(([name]) => name)).toEqual(ORDER);
+		for (const [name, lines] of written)
+			expect(Object.keys(lines), name).toEqual(parseGua((guaci as Record<string, string>)[name]!).yao.map((y) => y.title));
+		expect(strings(yaoBaihua)).toHaveLength(386);
 	});
 
-	it("繁体与简体覆盖的卦、爻题完全一致（繁体转写后校对，不单独增删）", () => {
-		expect(Object.keys(hant)).toEqual(written.map(([name]) => name));
+	it("繁体与简体的卦序、爻题完全一致（繁体转写后校对，不单独增删）", () => {
+		expect(Object.keys(hant)).toEqual(ORDER);
 		for (const [name, lines] of written) expect(Object.keys(hant[name]!), name).toEqual(Object.keys(lines));
 	});
 
