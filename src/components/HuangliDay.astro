@@ -98,7 +98,7 @@ const description = t(
             </dl>
           ))}
         </div>
-        {s.notes.map((n) => <p class="note">{n}</p>)}
+        {[...s.notes, ...s.markNotes].map((n) => <p class="note">{n}</p>)}
         <dl class="four">
           <div><dt>{t('冲煞', '沖煞')}</dt><dd>{s.chong}</dd></div>
           <div><dt>建除</dt><dd>{s.duty}</dd></div>

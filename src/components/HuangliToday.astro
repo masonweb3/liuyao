@@ -157,7 +157,7 @@ const description = t(
     $('lunar').textContent = `${root.dataset.lunar}${c.lunar}　${c.ganzhi}`;
     words($('yi'), c.yi);
     words($('ji'), c.ji);
-    for (const n of c.notes) $('notes').append(el('p', n, 'note'));
+    for (const n of [...c.notes, ...c.markNotes]) $('notes').append(el('p', n, 'note'));
     for (const k of ['chong', 'duty', 'star', 'nayin'] as const) $(k).textContent = c[k];
     for (const g of c.gods.ji) $('godsJi').append(el('span', g));
     for (const g of c.gods.xiong) $('godsXiong').append(el('span', g));

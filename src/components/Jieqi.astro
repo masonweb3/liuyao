@@ -31,7 +31,9 @@ const cur = times.find((x) => termNeighbors(x.date).next.date > today) ?? times[
 const hou = houStarts(cur.date).map((start, i) => ({ start, ...text.hou[i]! }));
 const { prev, next } = termNeighbors(cur.date);
 const day = show(huangliOf(cur.date), data);
-const yiShort = [...day.yi.list.slice(0, 5).map((w) => w.name), ...(day.yi.list.length > 5 ? ['……'] : []), ...(day.yi.mark ? [day.yi.mark] : [])];
+// 当天宜的前五个词；涉医涉讼的词照录并加注（M17-10），注写在这一块下面
+const yiShort = day.yi.list.slice(0, 5);
+const more = day.yi.list.length > 5;
 
 const font = (s: string) => (hant ? undefined : `font-family: var(${fontOf(s)})`);
 const month = f.jie ? t(`${f.month}节 · ${f.branch}月之始`, `${f.month}節 · ${f.branch}月之始`) : `${f.month}中`;
@@ -84,14 +86,20 @@ const description = t(
         <p class="prose">{text.text}</p>
       </section>
       {inWindow(cur.date) && (
-        <a class="day" href={dayPath(cur.date, hant)}>
-          <span class="col">
-            <span class="kind">{t(`${shown}当天的黄历`, `${shown}當天的農民曆`)}</span>
-            <span class="v">{md(cur.date)} · {cur.time} {t('交节', '交節')} · {huangliOf(cur.date).ganzhi.day}日</span>
-            <span class="s">宜 {yiShort.join(' ')}</span>
-          </span>
-          <span class="arrow" aria-hidden="true">›</span>
-        </a>
+        <div class="daybox">
+          <a class="day" href={dayPath(cur.date, hant)}>
+            <span class="col">
+              <span class="kind">{t(`${shown}当天的黄历`, `${shown}當天的農民曆`)}</span>
+              <span class="v">{md(cur.date)} · {cur.time} {t('交节', '交節')} · {huangliOf(cur.date).ganzhi.day}日</span>
+              <span class="s">宜 {yiShort.map((w) => <>{w.name}{w.note && <span class="tick">{t('注', '註')}</span>}{' '}</>)}{more && '…… '}{day.yi.mark}</span>
+            </span>
+            <span class="arrow" aria-hidden="true">›</span>
+          </a>
+          {(['med', 'law'] as const).map((k) => {
+            const ws = yiShort.filter((w) => w.note === k);
+            return ws.length > 0 && <p class="note">{ws.map((w) => `「${w.name}」`).join('')}：{data.note[k]}</p>;
+          })}
+        </div>
       )}
       {/* 手机上前后节气排在当天黄历之后、总表之前：另放一份在这里，让 Tab 顺序和看到的顺序一致；桌面用左栏里那份 */}
       <nav class="pager mob" aria-label={t('前后节气', '前後節氣')}>
@@ -307,6 +315,22 @@ const description = t(
     color: var(--ink-2);
   }
   .arrow {
+    color: var(--ink-2);
+  }
+  .tick {
+    margin-left: 1px;
+    font-size: 10px;
+    vertical-align: super;
+    line-height: 0;
+  }
+  .daybox {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .note {
+    font-size: 13px;
+    line-height: 1.8;
     color: var(--ink-2);
   }
 

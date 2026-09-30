@@ -229,8 +229,9 @@ export interface Show {
 	zodiac: string;
 	yi: Words;
 	ji: Words;
-	/** 宜忌下方的注：涉医的词一句、涉讼的词一句，标记词一句 */
+	/** 宜忌下方的注：涉医的词一句、涉讼的词一句；再是标记词的说明 */
 	notes: string[];
+	markNotes: string[];
 	/** 「冲虎（壬寅）煞南」 */
 	chong: string;
 	/** 「闭日」 */
@@ -277,9 +278,10 @@ export function show(h: Huangli, data: Data): Show {
 		if (noted.length) notes.push(`${noted.join("")}：${data.note[kind]}`);
 	}
 	const pengzu = h.pengzu.map((line) => ({ text: tw(line), ...(pengzuNote(line) && { note: pengzuNote(line) }) }));
-	if (h.yi.includes("馀事勿取")) notes.push(t("「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。", "「餘事勿取」照錄舊曆原文：除了上面這幾件，其餘的事都不取。"));
-	if (h.yi.includes("诸事不宜")) notes.push(t("「诸事不宜」照录旧历原文：这一天没有特别适宜的事。", "「諸事不宜」照錄舊曆原文：這一天沒有特別適宜的事。"));
-	if (h.ji.includes("诸事不宜")) notes.push(t("「诸事不宜」照录旧历原文：除了宜里那几件，其余都不宜安排。", "「諸事不宜」照錄舊曆原文：除了宜裡那幾件，其餘都不宜安排。"));
+	const markNotes: string[] = [];
+	if (h.yi.includes("馀事勿取")) markNotes.push(t("「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。", "「餘事勿取」照錄舊曆原文：除了上面這幾件，其餘的事都不取。"));
+	if (h.yi.includes("诸事不宜")) markNotes.push(t("「诸事不宜」照录旧历原文：这一天没有特别适宜的事。", "「諸事不宜」照錄舊曆原文：這一天沒有特別適宜的事。"));
+	if (h.ji.includes("诸事不宜")) markNotes.push(t("「诸事不宜」照录旧历原文：除了宜里那几件，其余都不宜安排。", "「諸事不宜」照錄舊曆原文：除了宜裡那幾件，其餘都不宜安排。"));
 
 	const term = tw(h.term.name);
 	const hou = `${"初二三"[h.term.hou]}候「${data.jieqi[h.term.name]!.hou[h.term.hou]!.name}」`;
@@ -298,6 +300,7 @@ export function show(h: Huangli, data: Data): Show {
 		yi,
 		ji,
 		notes,
+		markNotes,
 		chong: `${t("冲", "沖")}${tw(h.chong.zodiac)}（${h.chong.ganzhi}）煞${tw(h.chong.sha)}`,
 		duty: `${tw(h.duty)}日`,
 		star: `${tw(h.star.name)} · ${tw(h.star.ecliptic)}`,

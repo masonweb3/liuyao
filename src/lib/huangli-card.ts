@@ -11,7 +11,7 @@ import { days, YEARS } from "./huangli-days.js";
 
 export type Card = Pick<
 	Show,
-	"week" | "festival" | "lunar" | "ganzhi" | "yi" | "ji" | "notes" | "chong" | "duty" | "star" | "nayin" | "gods" | "pengzu" | "pengzuNotes" | "today" | "termKey"
+	"week" | "festival" | "lunar" | "ganzhi" | "yi" | "ji" | "notes" | "markNotes" | "chong" | "duty" | "star" | "nayin" | "gods" | "pengzu" | "pengzuNotes" | "today" | "termKey"
 > & {
 	/** 读一卦：显示的卦名（繁体取维基文库页名，如遯）、slug、爻画（上爻在前，1 阳 0 阴） */
 	gua: { name: string; slug: string; lines: string };
@@ -19,10 +19,10 @@ export type Card = Pick<
 
 export function card(date: string, hant: boolean): Card {
 	const s = show(huangliOf(date), (hant ? huangliHant : huangliData) as unknown as Data);
-	const { week, festival, lunar, ganzhi, yi, ji, notes, chong, duty, star, nayin, gods, pengzu, pengzuNotes, today, termKey } = s;
+	const { week, festival, lunar, ganzhi, yi, ji, notes, markNotes, chong, duty, star, nayin, gods, pengzu, pengzuNotes, today, termKey } = s;
 	const name = hant ? parseGua((guaciHant as Record<string, string>)[s.gua.name]!).name : s.gua.name;
 	const lines = [...markOf(s.gua.name)].reverse().join("");
-	return { week, ...(festival && { festival }), lunar, ganzhi, yi, ji, notes, chong, duty, star, nayin, gods, pengzu, pengzuNotes, today, termKey, gua: { name, slug: s.gua.slug, lines } };
+	return { week, ...(festival && { festival }), lunar, ganzhi, yi, ji, notes, markNotes, chong, duty, star, nayin, gods, pengzu, pengzuNotes, today, termKey, gua: { name, slug: s.gua.slug, lines } };
 }
 
 /** 时间窗里的每个月「2026-01」… */

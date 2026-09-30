@@ -149,7 +149,8 @@ describe("页面上显示的一天", () => {
 		expect(hanlu.yi.mark).toBe("馀事勿取");
 		expect(hanlu.yi.list.map((w) => w.name)).not.toContain("馀事勿取");
 		expect(hanlu.ji).toEqual({ list: [] });
-		expect(hanlu.notes).toEqual(["「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。"]);
+		expect(hanlu.notes).toEqual([]);
+		expect(hanlu.markNotes).toEqual(["「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。"]);
 		const lichun = show(huangli(2027, 2, 4), hans);
 		expect(lichun.ji).toEqual({ list: [], mark: "诸事不宜" });
 		const song = show(huangli(2026, 10, 6), hans);
