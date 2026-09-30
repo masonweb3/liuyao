@@ -106,7 +106,7 @@ const description = t(
           <div><dt>{t('纳音', '納音')}</dt><dd>{s.nayin}</dd></div>
         </dl>
       </section>
-      <nav class="pager" aria-label={t('前后日', '前後日')}>
+      <nav class="pager desk" aria-label={t('前后日', '前後日')}>
         {inWindow(prev) ? (
           <a href={dayPath(prev, hant)}><span class="kind">前一天</span><span class="n">‹ {md(prev)}</span></a>
         ) : <span />}
@@ -212,6 +212,16 @@ const description = t(
         <script is:inline>(function(){var t=new Date(Date.now()+288e5).toISOString().slice(0,10),a=document.querySelector('.days [data-d="'+t+'"]');if(a)a.classList.add('now')})()</script>
       </section>
     </div>
+    {/* 手机上前后日排在本月日历之后：另放一份在正文后面，让 Tab 顺序和看到的顺序一致；桌面用左栏里那份 */}
+    <nav class="pager mob" aria-label={t('前后日', '前後日')}>
+      {inWindow(prev) ? (
+        <a href={dayPath(prev, hant)}><span class="kind">前一天</span><span class="n">‹ {md(prev)}</span></a>
+      ) : <span />}
+      <a class="today" href={t('/huangli/', '/zh-hant/huangli/')}>今天</a>
+      {inWindow(next) ? (
+        <a class="next" href={dayPath(next, hant)}><span class="kind">{t('后一天', '後一天')}</span><span class="n">{md(next)} ›</span></a>
+      ) : <span />}
+    </nav>
   </main>
   <Invite hant={hant} />
   <Fragment slot="foot">
@@ -252,11 +262,8 @@ const description = t(
   .main {
     display: contents;
   }
-  .main > * {
-    order: 1;
-  }
-  .pager {
-    order: 2;
+  .desk {
+    display: none !important;
   }
 
   /* 用 flex 不用网格：竖排的农历放进 auto 轨道，Chromium 会按可用高度估它的宽度，公历日期被挤得折行 */
@@ -799,6 +806,12 @@ const description = t(
     .main {
       gap: 48px;
       padding-top: 8px;
+    }
+    .desk {
+      display: grid !important;
+    }
+    .mob {
+      display: none;
     }
     .md {
       font-size: 52px;

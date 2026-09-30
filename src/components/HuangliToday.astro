@@ -43,8 +43,9 @@ const description = t(
         <div class="left">
           <div class="when">
             <p class="date"><span class="md" data-f="md"></span><span class="week" data-f="week"></span></p>
+            <p class="lunar" data-f="lunar">正在取今天的宜忌</p>
+            {/* 放在农历一行之后：它由脚本加上，放在前面会把已显示的农历一行挤下去（算布局偏移）；后面的宜忌这时还没显示 */}
             <p class="hint" data-f="hint" hidden></p>
-            <p class="lunar" data-f="lunar">{t('正在取今天的宜忌', '正在取今天的宜忌')}</p>
             <noscript><p class="lunar">{t('今天的宜忌要用脚本按北京时间取出；请开启 JavaScript，或从下面的二十四节气进入。', '今天的宜忌要用腳本按臺灣時間取出；請開啟 JavaScript，或從下面的二十四節氣進入。')}</p></noscript>
           </div>
           <div class="yiji">
@@ -81,10 +82,10 @@ const description = t(
           <span class="arrow" aria-hidden="true">›</span>
         </a>
         <form class="pick" data-f="pick" hidden>
-          <label for="hl-date">{t('查另一天', '查另一天')}</label>
+          <label for="hl-date">查另一天</label>
           <span class="field">
             <input id="hl-date" type="date" min={FIRST} max={LAST} required />
-            <button type="submit">{t('查看', '查看')}</button>
+            <button type="submit">查看</button>
           </span>
         </form>
       </div>

@@ -62,7 +62,7 @@ const description = t(
         </div>
       </section>
       <p class="intro">{text.lead}</p>
-      <nav class="pager" aria-label={t('前后节气', '前後節氣')}>
+      <nav class="pager desk" aria-label={t('前后节气', '前後節氣')}>
         <a href={jieqiPath(prev.name, hant)}><span class="kind">{t('上一个', '上一個')} · {md(prev.date)}</span><span class="n">‹ {tw(prev.name)}</span></a>
         <a class="next" href={jieqiPath(next.name, hant)}><span class="kind">{t('下一个', '下一個')} · {md(next.date)}</span><span class="n">{tw(next.name)} ›</span></a>
       </nav>
@@ -93,6 +93,11 @@ const description = t(
           <span class="arrow" aria-hidden="true">›</span>
         </a>
       )}
+      {/* 手机上前后节气排在当天黄历之后、总表之前：另放一份在这里，让 Tab 顺序和看到的顺序一致；桌面用左栏里那份 */}
+      <nav class="pager mob" aria-label={t('前后节气', '前後節氣')}>
+          <a href={jieqiPath(prev.name, hant)}><span class="kind">{t('上一个', '上一個')} · {md(prev.date)}</span><span class="n">‹ {tw(prev.name)}</span></a>
+          <a class="next" href={jieqiPath(next.name, hant)}><span class="kind">{t('下一个', '下一個')} · {md(next.date)}</span><span class="n">{tw(next.name)} ›</span></a>
+        </nav>
       <section class="all">
         <h2 class="head">{t('二十四节气', '二十四節氣')}</h2>
         <TermGrid at={name} hant={hant} />
@@ -129,14 +134,8 @@ const description = t(
   .main {
     display: contents;
   }
-  .main > * {
-    order: 1;
-  }
-  .pager {
-    order: 2;
-  }
-  .main > .all {
-    order: 3;
+  .desk {
+    display: none !important;
   }
 
   .kicker {
@@ -363,6 +362,12 @@ const description = t(
     .main {
       gap: 48px;
       padding-top: 8px;
+    }
+    .desk {
+      display: flex !important;
+    }
+    .mob {
+      display: none;
     }
     .kicker {
       margin-bottom: -12px;
