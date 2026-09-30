@@ -312,7 +312,7 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 		const msg = $<HTMLTemplateElement>(`[data-remind-done=${kind}]`, remind).content.cloneNode(true) as DocumentFragment;
 		fill(msg, { due: monthDay(start) });
 		// 日历照样加了，但往卦里没记上提醒：说清楚，不说「本次结果不会留下记录」（旧卦本来就在往卦里）
-		if (!kept) msg.lastElementChild?.append(` ${remind.dataset.unsaved ?? ""}`);
+		if (!kept) msg.lastElementChild?.append(remind.dataset.unsaved ?? "");
 		got.replaceChildren(msg);
 	});
 
