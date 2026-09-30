@@ -9,10 +9,22 @@
  */
 import {
 	Duty,
+	EarthBranch,
+	Ecliptic,
+	God,
+	HeavenStem,
+	LunarDay,
+	LunarFestival,
+	LunarMonth,
+	PengZuEarthBranch,
+	PengZuHeavenStem,
 	Phenology,
 	SolarTerm,
+	Sound,
 	Taboo,
 	TwelveStar,
+	Week,
+	Zodiac,
 } from "tyme4ts";
 import { describe, expect, it } from "vitest";
 import { yaoTitle } from "../lib/flow.js";
@@ -112,7 +124,7 @@ interface Entry {
 	name: string;
 	text: string;
 	/** 节气：导语一句 */
-	intro?: string;
+	lead?: string;
 	/** 节气：三候，候名照录 tyme4ts 的原文，白话原创 */
 	hou?: { name: string; text: string }[];
 	note?: boolean;
@@ -128,7 +140,7 @@ function huangliTexts(data: Huangli): string[] {
 	return [
 		data.note,
 		...CATS.flatMap((cat) =>
-			Object.values(data[cat]).flatMap((e) => [e.text, ...(e.intro ? [e.intro] : []), ...(e.hou ?? []).map((h) => h.text)]),
+			Object.values(data[cat]).flatMap((e) => [e.text, ...(e.lead ? [e.lead] : []), ...(e.hou ?? []).map((h) => h.text)]),
 		),
 	];
 }
@@ -191,7 +203,7 @@ describe("黄历释义", () => {
 				for (const [key, e] of Object.entries(data[cat])) {
 					within(e.text, LEN[cat], `${cat}${key}`);
 					if (cat !== "jieqi") continue;
-					within(e.intro!, [20, 40], `${key}导语`);
+					within(e.lead!, [20, 40], `${key}导语`);
 					for (const h of e.hou!) within(h.text, [20, 40], `${key}${h.name}`);
 				}
 	});
@@ -202,7 +214,7 @@ describe("黄历释义", () => {
 		for (const cat of CATS)
 			for (const [key, e] of Object.entries(HL[cat]))
 				if (!e.note)
-					for (const s of [e.text, e.intro ?? "", ...(e.hou ?? []).map((h) => h.text)])
+					for (const s of [e.text, e.lead ?? "", ...(e.hou ?? []).map((h) => h.text)])
 						expect(s, `${cat}${key}`).not.toMatch(/医|诊|疗|针刺|药|讼|官司/);
 	});
 
@@ -212,6 +224,47 @@ describe("黄历释义", () => {
 
 	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）", () => {
 		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹]|徵鳥|迴歸線/);
+	});
+
+	describe("繁体页显示的 tyme4ts 名字（huangli-hant.json 的 names）", () => {
+		const { names } = HL_HANT;
+		// 页面把 tyme4ts 输出的简体原文按这张表换成繁体；每类取 tyme4ts 的全集，不手写清单。
+		const GROUPS: Record<string, string[]> = {
+			宜忌: Taboo.NAMES,
+			神煞: God.NAMES,
+			建除: Duty.NAMES,
+			天神: TwelveStar.NAMES,
+			黄道黑道: Ecliptic.NAMES,
+			纳音: Sound.NAMES,
+			彭祖百忌: [...PengZuHeavenStem.NAMES, ...PengZuEarthBranch.NAMES],
+			节气: SolarTerm.NAMES,
+			生肖: Zodiac.NAMES,
+			煞方: EarthBranch.NAMES.map((b) => EarthBranch.fromName(b).getOminous().getName()),
+			农历月: [...LunarMonth.NAMES, ...LunarMonth.NAMES.map((m) => `闰${m}`), "冬月", "腊月"],
+			农历日: LunarDay.NAMES,
+			星期: Week.NAMES,
+			农历节日: LunarFestival.NAMES,
+		};
+
+		it("覆盖每一类的全集，逐字一一对应", () => {
+			for (const [group, all] of Object.entries(GROUPS))
+				for (const n of all) {
+					expect(names[n], `${group}${n}`).toBeTruthy();
+					expect([...names[n]!].length, n).toBe([...n].length);
+				}
+			const known = new Set(Object.values(GROUPS).flat());
+			expect(Object.keys(names).filter((n) => !known.has(n))).toEqual([]);
+		});
+
+		it("干支字简繁相同，names 里出现时原样保留（抓 s2twp 把丑转成醜）", () => {
+			const ganzhi = new Set([...HeavenStem.NAMES, ...EarthBranch.NAMES]);
+			for (const [n, t] of Object.entries(names))
+				[...n].forEach((c, i) => ganzhi.has(c) && expect([...t][i], n).toBe(c));
+		});
+
+		it("释义条目上的繁体显示名与 names 一致", () => {
+			for (const cat of CATS) for (const [key, e] of Object.entries(HL_HANT[cat])) expect(e.name, key).toBe(names[key]);
+		});
 	});
 });
 
