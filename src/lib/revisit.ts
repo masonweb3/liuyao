@@ -1,10 +1,11 @@
 /**
- * 往卦复盘 —— 回访（后来怎样了）、到时提醒（.ics 日历文件）、个人复盘的计数。
+ * 往卦复盘 —— 回访（后来怎样了）、到时提醒（.ics 日历文件、Google 日历链接）、个人复盘的计数。
  * Zero DOM; the page side is src/scripts/view.ts, loaded on demand.
  *
  * Not in history.ts: that module ships in the first-screen bundle, and anything
- * added to it would too. Everything here stays in this browser (AGENTS.md §1.5):
- * nothing is uploaded, and the .ics carries no question, verdict or note.
+ * added to it would too. 往卦 stay in this browser (AGENTS.md §1.5). A reminder
+ * carries only the two dates and the 卦, never the question, verdict or note:
+ * made here, by Google from a link, or by /api/remind.ics for an iPhone.
  */
 import { dayLabel } from "./flow.js";
 import { type Entry, entries, KEY } from "./history.js";
@@ -159,22 +160,27 @@ export interface IcsCopy {
 	url: string;
 }
 
+/** The description and the end, the same in the .ics and the Google 日历 link. */
+function event(cast: Date, gua: string, start: Date, now: Date, copy: IcsCopy) {
+	const body = copy.body.replace("{date}", dayLabel(cast, now)).replace("{gua}", gua);
+	return { end: new Date(start.getTime() + 15 * 60_000), details: `${body}\n${copy.url}` };
+}
+
 /**
- * The reminder file for the cast made at `at`: 15 minutes at 20:00 on the day, with
- * an alarm. It names only the day of the cast and the 卦 — calendars sync to the
+ * The reminder file for the cast made at `cast`: 15 minutes from `start` (remindAt),
+ * with an alarm. It names only the day of the cast and the 卦 — calendars sync to the
  * cloud and get shared, so the question, the verdict and the note stay out.
+ * /api/remind.ics serves the same file from this function.
  */
 export function reminder(
-	past: Pick<Past, "at">,
+	cast: Date,
 	gua: string,
-	days: Days,
+	start: Date,
 	now: Date,
 	uid: string,
 	copy: IcsCopy,
-): { name: string; text: string; start: Date } {
-	const start = remindAt(now, days);
-	const end = new Date(start.getTime() + 15 * 60_000);
-	const body = copy.body.replace("{date}", dayLabel(new Date(past.at), now)).replace("{gua}", gua);
+): { name: string; text: string } {
+	const { end, details } = event(cast, gua, start, now, copy);
 	const lines = [
 		"BEGIN:VCALENDAR",
 		"VERSION:2.0",
@@ -187,7 +193,7 @@ export function reminder(
 		`DTSTART:${floating(start)}`,
 		`DTEND:${floating(end)}`,
 		`SUMMARY:${text(copy.summary)}`,
-		`DESCRIPTION:${text(`${body}\n${copy.url}`)}`,
+		`DESCRIPTION:${text(details)}`,
 		`URL:${copy.url}`,
 		// A reminder, not a meeting: it does not make the day look busy.
 		"TRANSP:TRANSPARENT",
@@ -200,5 +206,32 @@ export function reminder(
 		"END:VCALENDAR",
 	];
 	const name = `sixyao-${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}.ics`;
-	return { name, text: `${lines.map(fold).join("\r\n")}\r\n`, start };
+	return { name, text: `${lines.map(fold).join("\r\n")}\r\n` };
 }
+
+/**
+ * Google 日历's prefilled new-event page. Floating times like the .ics (no Z, no ctz):
+ * Google reads them in the user's own calendar time zone. A link cannot set the
+ * alarm, so the user's default notification applies.
+ */
+export function googleUrl(cast: Date, gua: string, start: Date, now: Date, copy: IcsCopy): string {
+	const { end, details } = event(cast, gua, start, now, copy);
+	const q = { action: "TEMPLATE", text: copy.summary, dates: `${floating(start)}/${floating(end)}`, details };
+	const query = Object.entries(q).map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+	return `https://calendar.google.com/calendar/render?${query.join("&")}`;
+}
+
+/** Chrome on Android: opens the Google Calendar app, or `url` on the web when the app is not installed. */
+export const intent = (url: string) =>
+	`intent://${url.replace(/^https:\/\//, "")}#Intent;scheme=https;package=com.google.android.calendar;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+
+/** 北京时间的日期 YYYYMMDD: all the server needs for 「9月26日」 (dayLabel), not the moment of the cast. */
+const beijingDay = (d: Date) => new Date(d.getTime() + 8 * 3_600_000).toISOString().slice(0, 10).replace(/-/g, "");
+
+/**
+ * The same file from /api/remind.ics, for iPhone and iPad: Safari hands a text/calendar
+ * page to the Calendar app, where a downloaded blob stops at a download prompt.
+ * `d` is the local day of `start` (the server fixes 20:00), `c` the day of the cast, `g` the 卦.
+ */
+export const icsPath = (cast: Date, gua: string, start: Date) =>
+	`/api/remind.ics?d=${floating(start).slice(0, 8)}&c=${beijingDay(cast)}&g=${encodeURIComponent(gua)}`;
