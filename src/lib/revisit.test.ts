@@ -283,6 +283,9 @@ describe("Google 日历与 iPhone 的地址", () => {
 		expect(q.get("text")).toBe(REMIND.ics.summary);
 		expect(q.get("dates")).toBe("20261004T200000/20261004T201500");
 		expect(q.has("ctz")).toBe(false);
+		// 显示为「空闲」，同 .ics 的 TRANSP:TRANSPARENT；不带时 Google 日历默认「忙碌」
+		expect(q.get("crm")).toBe("AVAILABLE");
+		expect(q.get("trp")).toBe("false");
 		expect(url).not.toMatch(/\d{8}T\d{6}Z/);
 		expect(q.get("details")).toBe(
 			`${dayLabel(new Date(p.at), now)}起的一卦：兑为泽之天水讼。过些日子了，回来看看后来怎样。` +
@@ -306,6 +309,7 @@ describe("Google 日历与 iPhone 的地址", () => {
 		expect(link.startsWith("intent://calendar.google.com/calendar/render?action=TEMPLATE&")).toBe(true);
 		expect(link).toContain("#Intent;scheme=https;package=com.google.android.calendar;");
 		expect(link.endsWith(";end")).toBe(true);
+		expect(link).toContain("&crm=AVAILABLE&trp=false#Intent;");
 		const fallback = /;S\.browser_fallback_url=([^;]*);/.exec(link)?.[1] ?? "";
 		expect(decodeURIComponent(fallback)).toBe(url);
 		// 查询串原样搬进 intent，不多一层编码

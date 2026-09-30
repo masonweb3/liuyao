@@ -76,7 +76,9 @@ const fontsheet = hant ? webfontsHant : webfonts;
       </>
     )}
     <!-- 访问统计：Cloudflare Web Analytics，无 cookie。token 本就公开在页面里。 -->
-    <script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "731230fa0f9c440da87cc41a927d4d43"}'></script>
+    {/* async：不带 async 的模块脚本按文档顺序执行，这一段排在首页入口脚本前面，首页的今日干支（LCP）和起卦流程就得等这个第三方脚本下完。
+        async 脚本照样在 load 事件之前执行，beacon 上报的时机不变。写成 Astro 注释，不进 HTML。 */}
+    <script is:inline type="module" async src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "731230fa0f9c440da87cc41a927d4d43"}'></script>
   </head>
   <body>
     <slot />

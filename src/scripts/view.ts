@@ -311,8 +311,8 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 		const kept = keep({ remind: { days, at: now.toISOString() } });
 		const msg = $<HTMLTemplateElement>(`[data-remind-done=${kind}]`, remind).content.cloneNode(true) as DocumentFragment;
 		fill(msg, { due: monthDay(start) });
-		// 日历照样加了，但往卦里没记上：回访卡不会按提醒那天出，要说清楚
-		if (!kept) msg.lastElementChild?.append(` ${card.dataset.unsaved ?? ""}`);
+		// 日历照样加了，但往卦里没记上提醒：说清楚，不说「本次结果不会留下记录」（旧卦本来就在往卦里）
+		if (!kept) msg.lastElementChild?.append(remind.dataset.unsaved ?? "");
 		got.replaceChildren(msg);
 	});
 

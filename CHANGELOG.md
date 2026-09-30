@@ -14,6 +14,20 @@
 
 ## 2026.09.30
 
+- **到时提醒：旧卦没记上提醒时说清楚；Google 日历的日程显示为空闲**。
+  - **提醒没记进往卦时的提示**：点了「Apple 日历」「Google 日历」而往卦写不进去（存储被禁用、写满）时，完成提示后面原来接的是「这台设备暂时无法保存往卦，本次结果不会留下记录。」从往卦点开的旧卦本来就在往卦里，这句不对。现在接「这次提醒没能记进这台设备的往卦，加进日历不受影响。」，紧接在完成提示的句号后面，不加空格（原来多一个半角空格）。不写「日历里的提醒照常」：点完按钮时还没加进日历，Google 要点「保存」，Apple 要按系统提示加入。刚起的卦一开始就存不了时也说得通，页底另有整卦存不下的那句。新句是 `copy.ts` 的 `REMIND.unsaved`，由 `Reading.astro` 写到提醒那块的 `data-unsaved`；回访卡「记下」存不下时仍用 `ERRORS.storage`，没动。
+  - **不说「回访卡不会按时出现」**：没记上提醒时，回访卡按「起卦满 3 天」出，只会比提醒那天早、不会晚，到那天从往卦点开，卡照样在。只有这一卦整个没存上时才没有卡，那时页底已经说了。
+  - **Google 日历显示为空闲**：预填链接加 `crm=AVAILABLE&trp=false`，日程不再占成「忙碌」，与 `.ics` 的 `TRANSP:TRANSPARENT` 一致；安卓的 intent 由同一个地址派生，一起带上。已在 Google 日历网页版确认：不带这两个参数是「忙碌」，带上是「空闲」。
+  - **大小**：首页入口包 17,841 字节，原始字节与 main 相同，把分包文件名里的哈希换成占位后逐字节相同；gzip 7,930 → 7,933，差的 3 字节来自哈希。`view` 包 10,664 → 10,690 字节（gzip 4,755 → 4,772）。新句只在 HTML 里，不在任何 JS 包里。
+  - README 中英文改正两处过时说明：到时提醒不只是本机生成的日历文件（iPhone、iPad 走 `/api/remind.ics`，Google 日历是预填链接）；服务端路由除 `/api/judge` 还有 `/api/remind.ics`。
+
+- **统计脚本改 async，不再挡首页脚本**：`Page.astro` 里 Cloudflare Web Analytics 的 `beacon.min.js` 原是不带 async 的模块脚本。这类脚本等文档解析完，按出现顺序逐个执行，它排在首页入口脚本前面，所以首页渲染今日干支（首页的 LCP）和起卦流程，都要等这个第三方脚本下完；真实手机上还得先连上另一个域名。现在加了 `async`，它下完就自己执行，不再排队。async 脚本照样在 load 事件之前执行，beacon 上报的时机不变。说明写成 Astro 注释，不进 HTML。
+  - **产物**：全站 131 个 HTML 与 main 相比只多这一个属性，`_astro/` 里 1,190 个文件逐字节相同。
+  - **统计照常发**：Chromium、WebKit 各打开首页、`/gua/`、`/gua/di-tian-tai/`、`/zh-hant/gua/`，main 和改后表现一致：beacon 加载、执行，每页向 `https://cloudflareinsights.com/cdn-cgi/rum` 发两次。第一次在 load 之后（eventType 1，带 pageloadId 和 16 项导航计时），第二次在页面隐藏时（eventType 3，带 lcp、cls、fcp、ttfb；WebKit 看不到 sendBeacon 的请求体）。注意上报地址是 Cloudflare 的域名，不是本站的 `/cdn-cgi/rum`：只带 token 的写法默认发到那里。测的时候 rum 请求在本地拦下，没有发给 Cloudflare。
+  - **首页不再等 beacon**：在 Chromium 里，main 的今日干支要等 beacon 下完才出来（208 ms，beacon 186 ms 下完），改后是 63 ms。把 beacon 人为推迟 2 秒再测：main 的今日干支到 2.2 s（WebKit 2.1 s）才出来，改后 48 ms（WebKit 64 ms），两边 rum 都照发。
+  - **Lighthouse**（首页，移动端，main 和改后交替各跑 6 次，取中位数）：性能分 99 → 99，LCP 2,130 → 1,824 ms，TBT 0 → 0，CLS 0 → 0。不加节流的实测 LCP 186 → 98 ms。模拟 FCP 1,070 → 1,152 ms，实测 FCP 没变（86 → 88 ms），多出来的 80 ms 应是 Lighthouse 的模拟把提前执行的首页脚本也算进了首次绘制之前。测试环境里 beacon 一百多毫秒就下完，真实手机上新建连接要慢得多，省下的时间通常更多。
+  - **上线后**：到 Cloudflare Web Analytics 看 sixyao.app 的访问数，确认和前几天在同一水平。
+
 - **到时提醒可以直接加进日历**：负责人反馈，原来只能「下载日历提醒」再打开文件导入，「太反人类」；iPhone 上点了先弹下载、预览的系统提示，要点好几下才进日历。现在「加入日历」下有两个按钮：「Apple 日历」「Google 日历」。
   - **按平台排主次**：iPhone、iPad、Mac 上 Apple 在前，安卓、Windows、Linux 上 Google 在前；在前的是主按钮（墨色线框），另一个浅线。iPadOS 的 Safari 报 Mac 的 UA，用 `navigator.maxTouchPoints > 1` 认出是 iPad。判断只是 `view.ts` 里几行 UA 判断，不引库。
   - **Google 日历**：打开 Google 日历预填好的新建日程页，用户点「保存」就加上了。时间和 `.ics` 一样是浮动格式（不带 `Z`、不带 `ctz`），按用户日历自己的时区读，仍是当地晚上 8 点。安卓 Chrome 上用 intent 直接拉起 Google 日历 App，没装就回退到同一个网页；微信、LINE、Instagram 等 App 内置的浏览器不认 intent，直接开网页。**提醒时刻不同**：链接定不了提醒，按用户日历的默认通知（比如提前 30 分钟），不像 `.ics` 在 8 点整响；完成提示里写明了这一点。
