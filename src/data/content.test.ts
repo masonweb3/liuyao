@@ -233,7 +233,7 @@ describe("黄历释义", () => {
 	});
 
 	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）；沖统一不写衝，历书统称農民曆", () => {
-		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|徵鳥|迴歸線|黃曆/);
+		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|徵鳥|迴歸線|黃曆|轉幹/);
 	});
 
 	describe("繁体页显示的 tyme4ts 名字（huangli-hant.json 的 names）", () => {
