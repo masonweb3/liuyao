@@ -278,8 +278,9 @@ const intentOk = /Android/.test(ua) && !/; ?wv\)|MicroMessenger|FBAN|FBAV|Instag
 // 苹果设备 Apple 日历在前，其余（安卓、Windows、Linux）Google 在前：紧跟标签的是主按钮
 if (!ios && !/Macintosh/.test(ua)) $("#remind-add", remind).after($("[data-remind-get=google]", remind));
 
-/** Every way out goes through one link click, inside the tap: a download, a new tab, or this tab. */
+/** Every other way out goes through one link click, inside the tap: a download, a new tab, or this tab. */
 const go = (props: Partial<HTMLAnchorElement>) => Object.assign(document.createElement("a"), props).click();
+let frame: HTMLIFrameElement | undefined;
 
 // 不经过服务器生成（iPhone、iPad 除外，见 /api/remind.ics）；可以换天数再加一次，往卦里以最后一次为准。
 for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
@@ -295,8 +296,12 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 			const web = googleUrl(cast, shown.gua, start, now, copy);
 			go(intentOk ? { href: intent(web) } : { href: web, target: "_blank", rel: "noopener" });
 		} else if (ios) {
-			// 当前页打开服务端地址，不带 download：Safari 把 text/calendar 交给日历
-			go({ href: icsPath(cast, shown.gua, start) });
+			// 在看不见的框里打开服务端地址：负责人 iPhone 实测，当前页跳过去要先过一个下载页，框里打开直接弹「加入」，
+			// 页面也不动。上一次的框等到下一次点才拿掉，免得系统的加入界面还开着就被收走。
+			frame?.remove();
+			frame = Object.assign(document.createElement("iframe"), { src: icsPath(cast, shown.gua, start) });
+			frame.style.display = "none";
+			document.body.append(frame);
 		} else {
 			const ics = reminder(cast, shown.gua, start, now, newUid(), copy);
 			const href = URL.createObjectURL(new Blob([ics.text], { type: "text/calendar;charset=utf-8" }));
