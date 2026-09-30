@@ -3,6 +3,7 @@
 // 简体与繁体（/zh-hant/）共用；界面文字两种写法并排写在 t() 里。
 import rangesHant from '../fonts/gua-hant/ranges.json';
 import ranges from '../fonts/gua/ranges.json';
+import Columns from '../components/Columns.astro';
 import { HANT } from '../data/gua-slugs';
 // 正文（宋体）补字与语言切换用字（tools/subset-fonts.py 生成）：fontsource 切片里没有的字，排在它之后先用这里的。
 import '../styles/paper-fonts.css';
@@ -22,7 +23,7 @@ interface Props {
   description: string;
   /** 简体页的路径（/gua/…/）；繁体页自动加 /zh-hant 前缀 */
   path: string;
-  /** 目录页：页头不再链「六十四卦」，手机上改链「起卦」。 */
+  /** 目录页：栏目「六十四卦」的首页（aria-current="page"；卦页是 "true"，点它回目录）。 */
   index?: boolean;
   /** 本页的标题字体子集：卦的 slug，目录页是 index */
   subset: string;
@@ -61,9 +62,11 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
         <span class="seal" aria-hidden="true">爻</span>
         <span class="name" aria-hidden="true">六爻</span>
       </a>
-      <nav aria-label={t('站内', '站內')}>
-        {!index && <a href={hant ? `${HANT}/gua/` : '/gua/'}>六十四卦</a>}
-        <a class="desk" href="/?history">往卦</a>
+      {/* 页头只有这一个 nav 地标：栏目；往卦、语言切换是右侧工具区（设计稿 20、D17）。
+          桌面不再有「起卦」线框按钮（M16-1），由栏目第一项「起卦」代替；页底的起卦块仍直达写下所问。 */}
+      <Columns at="/gua/" page={index} hant={hant} />
+      <div class="tools">
+        <a class="past" href="/?history">往卦</a>
         {/* 语言切换（设计稿 14、D11，方案 B）：两页都是「简 | 繁」，当前那个不是链接。
             单字读屏只念一个字，各补一段视觉隐藏的「体中文」「體中文」；当前那个再说一声「当前」（繁体页「目前」）：
             Chrome 的无障碍树不暴露 aria-current，不能只靠它。 */}
@@ -80,8 +83,7 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
             <a href={other} hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>
           )}
         </span>
-        <a class="ask" href="/?ask">起卦</a>
-      </nav>
+      </div>
     </header>
     <slot />
     {index ? (
@@ -118,7 +120,7 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
 
 <style>
   /* 行高全部写死：字体异步换上时行数、高度不变，不产生布局偏移。
-     左右内边距改了，要同步 Invite.astro 的 --edge-l / --edge-r（起卦块靠它们出血到屏幕边）。 */
+     左右内边距改了，要同步 Invite.astro、Columns.astro 的 --edge-l / --edge-r（起卦块、手机栏目行靠它们出血到屏幕边）。 */
   .page {
     --gap: 40px;
     min-height: 100dvh;
@@ -134,11 +136,13 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     --gap: 36px;
   }
 
+  /* 手机：两行共 88 高，上行品牌与「往卦 · 简 | 繁」，下行栏目（Columns 自己占第二行）。
+     DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序。 */
   .top {
-    height: var(--tap);
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: auto auto;
     justify-content: space-between;
+    align-items: center;
   }
   .top a {
     color: var(--ink);
@@ -167,26 +171,23 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     letter-spacing: 0.4em;
   }
   /* 手机上间距 12px：语言切换每个字左右各有 15px 的点击区，看上去和别的项仍是二十多像素（设计稿 14）。 */
-  nav {
+  .tools {
     display: flex;
     align-items: center;
     gap: 12px;
   }
-  nav a {
+  /* 往卦：页头里只有「当前」用主色（当前栏目、当前语言），它是次要色，悬停变墨色 */
+  .top .past {
     min-height: var(--tap);
     display: flex;
     align-items: center;
     font-size: var(--fs-s);
     letter-spacing: 0.24em;
+    color: var(--ink-2);
+    transition: color var(--t-hover);
   }
-  /* 手机：卦页右上只有「六十四卦」，目录页只有「起卦」 */
-  nav .desk,
-  nav .ask {
-    display: none;
-  }
-  .index nav .ask {
-    display: flex;
-    letter-spacing: 0.3em;
+  .top .past:hover {
+    color: var(--ink);
   }
 
   /* 语言切换「简 | 繁」（设计稿 14、D11，方案 B）：当前语言墨色加粗、不是链接；另一个是次要色的链接，
@@ -261,7 +262,10 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     .page.index {
       --gap: 48px;
     }
+    /* 一行：品牌、栏目、工具区（设计稿 D17） */
     .top {
+      display: flex;
+      gap: 34px;
       height: 48px;
     }
     .brand {
@@ -275,24 +279,13 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     .name {
       font-size: 15px;
     }
-    nav {
+    .tools {
       gap: 28px;
-    }
-    nav .desk {
-      display: flex;
     }
     /* 桌面每个字 34×44 */
     .lang > a,
     .lang > span[aria-current] {
       padding: 0 10px;
-    }
-    nav .ask,
-    .index nav .ask {
-      display: flex;
-      padding: 0 22px;
-      border: 1px solid var(--ink);
-      border-radius: var(--radius);
-      letter-spacing: 0.4em;
     }
     .foot {
       margin-top: auto;

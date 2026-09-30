@@ -70,9 +70,10 @@ src/
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是卦页、目录页底部的起卦块；
+                    Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
                     Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
-  layouts/Paper.astro 纸面知识页（卦页、目录）的页头、页脚、简繁切换链接、本页标题字体子集
+  layouts/Paper.astro 纸面知识页（卦页、目录，以后各栏目页）的页头、页脚、简繁切换链接、本页标题字体子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
   scripts/view.ts   解读页与往卦列表的渲染、卦名字体、回访卡与到时提醒（按需加载，页面 load、首屏入场动画播完后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
@@ -86,6 +87,7 @@ src/
   data/copy.ts      界面文案（含往卦复盘）。它在首屏包里：按需加载的脚本要用的字由 Astro 构建时写进页面，不从这里 import
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
+  data/columns.ts   栏目表：栏目导航的名字、路径与繁体路径，加栏目只加一行（见 §6）
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
@@ -204,7 +206,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **正文补字**：fontsource 的切片并不含完整字体的全部字（简体缺鞶、頄等 17 个，繁体缺虩、藟等 8 个），缺的字会回退到系统字体（iPhone 上是黑体）。`tools/subset-fonts.py` 按切片的实际 cmap 算出卦爻辞、两种白话里缺的字，从完整字体截成 `src/fonts/body-hans.woff2`、`body-hant.woff2`，写进 `src/styles/paper-fonts.css`（卦页、目录页引入）。缺哪些字是算出来的，不写死；加了白话就重跑，`src/data/glyphs.test.ts` 按切片的实际字形核对，缺字时 CI 报错（fontsource CSS 的 unicode-range 比切片里实际有的字多，不能拿来核对）。
   - 卦名、标语、竖排文字用站酷小薇（`@fontsource/zcool-xiaowei`，OFL）。
   - 全部自托管，按 unicode-range 切片加载。
-  - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。
+  - 首屏用到的字另打成小子集并预加载，fontsource 的切片声明异步加载，不阻塞首屏。改了首屏文案要重跑 `tools/subset-fonts.py`（用法见文件头）。首屏的栏目导航也在里面：脚本从 `src/data/columns.ts` 读简体栏目名，加了栏目就重跑，`glyphs.test.ts` 核对首屏子集有这些字。
   - 首屏子集的 `fonts.css` 只由首页引入，不要放进公共布局：卦页会用上它，又没预加载，换字体时产生布局偏移。
   - 卦页、目录页每页一份站酷小薇子集（本页所有用小薇的字：页头印章、起卦块标语、卦名、卦辞、爻辞），在本页 `<head>` 内联 @font-face 并预加载。改了 `guaci.json`、`gua-slugs.ts` 或这些页面上用小薇的文案，要重跑同一个脚本。
   - 站酷小薇缺字（夬、姤、遯和一些生僻字）：一块用小薇的文字里只要有缺字，整块改用宋体，不逐字回退。一块是一个卦名、一句卦辞，或者一起显示的全部爻辞（免得一行小薇一行宋体）。规则只写在 `src/lib/gua.ts` 的 `fontOf`，缺字表由 `tools/xiaowei-missing.py` 算出。新加用小薇显示卦名或卦爻辞的地方（包括 canvas），都要过这个函数；它不进首屏包：成卦页和解读页的渲染在按需加载的 `src/scripts/view.ts`，解读页和分享卡用 `compose()` 带出的字体。
@@ -220,13 +222,20 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 所问一直以小字悬在屏幕顶部。
   - 各步骤的节奏见 `docs/research.md` §6.2。
 - **卦页与目录（`/gua/`）：** 纸色知识页，设计稿画板 12、13、D9、D10。
-  - 不带所问、不断吉凶，没有「AI 辅助判断」那一行；页底暗色一块引回起卦（`/?ask`），桌面页头的「往卦」走 `/?history`。
+  - 不带所问、不断吉凶，没有「AI 辅助判断」那一行；页底暗色一块引回起卦（`/?ask`），页头的「往卦」走 `/?history`（手机、桌面都有）。
   - 文字只来自 `guaci.json`、`baihua.json`、`yao-baihua.json`（繁体页是各自的 `-hant`）和少量原创标签。
   - 爻辞白话 64 卦写全：384 爻加用九、用六共 386 条，简繁逐条对应，`content.test.ts` 要求全覆盖、卦序与 `gua-slugs.ts` 一致。显示在卦页每条爻辞下、解读页每个动爻的爻辞下，用宋体。用九、用六的白话在卦页照常显示；解读页只在乾或坤六爻全动时显示。只从爻辞原文和小象出发写，不看任何现代译注（§1.3）。
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。
-  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头导航最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B；桌面在「起卦」按钮前）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页。
+  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
+- **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
+  - 现在两栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
+  - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时，把它传给导航的 `at="/gua/"` 改成由页面传入。梅花上线后第一栏仍叫「起卦」（M16-9）。
+  - **位置**：手机和 768–1023 在页头下面单独一行，高 44，首项的字与品牌左缘对齐；≥1024 并进页头那一行，紧跟品牌（品牌到首项的字 48px）。首页只在首屏：写在 `Home.astro` 的首屏 section 里，跟着这一屏显隐，写下所问以后各屏都没有导航，仪式中不打断这一卦。纸面页头是品牌、栏目、工具区（往卦、简 | 繁），手机两行共 88 高；桌面不再有「起卦」线框按钮（M16-1），卦页左栏和页底的起卦块仍直达写下所问。页头只有这一个 nav 地标（`aria-label` 栏目／欄目），首页的往卦、音效和纸面页的工具区都是 div。DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序；手机上栏目行在工具区下面，Tab 先到栏目再回上行的往卦。
+  - **样式**：正文宋体 400，14px，字距 0.24em，项与项之间只靠间距（手机每项左右 10px、桌面 14px，点击区高 44）。当前项主色加一道 12×2 短线（暗场金、纸面印章红），不加粗（M16-7：首页字形子集只有 400）；其余次要色，悬停变主色。首页、目录页这种栏目首页 `aria-current="page"`，栏目里的其他页（卦页）`"true"`，点它回栏目首页；当前项另带 `aria-label`「起卦，当前栏目」（繁体「六十四卦，目前欄目」），不用视觉隐藏的字（首页上看不见的字也会触发字体下载）。
+  - **栏目多了（手机）**：横向滑动，不折行、不折叠（M16-3），零 JS：这一行左右出血到屏幕边（外边距与页面左右内边距的表达式逐字对应），两端 24px 渐隐，末尾留白用占位、不用 padding-right（老 Safari 不认滚动容器的末端 padding），焦点描边内收 3px 免得被裁。当前项在屏外时用 CSS `scroll-initial-target: nearest` 渐进增强（M16-4）：2026-10 只有 Chromium 系 133 起支持，Safari、Firefox 停在最左；桌面上这一行不是滚动容器，要取消，否则整页被滚到页头。1024 宽放到第 8 个栏目就挤不下，到时再议。
+  - **以后的栏目首页**：照设计稿 21、D18 的通用版式做（页头同纸面页；标题区、工具区、知识区；页脚写本栏的数据来源与许可），页底都放「心有所疑，不妨一问」起卦块（`Invite.astro`，去 `/?ask`，M16-5）。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
