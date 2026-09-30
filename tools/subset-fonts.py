@@ -74,11 +74,13 @@ SOURCES = {
 HOME = {"display": ("ZCOOL XiaoWei", "xiaowei"), "body": ("Noto Serif SC", "serif-sc")}
 
 GANZHI = "甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥年月日"
+# 首屏的栏目导航：栏目表 src/data/columns.ts 里的简体栏目名。加了栏目就重跑。
+COLUMNS = "".join(re.findall(r'hans: "(.+?)"', open("src/data/columns.ts", encoding="utf-8").read()))
 TEXT = {
     # 竖排标语、印章
     "display": "心有所疑不妨一问爻",
-    # 品牌、往卦、起卦、提示、手动排盘、桌面竖排小字、干支日期
-    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + " ·　",
+    # 品牌、往卦、起卦、提示、手动排盘、桌面竖排小字、干支日期、栏目
+    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + COLUMNS + " ·　",
 }
 
 # 语言切换「简 | 繁」用的字：(补进哪个字体族, 字重) → 字，字形都取 Noto Serif SC。
