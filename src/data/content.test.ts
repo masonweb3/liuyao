@@ -127,10 +127,11 @@ interface Entry {
 	lead?: string;
 	/** 节气：三候，候名照录 tyme4ts 的原文，白话原创 */
 	hou?: { name: string; text: string }[];
-	note?: boolean;
+	/** 要接哪一条注：med 医事，law 诉讼 */
+	note?: "med" | "law";
 }
 type Cat = "jieqi" | "duty" | "tianshen" | "yiji";
-type Huangli = { note: string } & Record<Cat, Record<string, Entry>>;
+type Huangli = { note: { med: string; law: string } } & Record<Cat, Record<string, Entry>>;
 const HL = huangli as Huangli;
 const HL_HANT = huangliHant as unknown as Huangli & { names: Record<string, string> };
 const CATS: Cat[] = ["jieqi", "duty", "tianshen", "yiji"];
@@ -138,7 +139,8 @@ const CATS: Cat[] = ["jieqi", "duty", "tianshen", "yiji"];
 /** 本站原创的文字：释义、节气导语、三候白话、注。名称和候名是照录的旧文（如宜忌里的「开光」），不在检查之列。 */
 function huangliTexts(data: Huangli): string[] {
 	return [
-		data.note,
+		data.note.med,
+		data.note.law,
 		...CATS.flatMap((cat) =>
 			Object.values(data[cat]).flatMap((e) => [e.text, ...(e.lead ? [e.lead] : []), ...(e.hou ?? []).map((h) => h.text)]),
 		),
@@ -165,6 +167,7 @@ describe("黄历释义", () => {
 
 	it("繁体与简体逐项对应（键、字段、三候、加注标记都一样）", () => {
 		expect(Object.keys(huangliHant).filter((k) => k !== "names")).toEqual(Object.keys(huangli));
+		expect(Object.keys(HL_HANT.note)).toEqual(Object.keys(HL.note));
 		for (const cat of CATS) {
 			expect(Object.keys(HL_HANT[cat]), cat).toEqual(Object.keys(HL[cat]));
 			for (const [key, e] of Object.entries(HL[cat])) {
@@ -176,19 +179,21 @@ describe("黄历释义", () => {
 		}
 	});
 
-	it("简体显示名就是原名；节气的三候候名照 tyme4ts 的原文", () => {
+	it("简体显示名就是原名；节气的三候候名照 tyme4ts 的原文（逐日页按下标取同一个候名）", () => {
 		for (const cat of CATS) for (const [key, e] of Object.entries(HL[cat])) expect(e.name, key).toBe(key);
+		// 唯一的例外：tyme4ts 作「大雨行时」，字序倒了；《逸周书》《礼记·月令》《月令七十二候集解》都作「大雨时行」
+		const HOU = Phenology.NAMES.map((n) => (n === "大雨行时" ? "大雨时行" : n));
+		expect(HOU).not.toEqual(Phenology.NAMES);
 		for (const [key, e] of Object.entries(HL.jieqi)) {
 			const i = SolarTerm.NAMES.indexOf(key);
-			expect(e.hou?.map((h) => h.name), key).toEqual(Phenology.NAMES.slice(3 * i, 3 * i + 3));
+			expect(e.hou?.map((h) => h.name), key).toEqual(HOU.slice(3 * i, 3 * i + 3));
 		}
 	});
 
-	it("天神释义开头写明黄道、黑道，与 tyme4ts 一致", () => {
+	it("天神的黄道、黑道由页面标注；释义里提到的与 tyme4ts 一致", () => {
 		for (const [key, e] of Object.entries(HL.tianshen)) {
-			const ecliptic = TwelveStar.fromName(key).getEcliptic().getName();
-			expect(e.text, key).toMatch(new RegExp(`^${key}，${ecliptic}`));
-			expect(HL_HANT.tianshen[key]!.text, key).toMatch(ecliptic === "黄道" ? /^.+，黃道/ : /^.+，黑道/);
+			const other = TwelveStar.fromName(key).getEcliptic().getName() === "黄道" ? "黑道" : "黄道";
+			expect(e.text, key).not.toContain(other);
 		}
 	});
 
@@ -208,9 +213,14 @@ describe("黄历释义", () => {
 				}
 	});
 
-	it("求医、词讼一类（AGENTS.md §1.5）正好这 6 个词接注；说到医事、诉讼的释义都在其中", () => {
-		const noted = CATS.flatMap((cat) => Object.entries(HL[cat]).flatMap(([key, e]) => (e.note ? [key] : [])));
-		expect(noted.sort()).toEqual(["求医", "治病", "针灸", "探病", "求医疗病", "词讼"].sort());
+	it("求医、词讼一类（AGENTS.md §1.5）正好这 6 个词接注，医、讼各接各的；说到医事、诉讼的释义都在其中", () => {
+		const noted = Object.fromEntries(
+			CATS.flatMap((cat) => Object.entries(HL[cat]).flatMap(([key, e]) => (e.note ? [[key, e.note]] : []))),
+		);
+		expect(noted).toEqual({ 求医: "med", 治病: "med", 针灸: "med", 探病: "med", 求医疗病: "med", 词讼: "law" });
+		// 择日不给就医、诉讼选日（§1.5），注里要说出来
+		expect(HL.note.med).toMatch(/本站不为就医/);
+		expect(HL.note.law).toMatch(/本站不为诉讼/);
 		for (const cat of CATS)
 			for (const [key, e] of Object.entries(HL[cat]))
 				if (!e.note)
@@ -222,8 +232,8 @@ describe("黄历释义", () => {
 		for (const s of [...huangliTexts(HL), ...huangliTexts(HL_HANT)]) expect(s).not.toMatch(/你|您/);
 	});
 
-	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）", () => {
-		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹]|徵鳥|迴歸線/);
+	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）；沖统一不写衝，历书统称農民曆", () => {
+		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|徵鳥|迴歸線|黃曆/);
 	});
 
 	describe("繁体页显示的 tyme4ts 名字（huangli-hant.json 的 names）", () => {
