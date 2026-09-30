@@ -7,6 +7,25 @@
  * splitting on the colon. 爻辞 lines start with 初九/六二/…/上六 and a full-width
  * colon, each followed by its 小象; 用九/用六 exist only in 乾 and 坤.
  */
+import {
+	Duty,
+	EarthBranch,
+	Ecliptic,
+	God,
+	HeavenStem,
+	LunarDay,
+	LunarFestival,
+	LunarMonth,
+	PengZuEarthBranch,
+	PengZuHeavenStem,
+	Phenology,
+	SolarTerm,
+	Sound,
+	Taboo,
+	TwelveStar,
+	Week,
+	Zodiac,
+} from "tyme4ts";
 import { describe, expect, it } from "vitest";
 import { yaoTitle } from "../lib/flow.js";
 import { parseGua } from "../lib/gua.js";
@@ -17,6 +36,8 @@ import * as copy from "./copy.js";
 import { GUA } from "./gua-slugs.js";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
+import huangliHant from "./huangli-hant.json" with { type: "json" };
+import huangli from "./huangli.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
@@ -99,8 +120,168 @@ describe("爻辞白话", () => {
 	});
 });
 
+interface Entry {
+	name: string;
+	text: string;
+	/** 节气：导语一句 */
+	lead?: string;
+	/** 节气：三候，候名照录 tyme4ts 的原文，白话原创 */
+	hou?: { name: string; text: string }[];
+	/** 要接哪一条注：med 医事，law 诉讼 */
+	note?: "med" | "law";
+}
+type Cat = "jieqi" | "duty" | "tianshen" | "yiji";
+type Huangli = { note: { med: string; law: string } } & Record<Cat, Record<string, Entry>>;
+const HL = huangli as Huangli;
+const HL_HANT = huangliHant as unknown as Huangli & { names: Record<string, string> };
+const CATS: Cat[] = ["jieqi", "duty", "tianshen", "yiji"];
+
+/** 本站原创的文字：释义、节气导语、三候白话、注。名称和候名是照录的旧文（如宜忌里的「开光」），不在检查之列。 */
+function huangliTexts(data: Huangli): string[] {
+	return [
+		data.note.med,
+		data.note.law,
+		...CATS.flatMap((cat) =>
+			Object.values(data[cat]).flatMap((e) => [e.text, ...(e.lead ? [e.lead] : []), ...(e.hou ?? []).map((h) => h.text)]),
+		),
+	];
+}
+
+describe("黄历释义", () => {
+	// 键是 tyme4ts 输出的原名，页面按原名取释义；对照全集，时间窗往前滚也不会冒出没有释义的词。
+	// 「馀事勿取」「诸事不宜」是标记词，页面照录、不写词义（设计 M17-12）。
+	const MARKERS = ["馀事勿取", "诸事不宜"];
+	const FULL: Record<Cat, string[]> = {
+		jieqi: SolarTerm.NAMES,
+		duty: Duty.NAMES,
+		tianshen: TwelveStar.NAMES,
+		yiji: Taboo.NAMES.filter((n) => !MARKERS.includes(n)),
+	};
+	const LEN: Record<Cat, [number, number]> = { jieqi: [180, 300], duty: [40, 90], tianshen: [40, 90], yiji: [20, 50] };
+
+	it("每类的键与 tyme4ts 的名字全集一致（宜忌除去两个标记词）", () => {
+		expect(Object.keys(huangli).sort()).toEqual(["note", ...CATS].sort());
+		for (const cat of CATS) expect(Object.keys(HL[cat]).sort(), cat).toEqual([...FULL[cat]].sort());
+		expect(Taboo.NAMES).toEqual(expect.arrayContaining(MARKERS));
+	});
+
+	it("繁体与简体逐项对应（键、字段、三候、加注标记都一样）", () => {
+		expect(Object.keys(huangliHant).filter((k) => k !== "names")).toEqual(Object.keys(huangli));
+		expect(Object.keys(HL_HANT.note)).toEqual(Object.keys(HL.note));
+		for (const cat of CATS) {
+			expect(Object.keys(HL_HANT[cat]), cat).toEqual(Object.keys(HL[cat]));
+			for (const [key, e] of Object.entries(HL[cat])) {
+				const t = HL_HANT[cat][key]!;
+				expect(Object.keys(t), key).toEqual(Object.keys(e));
+				expect(t.hou?.length, key).toBe(e.hou?.length);
+				expect(t.note, key).toBe(e.note);
+			}
+		}
+	});
+
+	it("简体显示名就是原名；节气的三候候名照 tyme4ts 的原文（逐日页按下标取同一个候名）", () => {
+		for (const cat of CATS) for (const [key, e] of Object.entries(HL[cat])) expect(e.name, key).toBe(key);
+		// 唯一的例外：tyme4ts 作「大雨行时」，字序倒了；《逸周书》《礼记·月令》《月令七十二候集解》都作「大雨时行」
+		const HOU = Phenology.NAMES.map((n) => (n === "大雨行时" ? "大雨时行" : n));
+		expect(HOU).not.toEqual(Phenology.NAMES);
+		for (const [key, e] of Object.entries(HL.jieqi)) {
+			const i = SolarTerm.NAMES.indexOf(key);
+			expect(e.hou?.map((h) => h.name), key).toEqual(HOU.slice(3 * i, 3 * i + 3));
+		}
+	});
+
+	it("天神的黄道、黑道由页面标注；释义里提到的与 tyme4ts 一致", () => {
+		for (const [key, e] of Object.entries(HL.tianshen)) {
+			const other = TwelveStar.fromName(key).getEcliptic().getName() === "黄道" ? "黑道" : "黄道";
+			expect(e.text, key).not.toContain(other);
+		}
+	});
+
+	it("每条是完整的话，长短在各类的范围内；节气导语、三候白话各一句 20–40 字（简繁都查）", () => {
+		const within = (s: string, [min, max]: [number, number], where: string) => {
+			expect(s, where).toMatch(/^[^\s].*。$/);
+			expect([...s].length, where).toBeGreaterThanOrEqual(min);
+			expect([...s].length, where).toBeLessThanOrEqual(max);
+		};
+		for (const data of [HL, HL_HANT])
+			for (const cat of CATS)
+				for (const [key, e] of Object.entries(data[cat])) {
+					within(e.text, LEN[cat], `${cat}${key}`);
+					if (cat !== "jieqi") continue;
+					within(e.lead!, [20, 40], `${key}导语`);
+					for (const h of e.hou!) within(h.text, [20, 40], `${key}${h.name}`);
+				}
+	});
+
+	it("求医、词讼一类（AGENTS.md §1.5）正好这 6 个词接注，医、讼各接各的；说到医事、诉讼的释义都在其中", () => {
+		const noted = Object.fromEntries(
+			CATS.flatMap((cat) => Object.entries(HL[cat]).flatMap(([key, e]) => (e.note ? [[key, e.note]] : []))),
+		);
+		expect(noted).toEqual({ 求医: "med", 治病: "med", 针灸: "med", 探病: "med", 求医疗病: "med", 词讼: "law" });
+		// 择日不给就医、诉讼选日（§1.5），注里要说出来
+		expect(HL.note.med).toMatch(/本站不为就医/);
+		expect(HL.note.law).toMatch(/本站不为诉讼/);
+		for (const cat of CATS)
+			for (const [key, e] of Object.entries(HL[cat]))
+				if (!e.note)
+					for (const s of [e.text, e.lead ?? "", ...(e.hou ?? []).map((h) => h.text)])
+						expect(s, `${cat}${key}`).not.toMatch(/医|诊|疗|针刺|药|讼|官司/);
+	});
+
+	it("讲词义和旧说，不对读者说话", () => {
+		for (const s of [...huangliTexts(HL), ...huangliTexts(HL_HANT)]) expect(s).not.toMatch(/你|您/);
+	});
+
+	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）；沖统一不写衝，历书统称農民曆", () => {
+		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|徵鳥|迴歸線|黃曆|轉幹/);
+	});
+
+	describe("繁体页显示的 tyme4ts 名字（huangli-hant.json 的 names）", () => {
+		const { names } = HL_HANT;
+		// 页面把 tyme4ts 输出的简体原文按这张表换成繁体；每类取 tyme4ts 的全集，不手写清单。
+		const GROUPS: Record<string, string[]> = {
+			宜忌: Taboo.NAMES,
+			神煞: God.NAMES,
+			建除: Duty.NAMES,
+			天神: TwelveStar.NAMES,
+			黄道黑道: Ecliptic.NAMES,
+			纳音: Sound.NAMES,
+			彭祖百忌: [...PengZuHeavenStem.NAMES, ...PengZuEarthBranch.NAMES],
+			节气: SolarTerm.NAMES,
+			生肖: Zodiac.NAMES,
+			煞方: EarthBranch.NAMES.map((b) => EarthBranch.fromName(b).getOminous().getName()),
+			农历月: [...LunarMonth.NAMES, ...LunarMonth.NAMES.map((m) => `闰${m}`), "冬月", "腊月"],
+			农历日: LunarDay.NAMES,
+			星期: Week.NAMES,
+			农历节日: LunarFestival.NAMES,
+		};
+
+		it("覆盖每一类的全集，逐字一一对应", () => {
+			for (const [group, all] of Object.entries(GROUPS))
+				for (const n of all) {
+					expect(names[n], `${group}${n}`).toBeTruthy();
+					expect([...names[n]!].length, n).toBe([...n].length);
+				}
+			const known = new Set(Object.values(GROUPS).flat());
+			expect(Object.keys(names).filter((n) => !known.has(n))).toEqual([]);
+		});
+
+		it("干支字简繁相同，names 里出现时原样保留（抓 s2twp 把丑转成醜）", () => {
+			const ganzhi = new Set([...HeavenStem.NAMES, ...EarthBranch.NAMES]);
+			for (const [n, t] of Object.entries(names))
+				[...n].forEach((c, i) => ganzhi.has(c) && expect([...t][i], n).toBe(c));
+		});
+
+		it("释义条目上的繁体显示名与 names 一致", () => {
+			for (const cat of CATS) for (const [key, e] of Object.entries(HL_HANT[cat])) expect(e.name, key).toBe(names[key]);
+		});
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
+		...huangliTexts(HL),
+		...huangliTexts(HL_HANT),
 		...strings(baihua),
 		...strings(baihuaHant),
 		...strings(yaoBaihua),
@@ -112,7 +293,7 @@ describe("红线（简繁都查）", () => {
 
 	it("不出现改命、转运、化解之类的字样", () => {
 		expect(strings(copy).length).toBeGreaterThan(10);
-		for (const s of all) expect(s).not.toMatch(/改命|转运|轉運|化解|算命|消灾|消災|开光|開光|大师|大師|血光/);
+		for (const s of all) expect(s).not.toMatch(/改命|转运|轉運|化解|算命|消灾|消災|开光|開光|大师|大師|血光|大凶|大兇/);
 	});
 
 	it("不打包票，不给应期", () => {

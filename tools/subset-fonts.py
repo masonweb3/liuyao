@@ -21,9 +21,15 @@
 每组一个 ranges.json（每个文件的 unicode-range，取自子集实际含有的字），卦页在自己的 <head> 里内联 @font-face。
 改了 guaci.json、guaci-hant.json、gua-slugs.ts 或这些页面上用标题字体的文案，就重跑，把 src/fonts/ 一起拷回提交。
 
-卦页、目录页的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
+黄历与节气（src/fonts/huangli/、huangli-hant/，同样的做法）：
+- day：今日页和全部逐日页共用一份（七百多页各一份太多），含日期数字、农历月日、六十四卦名（读一卦），浏览别的日子不用再下。
+- jieqi：二十四节气目录；每个节气页一份 {slug}：节气名与三候名。
+改了 huangli.json、huangli-hant.json 的三候，或这些页面上用标题字体的文案，就重跑。
+
+纸面页（卦页、目录、黄历与节气）的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
 - src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
-  （卦爻辞全文、卦辞白话、爻辞白话）却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
+  （卦爻辞全文、卦辞白话、爻辞白话、黄历释义与繁体名称表；简体再加 tyme4ts 里的全部名称，宜忌、神煞都是它给的）
+  却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
   实际 cmap 自动算（切片 CSS 的 unicode-range 比实际字多，不能信），所以要先 pnpm install。每批白话加了字就重跑；
   src/data/glyphs.test.ts 会在缺字时报错。
 - src/fonts/lang-400.woff2、lang-600.woff2：页头语言切换「简 | 繁」用的几个字，取 Noto Serif SC 的字形。
@@ -93,8 +99,8 @@ LANG = {
 
 # 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
 BODY = {
-    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json"]),
-    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json"]),
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json"]),
 }
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
@@ -138,8 +144,10 @@ def make_subset(raw: bytes, text: str, wght: int = 400) -> TTFont:
     return font
 
 
-# 卦页、目录页都有的标题字：页头印章、页底起卦块的标语。
+# 纸面页都有的标题字：页头印章、页底起卦块的标语。
 CHROME = {"hans": "爻心有所疑，不妨一问", "hant": "爻心有所疑，不妨一問"}
+# 黄历页用标题字体的日期：公历数字、农历月日（初一…三十、正月…腊月、闰月）
+DATES = {"hans": "0123456789年月日正二三四五六七八九十冬腊闰初廿", "hant": "0123456789年月日正二三四五六七八九十冬臘閏初廿"}
 
 
 def page_blocks(guaci_path: str, lang: str) -> dict[str, list[str]]:
@@ -151,6 +159,23 @@ def page_blocks(guaci_path: str, lang: str) -> dict[str, list[str]]:
         lines = guaci[name].split("\n")
         # 卦名取首行（繁体多是维基文库页名，如天山遯；無妄、恆是台湾写法，见 build-guaci-hant.py）；简体首行的全名就是键。
         pages[slug] = [CHROME[lang], lines[0].split(" ")[2], lines[1], "".join(l[3:] for l in lines if YAO.match(l))]
+    return pages
+
+
+def huangli_blocks(lang: str) -> dict[str, list[str]]:
+    """黄历栏目各页用标题字体的文字，按区块分（同 page_blocks）：每个卦名、三候的每个候名各一块。"""
+    hant = lang == "hant"
+    data = json.load(open(f"src/data/huangli{'-hant' if hant else ''}.json", encoding="utf-8"))
+    tw = data.get("names", {})
+    guaci = json.load(open(f"src/data/guaci{'-hant' if hant else ''}.json", encoding="utf-8"))
+    names = [v.split("\n")[0].split(" ")[2] for v in guaci.values()]
+    terms = re.findall(r'\["(.+?)", "([a-z]+)"\]', open("src/lib/huangli-days.ts", encoding="utf-8").read())
+    pages = {
+        "day": [CHROME[lang], "農民曆" if hant else "黄历", DATES[lang], *names],
+        "jieqi": [CHROME[lang], "二十四節氣" if hant else "二十四节气"],
+    }
+    for name, slug in terms:
+        pages[slug] = [CHROME[lang], tw.get(name, name), *(h["name"] for h in data["jieqi"][name]["hou"])]
     return pages
 
 
@@ -166,38 +191,40 @@ def write_ranges(table: dict[str, str], path: str) -> None:
         f.write("\n")
 
 
-def gua_hans() -> None:
+def gua_hans(pages: dict[str, list[str]], dir: str) -> None:
     """规则同 src/lib/gua.ts 的 fontOf：含小薇缺字的整块用宋体，不算在内。"""
     has = cmap("xiaowei")
+    os.makedirs(dir, exist_ok=True)
     table, sizes = {}, []
-    for slug, blocks in page_blocks("src/data/guaci.json", "hans").items():
+    for slug, blocks in pages.items():
         # 空格：浏览器按含空格的第一个字体定行高与基线，子集里没有空格，段落会随别的字体加载而上下微移。
         text = " " + "".join(b for b in blocks if all(ord(c) in has for c in b))
-        table[slug], size = save(make_subset(load("xiaowei"), text), f"src/fonts/gua/{slug}.woff2")
+        table[slug], size = save(make_subset(load("xiaowei"), text), f"{dir}/{slug}.woff2")
         sizes.append(size)
-    write_ranges(table, "src/fonts/gua/ranges.json")
-    print("src/fonts/gua/", len(table), "pages, avg", sum(sizes) // len(sizes), "B")
+    write_ranges(table, f"{dir}/ranges.json")
+    print(dir, len(table), "pages, avg", sum(sizes) // len(sizes), "B, max", max(sizes), "B")
 
 
-def gua_hant() -> None:
+def gua_hant(pages: dict[str, list[str]], dir: str) -> None:
     """繁体不整块换字体：芫荽缺的字从霞鹜文楷 TC 取。两款都缺就报错（换了原文或字体版本才会发生）。"""
     iansui, wenkai = cmap("iansui"), cmap("wenkai-tc")
+    os.makedirs(dir, exist_ok=True)
     table, report = {}, []
-    for slug, blocks in page_blocks("src/data/guaci-hant.json", "hant").items():
+    for slug, blocks in pages.items():
         chars = set("".join(blocks))
         missing = sorted(c for c in chars if ord(c) not in iansui)
         lost = [c for c in missing if ord(c) not in wenkai]
         if lost:
             raise SystemExit(f"{slug}：芫荽和霞鹜文楷 TC 都没有 {''.join(lost)}")
         text = " " + "".join(sorted(chars - set(missing)))
-        table[slug], a = save(make_subset(load("iansui"), text), f"src/fonts/gua-hant/{slug}.woff2")
+        table[slug], a = save(make_subset(load("iansui"), text), f"{dir}/{slug}.woff2")
         b = 0
         if missing:
-            table[f"{slug}-wk"], b = save(make_subset(load("wenkai-tc"), "".join(missing)), f"src/fonts/gua-hant/{slug}-wk.woff2")
+            table[f"{slug}-wk"], b = save(make_subset(load("wenkai-tc"), "".join(missing)), f"{dir}/{slug}-wk.woff2")
         report.append((slug, a, b, "".join(missing)))
-    write_ranges(table, "src/fonts/gua-hant/ranges.json")
+    write_ranges(table, f"{dir}/ranges.json")
     total = [a + b for _, a, b, _ in report]
-    print("src/fonts/gua-hant/", len(report), "pages, avg", sum(total) // len(total), "B, max", max(total), "B")
+    print(dir, len(report), "pages, avg", sum(total) // len(total), "B, max", max(total), "B")
     for slug, a, b, missing in report:
         if missing:
             print(f"  {slug}: {a} + {b} B（文楷补 {missing}）")
@@ -216,12 +243,26 @@ def fontsource_chars(pkg: str) -> set[int]:
     return has
 
 
-def data_chars(files: list[str]) -> set[str]:
-    text = ""
+def strings(v) -> list[str]:
+    if isinstance(v, str):
+        return [v]
+    if isinstance(v, dict):
+        v = list(v.values())
+    return [s for x in v for s in strings(x)] if isinstance(v, list) else []
+
+
+def tyme4ts_chars() -> str:
+    """tyme4ts 里的全部汉字（宜忌、神煞、纳音、彭祖百忌……都是它给的，简体页照原样显示）。打包文件里写成 \\uXXXX。"""
+    js = open("node_modules/tyme4ts/dist/lib/index.mjs", encoding="utf-8").read()
+    return "".join(chr(int(h, 16)) for h in re.findall(r"\\u([0-9A-Fa-f]{4})", js)) + js
+
+
+def data_chars(files: list[str], extra: str = "") -> set[str]:
+    text = extra
     for f in files:
-        for v in json.load(open(f"src/data/{f}", encoding="utf-8")).values():
-            text += "".join(v.values()) if isinstance(v, dict) else v
-    return {c for c in text if not c.isspace()}
+        text += "".join(strings(json.load(open(f"src/data/{f}", encoding="utf-8"))))
+    # 只要汉字：tyme4ts 打包文件里的代码字符（ASCII）fontsource 本来就有
+    return {c for c in text if not c.isspace() and ord(c) > 0x2E7F}
 
 
 def face(family: str, wght: int, file: str, rng: str) -> str:
@@ -245,7 +286,8 @@ def paper_fonts() -> None:
     ]
     for lang, (family, src, pkg, files) in BODY.items():
         have, full = fontsource_chars(pkg), cmap(src)
-        missing = "".join(sorted(c for c in data_chars(files) if ord(c) not in have))
+        extra = tyme4ts_chars() if lang == "hans" else ""
+        missing = "".join(sorted(c for c in data_chars(files, extra) if ord(c) not in have))
         lost = [c for c in missing if ord(c) not in full]
         if lost:
             raise SystemExit(f"{family} 完整字体也没有 {''.join(lost)}")
@@ -289,8 +331,10 @@ def main() -> None:
         f.write("\n".join(css) + "\n")
 
     paper_fonts()
-    gua_hans()
-    gua_hant()
+    gua_hans(page_blocks("src/data/guaci.json", "hans"), "src/fonts/gua")
+    gua_hant(page_blocks("src/data/guaci-hant.json", "hant"), "src/fonts/gua-hant")
+    gua_hans(huangli_blocks("hans"), "src/fonts/huangli")
+    gua_hant(huangli_blocks("hant"), "src/fonts/huangli-hant")
 
 
 if __name__ == "__main__":

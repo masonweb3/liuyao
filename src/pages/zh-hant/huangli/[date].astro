@@ -1,0 +1,8 @@
+---
+import HuangliDay from '../../../components/HuangliDay.astro';
+import { days } from '../../../lib/huangli-days';
+
+export const getStaticPaths = () => days().map((date) => ({ params: { date } }));
+---
+
+<HuangliDay date={Astro.params.date!} hant />

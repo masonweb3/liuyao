@@ -1,0 +1,85 @@
+---
+// 二十四节气总表（设计稿 22、24、D21）：一行一季，左边季名。今日页、节气页共用；今日页的当前节气由脚本标上。
+import huangliHant from '../data/huangli-hant.json';
+import { JIEQI, jieqiPath } from '../lib/huangli-days';
+
+interface Props {
+  /** 本页的节气（简体名）：标短线，aria-current="page" */
+  at?: string;
+  hant?: boolean;
+  /** 桌面一行十二个（今日页 D19）；默认六个 */
+  wide?: boolean;
+}
+
+const { at, hant = false, wide = false } = Astro.props;
+const tw = (s: string) => (hant ? (huangliHant.names as Record<string, string>)[s] ?? s : s);
+const seasons = ['春', '夏', '秋', '冬'].map((s, i) => ({ season: s, terms: JIEQI.slice(i * 6, i * 6 + 6) }));
+---
+
+<div class:list={['grid', { wide }]}>
+  {seasons.map(({ season, terms }) => (
+    <>
+      <span class="season" aria-hidden="true">{season}</span>
+      {terms.map(([name]) => (
+        <a href={jieqiPath(name, hant)} data-term={name} aria-current={name === at ? 'page' : undefined}>{tw(name)}</a>
+      ))}
+    </>
+  ))}
+</div>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 24px repeat(6, minmax(0, 1fr));
+    border-block: 1px solid var(--rule);
+  }
+  .season {
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  a {
+    position: relative;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  /* 当前节气：印章色短线，同栏目导航的当前项（扣掉末尾字距的一半） */
+  a[aria-current]::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 7px;
+    width: 12px;
+    height: 2px;
+    margin-left: calc(-6px - 0.06em);
+    background: var(--seal);
+  }
+  a:focus-visible {
+    outline-offset: -3px;
+  }
+
+  @media (min-width: 1024px) {
+    /* 一行半年，季名放不下，去掉（本来就不给读屏） */
+    .wide {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+    .wide .season {
+      display: none;
+    }
+    .wide a {
+      min-height: 52px;
+    }
+  }
+</style>

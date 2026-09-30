@@ -1,8 +1,6 @@
 ---
-// 纸面的知识页（卦页、六十四卦目录）：页头、页脚和纸色底。不带起卦脚本。
+// 纸面的知识页（卦页、六十四卦目录、黄历与节气）：页头、页脚和纸色底。不带起卦脚本。
 // 简体与繁体（/zh-hant/）共用；界面文字两种写法并排写在 t() 里。
-import rangesHant from '../fonts/gua-hant/ranges.json';
-import ranges from '../fonts/gua/ranges.json';
 import Columns from '../components/Columns.astro';
 import { HANT } from '../data/gua-slugs';
 // 正文（宋体）补字与语言切换用字（tools/subset-fonts.py 生成）：fontsource 切片里没有的字，排在它之后先用这里的。
@@ -11,12 +9,9 @@ import Page from './Page.astro';
 
 // 每页一份标题字体子集（tools/subset-fonts.py）：预加载，首次渲染就用标题字体，不再换字体。
 // 简体是站酷小薇；繁体是芫荽，它缺的字另有一份霞鹜文楷 TC 子集（{slug}-wk），两条 @font-face 同名，
-// 按 unicode-range 分工。
-const SUBSETS = import.meta.glob<string>(['../fonts/gua/*.woff2', '../fonts/gua-hant/*.woff2'], {
-  query: '?url',
-  import: 'default',
-  eager: true,
-});
+// 按 unicode-range 分工。按栏目分目录：gua/（卦页、目录）、huangli/（黄历与节气），繁体各带 -hant。
+const SUBSETS = import.meta.glob<string>('../fonts/*/*.woff2', { query: '?url', import: 'default', eager: true });
+const RANGES = import.meta.glob<Record<string, string>>('../fonts/*/ranges.json', { import: 'default', eager: true });
 
 interface Props {
   title: string;
@@ -25,16 +20,23 @@ interface Props {
   path: string;
   /** 目录页：栏目「六十四卦」的首页（aria-current="page"；卦页是 "true"，点它回目录）。 */
   index?: boolean;
+  /** 本页属于哪一栏（栏目表 columns.ts 的 path），默认六十四卦 */
+  at?: string;
+  /** 本页是这一栏的首页（aria-current="page"），默认同 index */
+  home?: boolean;
+  /** 标题字体子集在哪个目录（src/fonts/{group}/，繁体 {group}-hant/），默认 gua */
+  group?: string;
   /** 本页的标题字体子集：卦的 slug，目录页是 index */
   subset: string;
   hant?: boolean;
+  ogType?: 'website' | 'article';
 }
 
-const { title, description, path, index = false, subset, hant = false } = Astro.props;
+const { title, description, path, index = false, at = '/gua/', home = index, group = 'gua', subset, hant = false, ogType = index ? 'website' : 'article' } = Astro.props;
 const t = (hans: string, tw: string) => (hant ? tw : hans);
 const [self, other] = hant ? [HANT + path, path] : [path, HANT + path];
-const dir = hant ? 'gua-hant' : 'gua';
-const table: Record<string, string> = hant ? rangesHant : ranges;
+const dir = hant ? `${group}-hant` : group;
+const table = RANGES[`../fonts/${dir}/ranges.json`] ?? {};
 // 主子集必须有，缺了就让构建失败；补字子集（-wk）只有缺字的页才有。
 if (!table[subset]) throw new Error(`ranges.json 里没有 ${dir}/${subset}：重跑 tools/subset-fonts.py`);
 const fonts = [subset, `${subset}-wk`]
@@ -51,7 +53,7 @@ const wikisource = 'https://zh.wikisource.org/wiki/周易';
 const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'zh-hant' : 'zh-hans'}`;
 ---
 
-<Page title={title} description={description} path={self} alternate={other} hant={hant} themeColor="#f8f4ed" ogType={index ? 'website' : 'article'}>
+<Page title={title} description={description} path={self} alternate={other} hant={hant} themeColor="#f8f4ed" ogType={ogType}>
   <Fragment slot="head">
     {fonts.map((f) => <link rel="preload" href={f.url} as="font" type="font/woff2" crossorigin />)}
     <style is:inline set:html={face} />
@@ -64,7 +66,7 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
       </a>
       {/* 页头只有这一个 nav 地标：栏目；往卦、语言切换是右侧工具区（设计稿 20、D17）。
           桌面不再有「起卦」线框按钮（M16-1），由栏目第一项「起卦」代替；页底的起卦块仍直达写下所问。 */}
-      <Columns at="/gua/" page={index} hant={hant} />
+      <Columns at={at} page={home} hant={hant} />
       <div class="tools">
         <a class="past" href="/?history">往卦</a>
         {/* 语言切换（设计稿 14、D11，方案 B）：两页都是「简 | 繁」，当前那个不是链接。
@@ -86,7 +88,10 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
       </div>
     </header>
     <slot />
-    {index ? (
+    {/* 各栏目自己的数据来源与许可：传 slot="foot"（一句一个 <p>，句末的句号包进 .stop，桌面并成一行时换成间隔号） */}
+    {Astro.slots.has('foot') ? (
+      <footer class="foot"><slot name="foot" /></footer>
+    ) : index ? (
       <footer class="foot">
         <p>
           {t('卦爻辞原文取自', '卦爻辭原文取自')}<a href={wikisource} rel="noopener">{t('维基文库', '維基文庫')}</a>（<a href={license} rel="license noopener">CC BY-SA 4.0</a>）；{t('白话为本站原创 · 仅供传统文化参考与娱乐', '白話為本站原創 · 僅供傳統文化參考與娛樂')}
@@ -239,10 +244,10 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
     letter-spacing: 0.06em;
     color: var(--ink-2);
   }
-  .foot p {
+  .foot :global(p) {
     margin: 0;
   }
-  .foot a {
+  .foot :global(a) {
     color: inherit;
     text-underline-offset: 3px;
   }
@@ -298,10 +303,10 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
       letter-spacing: 0.08em;
     }
     /* 桌面并成一行，两句之间用间隔号 */
-    .stop {
+    .foot :global(.stop) {
       display: none;
     }
-    .foot p + p::before {
+    .foot :global(p + p)::before {
       content: "·";
       margin-inline: 0.6em;
     }
