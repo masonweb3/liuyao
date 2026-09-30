@@ -67,17 +67,22 @@ src/
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘；在首屏包里）
   lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 与 Google 日历链接的生成
   lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、卦宫、站酷小薇缺字规则 fontOf（零 DOM）
+  lib/huangli.ts    黄历的一天（零 DOM，引 tyme4ts）：宜忌、冲煞、建除、值神、神煞、彭祖百忌、节气与候；页面显示用的 show()、今日读一卦
+  lib/huangli-days.ts 黄历的时间窗 YEARS、北京日期、逐日页与节气页网址（零依赖、不 import 任何模块：今日页脚本也用它，见 §6「黄历」）
+  lib/huangli-card.ts 今日页的按月数据（构建时生成 /huangli/data/{年-月}.json）
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
-                    Invite.astro 是卦页、目录页底部的起卦块；
+                    Invite.astro 是纸面页底部的起卦块；
+                    HuangliToday、HuangliDay、Jieqi、JieqiList 是今日黄历、逐日页、节气页、节气目录的正文，TermGrid 是二十四节气总表；
                     Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
                     Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
-  layouts/Paper.astro 纸面知识页（卦页、目录，以后各栏目页）的页头、页脚、简繁切换链接、本页标题字体子集
+  layouts/Paper.astro 纸面知识页（卦页、目录、黄历与节气，以后各栏目页）的页头、页脚、简繁切换链接、本页标题字体子集
   scripts/ritual.ts 起卦流程的状态机，驱动 index.astro 里的各屏
   scripts/view.ts   解读页与往卦列表的渲染、卦名字体、回访卡与到时提醒（按需加载，页面 load、首屏入场动画播完后预热；不进首屏包）
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
+  scripts/huangli-worker.ts 今日页在时间窗外的回退：Web Worker 里用 tyme4ts 现算当天
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
@@ -88,9 +93,13 @@ src/
   data/templates.ts 断语和建议模板：（问题类别 × 吉/平/凶）
   data/gua-slugs.ts 64 卦的卦序与网址 slug（上线后不改）；sitemap、卦页、解读页链接都从这里取
   data/columns.ts   栏目表：栏目导航的名字、路径与繁体路径，加栏目只加一行（见 §6）
+  data/huangli.json 黄历释义：节气（导语、时令、三候白话）、建除、值神、宜忌词义与加注（本项目原创，CC BY-NC-SA 4.0；三候候名照录古籍）
+  data/huangli-hant.json 同上的繁体（s2twp 转换后逐条校对），另有 names：tyme4ts 简体名 → 繁体的对照表
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
+  pages/huangli/    今日黄历 /huangli/、逐日页 /huangli/{YYYY-MM-DD}/、按月数据 /huangli/data/{YYYY-MM}.json（都预渲染）
+  pages/jieqi/      二十四节气目录 /jieqi/ 与 24 个节气页 /jieqi/{无调全拼}/；繁体同构在 pages/zh-hant/huangli/、pages/zh-hant/jieqi/
   pages/api/judge.ts 服务端路由：调用 Jev
   pages/api/remind.ics.ts 服务端路由：iPhone、iPad 的到时提醒 .ics（只按网址里的两个日期和卦名现生成，不存不记）
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
@@ -100,7 +109,7 @@ src/
   styles/webfonts.css fontsource 全部切片，异步加载；webfonts-hant.css 是繁体页的（Noto Serif TC）
   styles/paper-fonts.css 卦页、目录页的正文补字与语言切换用字的 @font-face（生成文件，Paper.astro 引入）
   fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
-                    芫荽子集（缺字另有 -wk 文楷子集）；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
+                    芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
                     lang-400/600.woff2 是语言切换用字（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
@@ -230,12 +239,21 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 解读页上本卦、变卦的卦名链到卦页。
   - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
 - **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
-  - 现在两栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
-  - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时，把它传给导航的 `at="/gua/"` 改成由页面传入。梅花上线后第一栏仍叫「起卦」（M16-9）。
+  - 现在三栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录都算这一栏；繁体叫「農民曆」，M16-6）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
+  - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时传 `at`（本页属于哪一栏）、`home`（是不是这一栏的首页）、`group`（标题字体子集的目录），数据来源与许可写进 `slot="foot"`。梅花上线后第一栏仍叫「起卦」（M16-9）。
   - **位置**：手机和 768–1023 在页头下面单独一行，高 44，首项的字与品牌左缘对齐；≥1024 并进页头那一行，紧跟品牌（品牌到首项的字 48px）。首页只在首屏：写在 `Home.astro` 的首屏 section 里，跟着这一屏显隐，写下所问以后各屏都没有导航，仪式中不打断这一卦。纸面页头是品牌、栏目、工具区（往卦、简 | 繁），手机两行共 88 高；桌面不再有「起卦」线框按钮（M16-1），卦页左栏和页底的起卦块仍直达写下所问。页头只有这一个 nav 地标（`aria-label` 栏目／欄目），首页的往卦、音效和纸面页的工具区都是 div。DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序；手机上栏目行在工具区下面，Tab 先到栏目再回上行的往卦。
   - **样式**：正文宋体 400，14px，字距 0.24em，项与项之间只靠间距（手机每项左右 10px、桌面 14px，点击区高 44）。当前项主色加一道 12×2 短线（暗场金、纸面印章红），不加粗（M16-7：首页字形子集只有 400）；其余次要色，悬停变主色。首页、目录页这种栏目首页 `aria-current="page"`，栏目里的其他页（卦页）`"true"`，点它回栏目首页；当前项另带 `aria-label`「起卦，当前栏目」（繁体「六十四卦，目前欄目」），不用视觉隐藏的字（首页上看不见的字也会触发字体下载）。
   - **栏目多了（手机）**：横向滑动，不折行、不折叠（M16-3），零 JS：这一行左右出血到屏幕边（外边距与页面左右内边距的表达式逐字对应），两端 24px 渐隐，末尾留白用占位、不用 padding-right（老 Safari 不认滚动容器的末端 padding），焦点描边内收 3px 免得被裁。当前项在屏外时用 CSS `scroll-initial-target: nearest` 渐进增强（M16-4）：2026-10 只有 Chromium 系 133 起支持，Safari、Firefox 停在最左；桌面上这一行不是滚动容器，要取消，否则整页被滚到页头。1024 宽放到第 8 个栏目就挤不下，到时再议。
   - **以后的栏目首页**：照设计稿 21、D18 的通用版式做（页头同纸面页；标题区、工具区、知识区；页脚写本栏的数据来源与许可），页底都放「心有所疑，不妨一问」起卦块（`Invite.astro`，去 `/?ask`，M16-5）。
+- **黄历与节气（M17，设计稿第十行 22–24、D19–D21，待定 M17-1 至 M17-15 见 CHANGELOG 2026.10.01）：** 纸面页，照栏目首页的通用版式。纯计算栏目：不带所问、不断吉凶，页脚只写「仅供传统文化参考与娱乐」和数据来源，不写「AI 辅助判断」。
+  - **引擎**：`src/lib/huangli.ts` 全部查 tyme4ts 1.5.2 的表，以日为单位：交节那天整天算新月建（「逢节重建」），和起卦按精确时刻不同，交节当天页面写出交节时刻。只改两处写法：农历十一月、十二月写冬月、腊月；凶神「元武」写「玄武」。日家九星不显示（与通书对照 10 天只 2 天一致，流派不同），胎神、时辰吉凶、方位、二十八宿、月相也不显示。10 天对照见 `huangli.test.ts` 开头。
+  - **时间窗**：`huangli-days.ts` 的 `YEARS`，整年生成（M17-3）。每年第四季度开一个 PR 往后加一年（改 `YEARS`、重跑 `subset-fonts.py`、更新节气页「交节」的年份），旧年份不删。逐日页、按月数据、sitemap、「查另一天」的 min/max、前后日与本月日历的链接都只在窗内。
+  - **今日页 `/huangli/`**：预渲染时不含任何一天的宜忌。脚本按北京时间定出今天，取当月的 `/huangli/data/{年-月}.json`（构建时由 `huangli-card.ts` 生成，文字已按简繁写好）填卡片，不加载 tyme4ts；今天在窗外时在 Web Worker（`scripts/huangli-worker.ts`）里现算。卡片先占好高度，宜忌等填好之前不显示，免得行数变化算进布局偏移。本地日期与北京时间不同时加一行说明（M17-11）。今日页脚本和 `huangli-days.ts` 不 import 别的模块、不用动态 `import()`：打包时共用的模块会被拆成首页与今日页的共享分包，首页入口包就多一个请求（首页首屏 JS 不能增加）。
+  - **逐日页**：一天的内容全在 HTML 里；「今天」的短线由几行内联脚本按北京时间加上。宜忌词义放在 `<details>` 里默认收起（零 JS），建除、值神直接展开；神煞只列名字；彭祖百忌照录古语，不加白话。读一卦按 `dailyGua`（2026-01-01 为乾，按卦序每天下一卦），写明「按卦序逐日轮读，不是占卜」，链到卦页。
+  - **加注**：宜忌里的求医、治病、针灸、探病、求医疗病接医注，词讼接讼注（释义数据 `yiji` 里标 `note`）；彭祖百忌带「药」「词讼」的句子也接注。词后小号「注」（繁体「註」），宜忌（或彭祖）下方一行注。「馀事勿取」「诸事不宜」是标记词：排在词后、次要色，不进词义，一行只有它时用主色；忌为空写「—」（M17-12）。
+  - **节气页 `/jieqi/{slug}/`**：slug 是无调全拼，上线后不改（`JIEQI`）。交节时刻列出 `YEARS` 每一年；三候起始日、当天黄历、前后节气取构建那天还没过完的那一次，每次部署重算。
+  - **繁体**：`/zh-hant/huangli/…`、`/zh-hant/jieqi/…`，同一套组件传 `hant`。tyme4ts 输出的名字都是简体，繁体页一律查 `huangli-hant.json` 的 `names`（`huangli.test.ts` 核对窗内每一天显示的名字都在表里）；时区写「臺灣時間（UTC+8）」，泛指历书写「農民曆」，冲写「沖」。
+  - **字体**：日期、农历、卦名、节气名、三候名用标题字体。今日页和全部逐日页共用一份子集（`fonts/huangli/day`，七百多页各一份太多，浏览别的日子也不用再下），目录和每个节气页各一份。三候名的小薇缺字已并进 `fontOf` 的缺字表。正文补字把黄历释义、繁体名称表和 tyme4ts 里的全部汉字都算进去，`glyphs.test.ts` 按窗内每一天的显示文字核对。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。

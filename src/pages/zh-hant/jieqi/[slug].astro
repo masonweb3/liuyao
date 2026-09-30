@@ -1,0 +1,8 @@
+---
+import Jieqi from '../../../components/Jieqi.astro';
+import { JIEQI } from '../../../lib/huangli-days';
+
+export const getStaticPaths = () => JIEQI.map(([name, slug]) => ({ params: { slug }, props: { name } }));
+---
+
+<Jieqi name={Astro.props.name} hant />

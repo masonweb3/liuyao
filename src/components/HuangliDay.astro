@@ -1,0 +1,850 @@
+---
+// 逐日页（设计稿 23、D20）：一天的黄历全在 HTML 里，不靠脚本。简体 /huangli/{日期}/ 与繁体 /zh-hant/huangli/{日期}/ 共用。
+// 不带所问、不断吉凶；页脚只写「仅供传统文化参考与娱乐」（纯计算栏目，不经 Jev）。
+import baihuaHant from '../data/baihua-hant.json';
+import baihua from '../data/baihua.json';
+import { guaPath } from '../data/gua-slugs';
+import guaciHant from '../data/guaci-hant.json';
+import guaci from '../data/guaci.json';
+import huangliHant from '../data/huangli-hant.json';
+import huangliData from '../data/huangli.json';
+import Paper from '../layouts/Paper.astro';
+import { STROKES } from '../lib/flow';
+import { fontOf, markOf, parseGua } from '../lib/gua';
+import { calNote, type Data, huangliOf, show } from '../lib/huangli';
+import { dayPath, inWindow, jieqiPath, ymd } from '../lib/huangli-days';
+import Invite from './Invite.astro';
+
+interface Props {
+  date: string;
+  hant?: boolean;
+}
+
+const { date, hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const data = (hant ? huangliHant : huangliData) as unknown as Data;
+const h = huangliOf(date);
+const s = show(h, data);
+const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+
+// 前一天、后一天、本月日历：只链时间窗里的日子
+const shift = (n: number) => {
+  const x = new Date(Date.UTC(y, m - 1, d + n));
+  return ymd(x.getUTCFullYear(), x.getUTCMonth() + 1, x.getUTCDate());
+};
+const md = (x: string) => `${Number(x.slice(5, 7))}月${Number(x.slice(8))}日`;
+const prev = shift(-1);
+const next = shift(1);
+const monthStart = (dy: number, dm: number) => {
+  const x = new Date(Date.UTC(dy, dm - 1, 1));
+  return { date: ymd(x.getUTCFullYear(), x.getUTCMonth() + 1, 1), label: `${x.getUTCMonth() + 1}月` };
+};
+const prevMonth = monthStart(y, m - 1);
+const nextMonth = monthStart(y, m + 1);
+const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+// 周一在前：getUTCDay 的 0 是周日
+const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+const cells = Array.from({ length: lastDay }, (_, i) => {
+  const c = ymd(y, m, i + 1);
+  return { date: c, day: i + 1, note: calNote(huangliOf(c), data), link: inWindow(c) };
+});
+
+// 读一卦：卦名繁体取首行（遯、無妄），简体用全名；白话取卦辞白话
+const GUACI: Record<string, string> = hant ? guaciHant : guaci;
+const BAIHUA: Record<string, string> = hant ? baihuaHant : baihua;
+const gua = parseGua(GUACI[s.gua.name]!);
+const guaLines = [...markOf(s.gua.name)].reverse().map((b) => b === '1');
+const guaFont = hant ? undefined : `font-family: var(${fontOf(s.gua.name)})`;
+
+// 当天出现的宜忌词的词义（标记词不在里面）
+const glossary = [...s.yi.list, ...s.ji.list]
+  .filter((w, i, all) => all.findIndex((x) => x.key === w.key) === i)
+  .map((w) => ({ ...w, text: data.yiji[w.key]?.text }))
+  .filter((w) => w.text);
+const duty = data.duty[h.duty];
+const star = data.tianshen[h.star.name];
+
+const list = (w: typeof s.yi) => [...w.list.map((x) => x.name), ...(w.mark ? [w.mark] : [])];
+const title = t(`${y}年${m}月${d}日黄历 · 农历${s.lunar} · 六爻`, `${y}年${m}月${d}日農民曆（黃曆）· 農曆${s.lunar} · 六爻`);
+const description = t(
+  `${y}年${m}月${d}日，农历${s.lunar}，${s.ganzhi}。宜：${list(s.yi).join('、') || '—'}；忌：${list(s.ji).join('、') || '—'}。${s.chong}，${s.duty}，值神${s.star}。`,
+  `${y}年${m}月${d}日，農曆${s.lunar}，${s.ganzhi}。宜：${list(s.yi).join('、') || '—'}；忌：${list(s.ji).join('、') || '—'}。${s.chong}，${s.duty}，值神${s.star}。`,
+);
+---
+
+<Paper title={title} description={description} path={dayPath(date)} at="/huangli/" group="huangli" subset="day" hant={hant}>
+  <main class="layout">
+    <div class="lead">
+      <section class="when" aria-label={t('日期', '日期')}>
+        <div class="solar">
+          <h1><span class="y">{s.year}</span><span class="md">{s.md}</span><span class="sr">{t('黄历', '農民曆')}</span></h1>
+          <p class="week">{s.week}{s.festival && ` · ${s.festival}`}</p>
+        </div>
+        <p class="lunar"><span class="tag">{t('农历', '農曆')}</span><span class="ld">{s.lunar}</span></p>
+      </section>
+      <p class="gz"><span>{s.ganzhi}</span><span class="zodiac">{s.zodiac}</span></p>
+      <section class="yiji" aria-label="宜忌">
+        <div class="pair">
+          {[{ k: '宜', w: s.yi }, { k: '忌', w: s.ji }].map(({ k, w }) => (
+            <dl class:list={['row', { ji: k === '忌' }]}>
+              <dt>{k}</dt>
+              <dd>
+                <ul role="list" class:list={{ only: !w.list.length && w.mark }}>
+                  {w.list.map((x) => <li>{x.name}{x.note && <span class="tick">{t('注', '註')}</span>}</li>)}
+                  {w.mark && <li class="mark">{w.mark}</li>}
+                  {!w.list.length && !w.mark && <li class="none">—</li>}
+                </ul>
+              </dd>
+            </dl>
+          ))}
+        </div>
+        {s.notes.map((n) => <p class="note">{n}</p>)}
+        <dl class="four">
+          <div><dt>{t('冲煞', '沖煞')}</dt><dd>{s.chong}</dd></div>
+          <div><dt>建除</dt><dd>{s.duty}</dd></div>
+          <div><dt>值神</dt><dd>{s.star}</dd></div>
+          <div><dt>{t('纳音', '納音')}</dt><dd>{s.nayin}</dd></div>
+        </dl>
+      </section>
+      <nav class="pager" aria-label={t('前后日', '前後日')}>
+        {inWindow(prev) ? (
+          <a href={dayPath(prev, hant)}><span class="kind">前一天</span><span class="n">‹ {md(prev)}</span></a>
+        ) : <span />}
+        <a class="today" href={t('/huangli/', '/zh-hant/huangli/')}>今天</a>
+        {inWindow(next) ? (
+          <a class="next" href={dayPath(next, hant)}><span class="kind">{t('后一天', '後一天')}</span><span class="n">{md(next)} ›</span></a>
+        ) : <span />}
+      </nav>
+    </div>
+
+    <div class="main">
+      <section class="gods">
+        <h2 class="head">神煞</h2>
+        <dl>
+          <div><dt>{t('吉神宜趋', '吉神宜趨')}</dt><dd>{s.gods.ji.map((g) => <span>{g}</span>)}</dd></div>
+          <div><dt>凶神宜忌</dt><dd>{s.gods.xiong.map((g) => <span>{g}</span>)}</dd></div>
+        </dl>
+      </section>
+      {(duty || star) && (
+        <section class="duty">
+          <h2 class="head">值日</h2>
+          {duty && (
+            <article>
+              <h3><span class="k">建除</span><span>{s.duty}</span></h3>
+              <p>{duty.text}</p>
+            </article>
+          )}
+          {star && (
+            <article>
+              <h3><span class="k">值神</span><span>{s.star}</span></h3>
+              <p>{star.text}</p>
+            </article>
+          )}
+        </section>
+      )}
+      <section class="pengzu">
+        <h2 class="sub">{t('彭祖百忌 · 古语', '彭祖百忌 · 古語')}</h2>
+        <p>{s.pengzu.map((p) => <span>{p.text}{p.note && <span class="tick">{t('注', '註')}</span>}</span>)}</p>
+        {s.pengzuNotes.map((n) => <p class="note">{n}</p>)}
+      </section>
+      <section class="term">
+        <h2 class="head">{t('节气', '節氣')}</h2>
+        <p>{s.term}</p>
+        <a class="row-link" href={jieqiPath(s.next.key, hant)}>
+          <span class="col"><span class="kind">{t('下一个节气', '下一個節氣')}</span><span class="v">{s.next.text}</span></span>
+          <span class="arrow" aria-hidden="true">›</span>
+        </a>
+      </section>
+      <section class="read">
+        <h2 class="head">{t('读一卦', '讀一卦')}</h2>
+        <div class="box">
+          <div class="top">
+            <span class="lines" aria-hidden="true">
+              {guaLines.map((yang) => (
+                <svg viewBox="0 0 240 24">{STROKES[yang ? 'yang' : 'yin'].map((p) => <path d={p} />)}</svg>
+              ))}
+            </span>
+            <span class="names">
+              <span class="gname" style={guaFont}>{gua.name}</span>
+              <span class="small">{gua.no}</span>
+              <span class="small">{t('按卦序逐日轮读，不是占卜', '按卦序逐日輪讀，不是占卜')}</span>
+            </span>
+          </div>
+          <p class="bh">{BAIHUA[s.gua.name]}</p>
+          <a class="go" href={guaPath(s.gua.name, hant)}>{t('读这一卦', '讀這一卦')} ›</a>
+        </div>
+      </section>
+      {glossary.length > 0 && (
+        <details class="gloss">
+          <summary>
+            <span class="head">{t('宜忌词义', '宜忌詞義')}</span>
+            <span class="count">{glossary.length} {t('条', '條')} · <span class="open">{t('展开', '展開')}</span><span class="close">{t('收起', '收起')}</span></span>
+          </summary>
+          <dl>
+            {glossary.map((w) => (
+              <div><dt>{w.name}</dt><dd>{w.text}{w.note && <span class="gnote">{data.note[w.note]}</span>}</dd></div>
+            ))}
+          </dl>
+        </details>
+      )}
+      <section class="cal" aria-labelledby="cal">
+        <div class="cal-head">
+          <h2 class="head" id="cal">{y}年{m}月</h2>
+          <span class="months">
+            {inWindow(prevMonth.date) && <a href={dayPath(prevMonth.date, hant)}>‹ {prevMonth.label}</a>}
+            {inWindow(nextMonth.date) && <a href={dayPath(nextMonth.date, hant)}>{nextMonth.label} ›</a>}
+          </span>
+        </div>
+        <div class="days">
+          {['一', '二', '三', '四', '五', '六', '日'].map((w) => <span class="wd" aria-hidden="true">{w}</span>)}
+          {Array.from({ length: lead }, () => <span aria-hidden="true" />)}
+          {cells.map((c) =>
+            c.link ? (
+              <a href={dayPath(c.date, hant)} data-d={c.date} aria-current={c.date === date ? 'date' : undefined} aria-label={`${m}月${c.day}日 ${c.note}`}>
+                <span class="dn">{c.day}</span><span class="dl">{c.note}</span>
+              </a>
+            ) : (
+              <span class="off"><span class="dn">{c.day}</span><span class="dl">{c.note}</span></span>
+            ),
+          )}
+        </div>
+        {/* 「今天」按北京时间在浏览器里判断，字下加印章色短线；预渲染的页面不知道今天是哪天 */}
+        <script is:inline>(function(){var t=new Date(Date.now()+288e5).toISOString().slice(0,10),a=document.querySelector('.days [data-d="'+t+'"]');if(a)a.classList.add('now')})()</script>
+      </section>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('黄历由', '農民曆由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('按北京时间推算（MIT）；释义为本站原创', '按臺灣時間（UTC+8）推算（MIT）；釋義為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<style>
+  p,
+  h1,
+  h2,
+  h3,
+  dl,
+  dd {
+    margin: 0;
+  }
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* 手机一栏：左栏、右栏的外壳拆掉，前后日排到本月日历之后（同卦页的做法） */
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .lead,
+  .main {
+    display: contents;
+  }
+  .main > * {
+    order: 1;
+  }
+  .pager {
+    order: 2;
+  }
+
+  /* 用 flex 不用网格：竖排的农历放进 auto 轨道，Chromium 会按可用高度估它的宽度，公历日期被挤得折行 */
+  .when {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .solar {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  h1 {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-weight: 400;
+  }
+  .y {
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .md {
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-size: 44px;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+  }
+  .week {
+    font-size: var(--fs-s);
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .lunar {
+    flex: none;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .tag {
+    writing-mode: vertical-rl;
+    padding-top: 4px;
+    font-size: 13px;
+    line-height: 1;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .ld {
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: 0.2em;
+  }
+  .gz {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding: 18px 0;
+    border-block: 1px solid var(--rule);
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: 0.1em;
+  }
+  .zodiac {
+    color: var(--ink-2);
+  }
+
+  .yiji {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .pair {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .row dt {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    background: var(--seal);
+    color: var(--paper);
+    font-size: 17px;
+    line-height: 1;
+    border-radius: var(--radius);
+  }
+  .row.ji dt {
+    background: var(--ink);
+  }
+  .row dd {
+    flex-grow: 1;
+    min-width: 0;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    font-size: 18px;
+    line-height: 1.75;
+    letter-spacing: 0.06em;
+  }
+  /* 标记词（M17-12）：排在词后、次要色；一行只有它时用主色 */
+  .mark,
+  .none {
+    color: var(--ink-2);
+  }
+  .only .mark {
+    color: var(--ink);
+  }
+  .tick {
+    margin-left: 2px;
+    font-size: 11px;
+    letter-spacing: 0;
+    vertical-align: super;
+    line-height: 0;
+    color: var(--ink-2);
+  }
+  .note {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .four {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+  }
+  .four div,
+  .gods dl > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  dt {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .four dd {
+    font-size: var(--fs-m);
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .sub {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.4em;
+    color: var(--ink-2);
+  }
+
+  .gods,
+  .term,
+  .read,
+  .pengzu,
+  .cal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .gods dl {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .gods dl > div {
+    flex-direction: row;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .gods dt {
+    flex-shrink: 0;
+  }
+  .gods dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 14px;
+    font-size: 15px;
+    line-height: 1.8;
+    letter-spacing: 0.08em;
+  }
+
+  .duty h2 {
+    margin-bottom: 4px;
+  }
+  .duty article {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .duty h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+  }
+  .k {
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--seal);
+  }
+  .duty p,
+  .term > p,
+  .bh {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+
+  .pengzu {
+    gap: 10px;
+  }
+  .pengzu p:not(.note) {
+    display: flex;
+    flex-direction: column;
+    font-size: 15px;
+    line-height: 1.95;
+    letter-spacing: 0.12em;
+  }
+
+  .row-link {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-block: 1px solid var(--rule);
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 0;
+  }
+  .kind {
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .row-link .kind {
+    font-size: var(--fs-xs);
+  }
+  .v {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+  }
+  .arrow {
+    color: var(--ink-2);
+  }
+  .row-link:hover .v,
+  .go:hover,
+  .pager a:hover .n {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .read {
+    gap: 14px;
+  }
+  .box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .lines {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .lines svg {
+    display: block;
+    width: 56px;
+    height: 6px;
+    fill: var(--ink);
+  }
+  .names {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .gname {
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1.3;
+    letter-spacing: 0.16em;
+  }
+  .small {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  .go {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+  }
+
+  .gloss {
+    border-block: 1px solid var(--rule);
+  }
+  summary {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .count {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .close,
+  details[open] .open {
+    display: none;
+  }
+  details[open] .close {
+    display: inline;
+  }
+  .gloss dl {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--rule);
+  }
+  .gloss dl > div {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .gloss dl > div:last-child {
+    border-bottom: none;
+  }
+  .gloss dt {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .gloss dd {
+    font-size: var(--fs-s);
+    line-height: 1.8;
+  }
+  .gnote {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+
+  .cal {
+    gap: 10px;
+  }
+  .cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .months {
+    display: flex;
+    gap: 4px;
+  }
+  .months a {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .months a:hover {
+    color: var(--ink);
+  }
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+  }
+  .wd {
+    height: 28px;
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .days a,
+  .off {
+    position: relative;
+    min-height: 52px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+  }
+  .days a:hover {
+    border-color: var(--rule);
+  }
+  .days a[aria-current] {
+    border-color: var(--ink);
+  }
+  .days a:focus-visible {
+    outline-offset: -3px;
+  }
+  .now::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    width: 12px;
+    height: 2px;
+    margin-left: -6px;
+    background: var(--seal);
+  }
+  .dn {
+    font-size: 15px;
+    line-height: 1.3;
+  }
+  .dl {
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .off {
+    color: var(--ink-2);
+  }
+
+  .pager {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: 8px;
+    padding: 14px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .pager a {
+    min-height: var(--tap);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .pager .today {
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.3em;
+  }
+  .pager .next {
+    align-items: flex-end;
+  }
+  .n {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+
+  @media (min-width: 1024px) {
+    .layout {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      column-gap: 96px;
+      align-items: start;
+    }
+    .lead,
+    .main {
+      display: flex;
+      flex-direction: column;
+    }
+    .lead {
+      gap: 32px;
+    }
+    .main {
+      gap: 48px;
+      padding-top: 8px;
+    }
+    .md {
+      font-size: 52px;
+    }
+    .ld {
+      font-size: 30px;
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .duty h2 {
+      margin-bottom: 0;
+    }
+    .duty article {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 24px;
+      padding: 20px 0;
+    }
+    .duty h3 {
+      flex-direction: column;
+      gap: 4px;
+    }
+    .duty p,
+    .term > p,
+    .bh {
+      font-size: var(--fs-m);
+    }
+    .gloss dl > div {
+      grid-template-columns: 88px minmax(0, 1fr);
+    }
+    .days a,
+    .off {
+      min-height: 60px;
+    }
+  }
+
+  /* 左栏随滚动固定，只在窗口放得下整栏时（宜忌最多三十个词，左栏实测最高约 900px） */
+  @media (min-width: 1024px) and (min-height: 1000px) {
+    .lead {
+      position: sticky;
+      top: 32px;
+    }
+  }
+</style>

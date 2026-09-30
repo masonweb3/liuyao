@@ -11,10 +11,10 @@ import { palace, setShiYao, soul } from "./liuyao/utils.js";
 export const shortName = (name: string) => (name[1] === "为" ? name.slice(0, 1) : name.slice(2));
 
 /**
- * 站酷小薇没有的字：卦名、卦辞、爻辞里出现的全部，由 tools/xiaowei-missing.py 算出
- * （换字体版本或改了 guaci.json 就重跑，把输出抄到这里）。
+ * 站酷小薇没有的字：卦名、卦辞、爻辞、节气名、三候名里出现的全部，由 tools/xiaowei-missing.py 算出
+ * （换字体版本或改了 guaci.json、huangli.json 的三候就重跑，把输出抄到这里）。
  */
-const NO_XIAOWEI = /[㧑刲卼咥咷嗃夬姤寘愬柅洟牿甃畬禴稊窞繘繻纆胏脢臲茀菑蔀藟虩衎袽豮輹遯邅鞶頄颙餗鼫]/;
+const NO_XIAOWEI = /[㧑刲卼咥咷嗃夬姤寘愬柅洟牿甃畬禴稊窞繘繻纆胏脢臲茀菑蔀藟虩衎袽豮輹遯邅雊鞶頄颙餗鴠鴽鵙鹖鼫]/;
 
 /**
  * 本该用站酷小薇的一块文字实际用哪种字体：含小薇缺的字就整块改用宋体，不让浏览器逐字回退、

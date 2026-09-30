@@ -16,6 +16,10 @@ import baihua from "./baihua.json" with { type: "json" };
 import { COLUMNS } from "./columns";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
+import { type Data, huangliOf, show } from "../lib/huangli.js";
+import { days } from "../lib/huangli-days.js";
+import huangliHant from "./huangli-hant.json" with { type: "json" };
+import huangliData from "./huangli.json" with { type: "json" };
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
 
@@ -110,10 +114,21 @@ function patchChars(family: string): Set<number> {
 	return out;
 }
 
-function chars(...data: object[]): string[] {
-	const text = data.flatMap((d) => Object.values(d)).flatMap((v) => (typeof v === "string" ? v : Object.values(v)));
-	return [...new Set([...text.join("")])].filter((ch) => !/\s/.test(ch));
+const strings = (v: unknown): string[] =>
+	typeof v === "string" ? [v] : v && typeof v === "object" ? Object.values(v).flatMap(strings) : [];
+
+function chars(...data: unknown[]): string[] {
+	return [...new Set([...data.flatMap(strings).join("")])].filter((ch) => !/\s/.test(ch));
 }
+
+/** 黄历页上显示的全部文字：释义数据，加时间窗里每一天由 tyme4ts 算出的宜忌、神煞、彭祖百忌等（key 之类是简体的键，不显示） */
+const shown = (data: unknown) => [
+	data,
+	...days().map((d) => {
+		const { yi, ji, gua: _, termKey: __, next, ...rest } = show(huangliOf(d), data as Data);
+		return [rest, next.text, ...[yi, ji].flatMap((w) => [w.mark ?? "", ...w.list.map((x) => x.name)])];
+	}),
+];
 
 describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	it("WOFF2 读得对：语言切换补字文件正好是这三个字", () => {
@@ -122,9 +137,9 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua)],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant)],
-	])("%s：卦爻辞、卦辞白话、爻辞白话的每个字都有字形", (_, pkg, family, text) => {
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant))],
+	])("%s：卦爻辞、两种白话、黄历的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
 		const missing = (text as string[]).filter((ch) => !have.has(ch.codePointAt(0) as number));

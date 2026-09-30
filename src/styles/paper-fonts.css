@@ -6,7 +6,7 @@
   font-weight: 400;
   font-display: swap;
   src: url('../fonts/body-hans.woff2') format('woff2');
-  unicode-range: U+39D1, U+5232, U+537C, U+54B7, U+55C3, U+727F, U+7E86, U+80CF, U+81F2, U+8669, U+88BD, U+8C6E, U+8F39, U+97B6, U+9804, U+9917, U+9F2B;
+  unicode-range: U+39D1, U+5232, U+537C, U+54B7, U+55C3, U+727F, U+735D, U+7E86, U+80CF, U+81F2, U+8669, U+88BD, U+8C6E, U+8F39, U+96CA, U+97B6, U+9804, U+9917, U+9D20, U+9D3D, U+9F2B;
 }
 @font-face {
   font-family: 'Noto Serif TC';
@@ -14,7 +14,7 @@
   font-weight: 400;
   font-display: swap;
   src: url('../fonts/body-hant.woff2') format('woff2');
-  unicode-range: U+55C3, U+79B4, U+81F2, U+85DF, U+8669, U+8C76, U+8F39, U+9F2B;
+  unicode-range: U+55C3, U+79B4, U+81F2, U+85DF, U+8669, U+8C76, U+8F39, U+9D20, U+9F2B;
 }
 @font-face {
   font-family: 'Noto Serif TC';

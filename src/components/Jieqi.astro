@@ -1,0 +1,420 @@
+---
+// 节气页（设计稿 24、D21）：交节时刻、三候、时令，当天的黄历，前后节气与二十四节气总表。简体 /jieqi/{slug}/ 与繁体共用。
+import huangliHant from '../data/huangli-hant.json';
+import huangliData from '../data/huangli.json';
+import Paper from '../layouts/Paper.astro';
+import { fontOf } from '../lib/gua';
+import { cn, type Data, houStarts, huangliOf, show, termFacts, termIn, termNeighbors } from '../lib/huangli';
+import { beijingYmd, dayPath, inWindow, jieqiPath, JIEQI, YEARS, ymd } from '../lib/huangli-days';
+import Invite from './Invite.astro';
+import TermGrid from './TermGrid.astro';
+
+interface Props {
+  /** 简体节气名 */
+  name: string;
+  hant?: boolean;
+}
+
+const { name, hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const data = (hant ? huangliHant : huangliData) as unknown as Data;
+const tw = (s: string) => data.names?.[s] ?? s;
+const text = data.jieqi[name]!;
+const f = termFacts(name);
+const slug = JIEQI.find(([n]) => n === name)![1];
+const md = (x: string) => `${Number(x.slice(5, 7))}月${Number(x.slice(8))}日`;
+
+// 各年的交节；三候起始日、当天黄历、前后节气取「这一次」：构建那天还没过完的第一次（每次部署都重算），都过了就取最后一次
+const today = ymd(...beijingYmd());
+const times = YEARS.map((y) => ({ year: y, ...termIn(y, name) }));
+const cur = times.find((x) => termNeighbors(x.date).next.date > today) ?? times[times.length - 1]!;
+const hou = houStarts(cur.date).map((start, i) => ({ start, ...text.hou[i]! }));
+const { prev, next } = termNeighbors(cur.date);
+const day = show(huangliOf(cur.date), data);
+const yiShort = [...day.yi.list.slice(0, 5).map((w) => w.name), ...(day.yi.list.length > 5 ? ['……'] : []), ...(day.yi.mark ? [day.yi.mark] : [])];
+
+const font = (s: string) => (hant ? undefined : `font-family: var(${fontOf(s)})`);
+const month = f.jie ? t(`${f.month}节 · ${f.branch}月之始`, `${f.month}節 · ${f.branch}月之始`) : `${f.month}中`;
+const shown = tw(name);
+const title = t(`${shown}：交节时刻、三候与时令 · 二十四节气 · 六爻`, `${shown}：交節時刻、三候與時令 · 二十四節氣 · 六爻`);
+const description = t(
+  `${text.lead}${shown}是二十四节气的第${cn(f.no)}个，${cur.year}年${md(cur.date)} ${cur.time} 交节，太阳黄经 ${f.longitude}°。三候：${hou.map((h) => h.name).join('、')}。`,
+  `${text.lead}${shown}是二十四節氣的第${cn(f.no)}個，${cur.year}年${md(cur.date)} ${cur.time} 交節，太陽黃經 ${f.longitude}°。三候：${hou.map((h) => h.name).join('、')}。`,
+);
+---
+
+<Paper title={title} description={description} path={`/jieqi/${slug}/`} at="/huangli/" group="huangli" subset={slug} hant={hant}>
+  <main class="layout">
+    <div class="lead">
+      <p class="kicker">{t('二十四节气', '二十四節氣')} · 第{cn(f.no)}</p>
+      <section class="hero" aria-label={t('节气', '節氣')}>
+        <dl>
+          <div>
+            <dt>{t('交节 · 北京时间', '交節 · 臺灣時間（UTC+8）')}</dt>
+            <dd class="times">{times.map((x) => <span class:list={{ cur: x === cur }}>{x.year}年{md(x.date)} {x.time}</span>)}</dd>
+          </div>
+          <div><dt>{t('太阳黄经', '太陽黃經')}</dt><dd>{f.longitude}°</dd></div>
+          <div><dt>月建</dt><dd>{month}</dd></div>
+        </dl>
+        <div class="names">
+          <span class="season">{t(`${f.season}季第${cn(f.inSeason)}个节气`, `${f.season}季第${cn(f.inSeason)}個節氣`)}</span>
+          <h1 style={font(shown)}>{shown}</h1>
+        </div>
+      </section>
+      <p class="intro">{text.lead}</p>
+      <nav class="pager" aria-label={t('前后节气', '前後節氣')}>
+        <a href={jieqiPath(prev.name, hant)}><span class="kind">{t('上一个', '上一個')} · {md(prev.date)}</span><span class="n">‹ {tw(prev.name)}</span></a>
+        <a class="next" href={jieqiPath(next.name, hant)}><span class="kind">{t('下一个', '下一個')} · {md(next.date)}</span><span class="n">{tw(next.name)} ›</span></a>
+      </nav>
+    </div>
+
+    <div class="main">
+      <section class="hou">
+        <h2 class="head">三候</h2>
+        {hou.map((h, i) => (
+          <article>
+            <p class="when"><span class="k">{['初候', '二候', '三候'][i]}</span><span class="d">{md(h.start)}{t('起', '起')}</span></p>
+            <h3 style={font(h.name)}>{h.name}</h3>
+            <p class="prose">{h.text}</p>
+          </article>
+        ))}
+      </section>
+      <section class="season-text">
+        <h2 class="head">{t('时令', '時令')}</h2>
+        <p class="prose">{text.text}</p>
+      </section>
+      {inWindow(cur.date) && (
+        <a class="day" href={dayPath(cur.date, hant)}>
+          <span class="col">
+            <span class="kind">{t(`${shown}当天的黄历`, `${shown}當天的農民曆`)}</span>
+            <span class="v">{md(cur.date)} · {cur.time} {t('交节', '交節')} · {huangliOf(cur.date).ganzhi.day}日</span>
+            <span class="s">宜 {yiShort.join(' ')}</span>
+          </span>
+          <span class="arrow" aria-hidden="true">›</span>
+        </a>
+      )}
+      <section class="all">
+        <h2 class="head">{t('二十四节气', '二十四節氣')}</h2>
+        <TermGrid at={name} hant={hant} />
+      </section>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('交节时刻由', '交節時刻由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('推算（MIT）；三候名称出自古籍，白话与时令为本站原创', '推算（MIT）；三候名稱出自古籍，白話與時令為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<style>
+  p,
+  h1,
+  h2,
+  h3,
+  dl,
+  dd {
+    margin: 0;
+  }
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  /* 手机一栏：前后节气排在当天黄历之后、总表之前（同卦页的做法） */
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .lead,
+  .main {
+    display: contents;
+  }
+  .main > * {
+    order: 1;
+  }
+  .pager {
+    order: 2;
+  }
+  .main > .all {
+    order: 3;
+  }
+
+  .kicker {
+    margin-bottom: -20px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  /* 用 flex 不用网格：竖排的节气名放进 auto 轨道，Chromium 会按可用高度估它的宽度，左栏被挤窄 */
+  .hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .hero dl {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 6px;
+  }
+  .hero dl > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  dt,
+  .kind {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .hero dd {
+    font-size: 17px;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+  .times {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .times span:not(.cur) {
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .names {
+    flex: none;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .season {
+    padding-top: 30px;
+    writing-mode: vertical-rl;
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  h1 {
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: 0.24em;
+  }
+  .intro {
+    margin-top: -8px;
+    padding: 22px 0;
+    border-block: 1px solid var(--rule);
+    font-size: 18px;
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .hou h2 {
+    margin-bottom: 4px;
+  }
+  article {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .when {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .k {
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--seal);
+  }
+  .d {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-l);
+    line-height: 1.5;
+    letter-spacing: 0.14em;
+  }
+  .prose {
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .season-text,
+  .all {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .all {
+    gap: 12px;
+  }
+
+  .day {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    transition: border-color var(--t-hover);
+  }
+  .day:hover {
+    border-color: var(--ink);
+  }
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .v {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+  .s {
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .arrow {
+    color: var(--ink-2);
+  }
+
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .pager a {
+    min-height: var(--tap);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pager .next {
+    align-items: flex-end;
+  }
+  .kind {
+    font-size: 11px;
+  }
+  .day .kind {
+    font-size: var(--fs-xs);
+  }
+  .n {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+  }
+  .pager a:hover .n {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @media (min-width: 1024px) {
+    .layout {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      column-gap: 96px;
+      align-items: start;
+    }
+    .lead,
+    .main {
+      display: flex;
+      flex-direction: column;
+    }
+    .lead {
+      gap: 32px;
+    }
+    .main {
+      gap: 48px;
+      padding-top: 8px;
+    }
+    .kicker {
+      margin-bottom: -12px;
+      font-size: 13px;
+    }
+    h1 {
+      font-size: 64px;
+    }
+    .intro {
+      margin-top: 0;
+      font-size: var(--fs-l);
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .hou h2 {
+      margin-bottom: 0;
+    }
+    article {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      column-gap: 32px;
+      row-gap: 8px;
+      padding: 24px 0;
+    }
+    .when {
+      grid-row: 1 / 3;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+    .prose {
+      font-size: var(--fs-m);
+    }
+    .pager {
+      padding: 0;
+      border: none;
+    }
+    .pager .n {
+      font-size: 18px;
+    }
+  }
+
+  @media (min-width: 1024px) and (min-height: 900px) {
+    .lead {
+      position: sticky;
+      top: 32px;
+    }
+  }
+</style>

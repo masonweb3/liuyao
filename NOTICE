@@ -73,6 +73,9 @@ src/data/templates.ts（断语与建议）、src/data/copy.ts（界面文案）�
 （https://creativecommons.org/licenses/by-nc-sa/4.0/）。
 src/data/baihua-hant.json、src/data/yao-baihua-hant.json 是 baihua.json、yao-baihua.json 的繁体（台湾用语）
 版，用 opencc-js 1.4.2 的 s2twp 转换一次后逐条人工校对，许可同上。
+src/data/huangli.json（节气导语、时令与三候白话，建除、值神、宜忌词义与注）为本项目原创，许可同上；
+其中三候的候名照录古籍（公有领域）。src/data/huangli-hant.json 是它的繁体版（做法同上），另附 tyme4ts 名称的繁体对照表。
+黄历的宜忌、冲煞、建除、值神、神煞、彭祖百忌、节气时刻由 tyme4ts 计算（见下「依赖」），页面照录。
 
 ---------------------------------------------------------------------------
 依赖
@@ -85,8 +88,8 @@ tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail�
 Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站酷小薇 ZCOOL XiaoWei
 （Copyright 2018 The ZCOOL XiaoWei Project Authors），均采用 SIL Open Font
 License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；
-src/fonts/home-*.woff2 与 src/fonts/gua/*.woff2 是 tools/subset-fonts.py 从 google/fonts
-（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字），保留原字体里的版权与许可信息。
+src/fonts/home-*.woff2、src/fonts/gua/*.woff2 与 src/fonts/huangli/*.woff2 是 tools/subset-fonts.py 从 google/fonts
+（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字、黄历与节气页用字），保留原字体里的版权与许可信息。
 
 繁体页（/zh-hant/）另用三款字体，均采用 SIL Open Font License 1.1：
 - Noto Serif TC（字形 (c) 2017-2024 Adobe），正文，经 @fontsource 分片自托管；
