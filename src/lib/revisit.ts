@@ -212,11 +212,13 @@ export function reminder(
 /**
  * Google 日历's prefilled new-event page. Floating times like the .ics (no Z, no ctz):
  * Google reads them in the user's own calendar time zone. A link cannot set the
- * alarm, so the user's default notification applies.
+ * alarm, so the user's default notification applies. crm=AVAILABLE, trp=false: shown
+ * as free, not busy, like TRANSP:TRANSPARENT in the .ics.
  */
 export function googleUrl(cast: Date, gua: string, start: Date, now: Date, copy: IcsCopy): string {
 	const { end, details } = event(cast, gua, start, now, copy);
-	const q = { action: "TEMPLATE", text: copy.summary, dates: `${floating(start)}/${floating(end)}`, details };
+	const dates = `${floating(start)}/${floating(end)}`;
+	const q = { action: "TEMPLATE", text: copy.summary, dates, details, crm: "AVAILABLE", trp: "false" };
 	const query = Object.entries(q).map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
 	return `https://calendar.google.com/calendar/render?${query.join("&")}`;
 }
