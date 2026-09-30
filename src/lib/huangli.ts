@@ -209,7 +209,8 @@ const MARKS = ["馀事勿取", "诸事不宜"];
 export interface Words {
 	/** 词；带 note 的词后标小号「注」 */
 	list: { key: string; name: string; note?: Note }[];
-	mark?: string;
+	/** 标记词照录原文次序；有两天宜里「馀事勿取」「诸事不宜」都有（通行黄历也这样列），两个都显示 */
+	marks?: string[];
 }
 
 /** 页面上显示的一天：文字都已按简繁写好。逐日页、今日页的按月数据、窗口外的今日页都用它。 */
@@ -264,10 +265,10 @@ export function show(h: Huangli, data: Data): Show {
 	const t = (hans: string, tw: string) => (hant ? tw : hans);
 	const tw = (s: string) => data.names?.[s] ?? s;
 	const words = (all: string[]): Words => {
-		const mark = all.find((w) => MARKS.includes(w));
+		const marks = all.filter((w) => MARKS.includes(w)).map(tw);
 		return {
 			list: all.filter((w) => !MARKS.includes(w)).map((w) => ({ key: w, name: tw(w), ...(data.yiji[w]?.note && { note: data.yiji[w].note }) })),
-			...(mark && { mark: tw(mark) }),
+			...(marks.length > 0 && { marks }),
 		};
 	};
 	const yi = words(h.yi);
@@ -280,7 +281,13 @@ export function show(h: Huangli, data: Data): Show {
 	const pengzu = h.pengzu.map((line) => ({ text: tw(line), ...(pengzuNote(line) && { note: pengzuNote(line) }) }));
 	const markNotes: string[] = [];
 	if (h.yi.includes("馀事勿取")) markNotes.push(t("「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。", "「餘事勿取」照錄舊曆原文：除了上面這幾件，其餘的事都不取。"));
-	if (h.yi.includes("诸事不宜")) markNotes.push(t("「诸事不宜」照录旧历原文：这一天没有特别适宜的事。", "「諸事不宜」照錄舊曆原文：這一天沒有特別適宜的事。"));
+	// 窗内宜里有「诸事不宜」的 5 天，前面都还列着几件宜事（通行黄历同样照列），说「没有适宜的事」就自相矛盾
+	if (h.yi.includes("诸事不宜"))
+		markNotes.push(
+			yi.list.length
+				? t("「诸事不宜」照录旧历原文：除了上面这几件，其余不宜多安排。", "「諸事不宜」照錄舊曆原文：除了上面這幾件，其餘不宜多安排。")
+				: t("「诸事不宜」照录旧历原文：这一天没有特别适宜的事。", "「諸事不宜」照錄舊曆原文：這一天沒有特別適宜的事。"),
+		);
 	if (h.ji.includes("诸事不宜")) markNotes.push(t("「诸事不宜」照录旧历原文：除了宜里那几件，其余都不宜安排。", "「諸事不宜」照錄舊曆原文：除了宜裡那幾件，其餘都不宜安排。"));
 
 	const term = tw(h.term.name);

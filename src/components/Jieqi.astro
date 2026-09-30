@@ -91,7 +91,7 @@ const description = t(
             <span class="col">
               <span class="kind">{t(`${shown}当天的黄历`, `${shown}當天的農民曆`)}</span>
               <span class="v">{md(cur.date)} · {cur.time} {t('交节', '交節')} · {huangliOf(cur.date).ganzhi.day}日</span>
-              <span class="s">宜 {yiShort.map((w) => <>{w.name}{w.note && <span class="tick">{t('注', '註')}</span>}{' '}</>)}{more && '…… '}{day.yi.mark}</span>
+              <span class="s">宜 {yiShort.map((w) => <>{w.name}{w.note && <span class="tick">{t('注', '註')}</span>}{' '}</>)}{more && '…… '}{day.yi.marks?.join(' ')}</span>
             </span>
             <span class="arrow" aria-hidden="true">›</span>
           </a>
@@ -200,9 +200,12 @@ const description = t(
     gap: 14px;
     align-items: flex-start;
   }
+  /* 竖排的字不许折成两列：Chromium 全页截图时（视口临时拉到整页高）会按很小的可用高度排竖排字，
+     节气名折成几列，把左栏挤到不足百像素 */
   .season {
     padding-top: 30px;
     writing-mode: vertical-rl;
+    white-space: nowrap;
     font-size: 15px;
     line-height: 1;
     letter-spacing: 0.3em;
@@ -210,6 +213,7 @@ const description = t(
   }
   h1 {
     writing-mode: vertical-rl;
+    white-space: nowrap;
     font-family: var(--font-display);
     font-weight: 400;
     font-size: 56px;

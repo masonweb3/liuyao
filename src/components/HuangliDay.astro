@@ -64,7 +64,7 @@ const glossary = [...s.yi.list, ...s.ji.list]
 const duty = data.duty[h.duty];
 const star = data.tianshen[h.star.name];
 
-const list = (w: typeof s.yi) => [...w.list.map((x) => x.name), ...(w.mark ? [w.mark] : [])];
+const list = (w: typeof s.yi) => [...w.list.map((x) => x.name), ...(w.marks ?? [])];
 const title = t(`${y}年${m}月${d}日黄历 · 农历${s.lunar} · 六爻`, `${y}年${m}月${d}日農民曆（黃曆）· 農曆${s.lunar} · 六爻`);
 const description = t(
   `${y}年${m}月${d}日，农历${s.lunar}，${s.ganzhi}。宜：${list(s.yi).join('、') || '—'}；忌：${list(s.ji).join('、') || '—'}。${s.chong}，${s.duty}，值神${s.star}。`,
@@ -89,10 +89,10 @@ const description = t(
             <dl class:list={['row', { ji: k === '忌' }]}>
               <dt>{k}</dt>
               <dd>
-                <ul role="list" class:list={{ only: !w.list.length && w.mark }}>
+                <ul role="list" class:list={{ only: !w.list.length && !!w.marks }}>
                   {w.list.map((x) => <li>{x.name}{x.note && <span class="tick">{t('注', '註')}</span>}</li>)}
-                  {w.mark && <li class="mark">{w.mark}</li>}
-                  {!w.list.length && !w.mark && <li class="none">—</li>}
+                  {w.marks?.map((x) => <li class="mark">{x}</li>)}
+                  {!w.list.length && !w.marks && <li class="none">—</li>}
                 </ul>
               </dd>
             </dl>
@@ -311,8 +311,10 @@ const description = t(
     gap: 10px;
     align-items: flex-start;
   }
+  /* 竖排只有一列，不许折行（同节气页首块） */
   .tag {
     writing-mode: vertical-rl;
+    white-space: nowrap;
     padding-top: 4px;
     font-size: 13px;
     line-height: 1;
@@ -321,6 +323,7 @@ const description = t(
   }
   .ld {
     writing-mode: vertical-rl;
+    white-space: nowrap;
     font-family: var(--font-display);
     font-size: 28px;
     line-height: 1;

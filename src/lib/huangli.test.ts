@@ -146,13 +146,17 @@ describe("页面上显示的一天", () => {
 	});
 	it("标记词排在词后、不算词；加注词带注", () => {
 		const hanlu = show(huangli(2026, 10, 8), hans);
-		expect(hanlu.yi.mark).toBe("馀事勿取");
+		expect(hanlu.yi.marks).toEqual(["馀事勿取"]);
 		expect(hanlu.yi.list.map((w) => w.name)).not.toContain("馀事勿取");
 		expect(hanlu.ji).toEqual({ list: [] });
 		expect(hanlu.notes).toEqual([]);
 		expect(hanlu.markNotes).toEqual(["「馀事勿取」照录旧历原文：除了上面这几件，其余的事都不取。"]);
 		const lichun = show(huangli(2027, 2, 4), hans);
-		expect(lichun.ji).toEqual({ list: [], mark: "诸事不宜" });
+		expect(lichun.ji).toEqual({ list: [], marks: ["诸事不宜"] });
+		// 宜里两个标记词都有（通行黄历同样照列）：两个都照录；「诸事不宜」前面还有宜事，注不说「没有适宜的事」
+		const both = show(huangli(2026, 3, 19), hans);
+		expect(both.yi.marks).toEqual(["馀事勿取", "诸事不宜"]);
+		expect(both.markNotes[1]).toBe("「诸事不宜」照录旧历原文：除了上面这几件，其余不宜多安排。");
 		const song = show(huangli(2026, 10, 6), hans);
 		expect(song.ji.list.find((w) => w.key === "词讼")!.note).toBe("law");
 		expect(song.notes[0]).toBe(`「词讼」：${hans.note.law}`);

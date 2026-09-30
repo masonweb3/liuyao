@@ -147,9 +147,9 @@ const description = t(
       if (x.note) li.append(el('span', root.dataset.tick!, 'tick'));
       ul.append(li);
     }
-    if (w.mark) ul.append(el('li', w.mark, 'mark'));
-    if (!w.list.length && !w.mark) ul.append(el('li', '—', 'none'));
-    ul.classList.toggle('only', !w.list.length && !!w.mark);
+    for (const x of w.marks ?? []) ul.append(el('li', x, 'mark'));
+    if (!w.list.length && !w.marks) ul.append(el('li', '—', 'none'));
+    ul.classList.toggle('only', !w.list.length && !!w.marks);
   }
 
   function fill(c: Omit<Card, 'gua'> & { gua?: Card['gua'] }) {
