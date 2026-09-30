@@ -32,7 +32,7 @@
 
 | 层 | 选型 | 备注 |
 |---|---|---|
-| 框架 | Astro 7 + `@astrojs/cloudflare` | 页面全部预渲染，只有 `src/pages/api/judge.ts` 设 `export const prerender = false` |
+| 框架 | Astro 7 + `@astrojs/cloudflare` | 页面全部预渲染，只有两个服务端路由设 `export const prerender = false`：`src/pages/api/judge.ts`（调 Jev）和 `src/pages/api/remind.ics.ts`（只按网址参数现生成提醒 `.ics`，不存不记，参数按白名单校验） |
 | 运行时 | Cloudflare Workers（workerd） | `astro preview` 本身就跑在 workerd 上，测试环境与线上一致 |
 | 前端交互 | 原生 TypeScript + Astro 组件 | **不引入 React、Vue 等框架**。起卦流程用一个简单的状态机实现 |
 | 样式 | scoped CSS + `src/styles/tokens.css` 里的 CSS 变量 | 不用 Tailwind |
@@ -52,7 +52,7 @@ src/
   lib/reading.ts    根据排盘结果和模板组装解读
   lib/today.ts      首屏的今日干支（零 DOM）：不等 tyme4ts，临近交节才回退到 calendar.ts；是首页的 LCP，单独成包
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘；在首屏包里）
-  lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 生成
+  lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 与 Google 日历链接的生成
   lib/gua.ts        卦页用：卦名简称、卦爻辞拆分、卦宫、站酷小薇缺字规则 fontOf（零 DOM）
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
@@ -76,7 +76,8 @@ src/
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
-  pages/api/judge.ts 唯一的服务端路由：调用 Jev
+  pages/api/judge.ts 服务端路由：调用 Jev
+  pages/api/remind.ics.ts 服务端路由：iPhone、iPad 的到时提醒 .ics（只按网址里的两个日期和卦名现生成，不存不记）
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
   pages/robots.txt.ts  由 site 生成
   styles/tokens.css 颜色、字体、间距、动效时长
@@ -227,9 +228,14 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 在客户端用 canvas 生成，3:4，1242×1656。
   - 所问默认不上卡。
   - 用 `<img>` 展示，让用户长按保存。
-- **往卦复盘（M14，设计稿 16–18、D13–D15）：** 一切只存在本机，不上传、不收邮箱、不推送。
-  - **到时提醒我**：解读页「建议」之后，默认收起。刚起完的卦能设；从往卦点开的旧卦，没设过提醒、也没记下结果（「还没结果」不算结果）也能补设。手动排盘没有所问，不出。3、7、30 天从设的那天算，到期那天本地 20:00，在浏览器里生成 `.ics` 下载。
-  - **`.ics`**（`revisit.ts` 的 `reminder`）：CRLF；按 75 字节折行、不切断字；浮动时间（不带 TZID）；VALARM 在开始时提醒；描述只写起卦日期、卦名、「请用同一台设备打开」和 `https://sixyao.app/?history`，**不写所问、吉凶、附言**（日历会同步到云端、共享给别人）。
+- **往卦复盘（M14，设计稿 16–18、D13–D15）：** 往卦只存在本机，不上传、不收邮箱、不推送。日历提醒只带日期和卦名，不带所问；iPhone、iPad 的提醒由服务端按网址现生成，不存不记。
+  - **到时提醒我**：解读页「建议」之后，默认收起。刚起完的卦能设；从往卦点开的旧卦，没设过提醒、也没记下结果（「还没结果」不算结果）也能补设。手动排盘没有所问，不出。3、7、30 天从设的那天算，到期那天本地 20:00。
+    - 选好天数后，「加入日历」下两个按钮「Apple 日历」「Google 日历」。苹果设备（iPhone、iPad、Mac）Apple 在前，其余（安卓、Windows、Linux）Google 在前；紧跟标签的是主按钮（墨色线框），另一个浅线。iPadOS 的 Safari 报 Mac UA，靠 `navigator.maxTouchPoints > 1` 认出是 iPad。平台判断是 `view.ts` 里几行 UA 判断，不引库。
+    - **Google 日历**：打开预填好的新建日程页（`revisit.ts` 的 `googleUrl`；时间是浮动格式，不带 `Z`、不带 `ctz`，按用户日历自己的时区读），新标签打开，用户点「保存」。安卓 Chrome 上包成 intent（`intent`），直接拉起 Google 日历 App，没装就回退到同一个网页；App 内置浏览器（UA 带 `; wv)`、微信、LINE、Instagram、Facebook）不认 intent，走网页。链接定不了提醒时刻，按用户日历的默认通知，和 `.ics` 的 20:00 准点提醒不同。
+    - **Apple 日历**：iPhone、iPad 在当前页打开 `/api/remind.ics?d=…&c=…&g=…`（不带 `download`）：Safari 把 `text/calendar` 交给系统日历，不经过下载提示。Mac 和其他平台在浏览器里生成 `.ics` 下载（blob），双击导入。
+    - 两个按钮点了都把 `remind` 记进往卦；完成提示按所点的日历分两句（Google 那句写明提醒时刻按默认通知）。所有外跳（下载、新标签、intent、服务端地址）都在点击的同步回调里建一个 `<a>` 点一下。
+  - **`.ics`**（`revisit.ts` 的 `reminder`）：CRLF；按 75 字节折行、不切断字；浮动时间（不带 TZID）；VALARM 在开始时提醒；描述只写起卦日期、卦名、「请用同一台设备打开」和 `https://sixyao.app/?history`，**不写所问、吉凶、附言**（日历会同步到云端、共享给别人）。浏览器和 `/api/remind.ics` 共用 `reminder()`，除 UID、DTSTAMP 外逐字相同；Google 链接的标题、描述、起止时间也出自同一段代码。
+  - **`/api/remind.ics`**：只收三个参数：提醒那天 `d`（YYYYMMDD，服务端固定 20:00），起卦那天 `c`（北京时间 YYYYMMDD，只够算出「9月26日」），卦名 `g`（一卦或「本卦之变卦」）。`g` 按「之」拆开每段必须是 `gua-slugs.ts` 里的 64 卦全名；`d` 必须是真实日期，在 UTC 今天前 2 天到后 40 天；`c` 不早于 2026 年、不晚于 `d`；同一个键出现两次也不行。任何一项不合规都返回 400，正文固定、不回显输入，免得有人拿 sixyao.app 的域名发任意文字的日历。响应头 `text/calendar; charset=utf-8`、`Content-Disposition: inline`（选 inline：让 Safari 直接交给日历，attachment 会弹下载）、`no-store`、`X-Robots-Tag: noindex`，不记日志。`/api/` 已在 robots.txt 里 Disallow。
   - **回访卡**：只在从往卦点开的卦上，出现在解读页最上面（桌面在两栏之上）。设过提醒的从提醒那天起出，没设的起卦满 3 天出，记下过的以后都出；手动排盘不出。出卡时焦点落在卡的标题上，底部「再问一事」藏起。凶卦的卡以「不论结果如何，愿你安好。」收尾。卡上没有起卦、重摇、再问的入口（§1.6）。
   - **个人复盘**：往卦标题下「你记下的 N 卦里，自认应验 x 卦」。N 只算应了、一半、没应，x 只算应了；N 为 0 时整行不出。列表多一列「自记」（手机是所问下一行小字），不想记的不显示。
   - **存储**：往卦记录多两个可选字段 `review`（`outcome` 存英文键 yes/half/no/pending/skip，显示用 copy.ts 的字；`note` ≤ 100 字；`at`）和 `remind`（`days`、`at`）。旧记录没有这两个字段照常读；字段坏了只丢这个字段，不丢这一卦。记录没有 id，按起卦时刻 `at` 找到那一条整表写回。首屏的 `history.ts` 不认识这两个字段，原样带着读写；新逻辑都在按需加载的 `revisit.ts`、`view.ts`，文案由 Astro 在构建时写进页面（`Slots.astro`），首屏脚本零增长。往卦列表由 `view.ts` 画，`ritual.ts` 先按 `entries()` 定空态，包没载入时提示「重新打开本页」（Chromium 记住失败的动态 import，页内重试不会再发请求）。

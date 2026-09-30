@@ -121,7 +121,7 @@ const facts = [
         <h2 class="head">建议</h2>
         <ul class="list advice" data-advice></ul>
       </section>
-      <!-- 到时提醒我：收在答的末尾（设计稿 16、D13）。只在本机生成 .ics，不收邮箱、不推送。 -->
+      <!-- 到时提醒我：收在答的末尾（设计稿 16、D13）。不收邮箱、不推送；日历里只有日期和卦名，不写所问。 -->
       <section
         class="remind"
         aria-label={REMIND.label}
@@ -149,13 +149,20 @@ const facts = [
               ))}
             </div>
           </fieldset>
-          <button type="button" class="get" data-remind-get>{REMIND.get}</button>
+          <!-- 默认 Apple 在前；view.ts 在安卓、Windows 等上把 Google 挪到前面。紧跟标签的那个是主按钮。 -->
+          <div class="get" role="group" aria-labelledby="remind-add">
+            <span class="add" id="remind-add">{REMIND.add}</span>
+            <button type="button" data-remind-get="apple">{REMIND.apple}</button>
+            <button type="button" data-remind-get="google">{REMIND.google}</button>
+          </div>
           <p class="got" role="status" data-remind-status></p>
           <p class="fine">{REMIND.fine}</p>
-          <template data-remind-done>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
-            <span><Slots text={REMIND.done} /></span>
-          </template>
+          {(["apple", "google"] as const).map((k) => (
+            <template data-remind-done={k}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+              <span><Slots text={REMIND.done[k]} /></span>
+            </template>
+          ))}
         </div>
       </section>
       <div class="texts">
@@ -1082,17 +1089,33 @@ const facts = [
   }
   .get {
     grid-area: get;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 8px;
+  }
+  .add {
+    grid-column: 1 / -1;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  /* 字距比「下载日历提醒」小：Apple、Google 拉开字距不好认 */
+  .get button {
     min-height: 48px;
-    padding: 0 0 0 0.3em;
+    padding: 0 0 0 0.1em;
     background: none;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule);
     border-radius: var(--radius);
     font-size: 15px;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.1em;
     cursor: pointer;
     transition: background-color var(--t-hover);
   }
-  .get:hover {
+  /* 紧跟标签的是主选项：墨色线框，同「记下」；另一个浅线，同「分享卡」 */
+  .add + button {
+    border-color: var(--ink);
+  }
+  .get button:hover {
     background: rgb(45 46 54 / 0.05);
   }
   .got {
@@ -1557,7 +1580,11 @@ const facts = [
       font-size: var(--fs-m);
     }
     .get {
-      padding: 0 28px 0 calc(28px + 0.3em);
+      grid-template-columns: repeat(2, auto);
+      justify-content: start;
+    }
+    .get button {
+      padding: 0 24px 0 calc(24px + 0.1em);
     }
     .got {
       font-size: 15px;
@@ -1565,8 +1592,16 @@ const facts = [
     .got :global(svg) {
       margin-top: 6px;
     }
+    /* 在按钮旁时和按钮行对齐，不和上面的「加入日历」一起居中 */
     .fine {
+      align-self: end;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
       font-size: 13px;
+    }
+    .remind-panel:has(.got:not(:empty)) .fine {
+      min-height: 0;
     }
   }
 

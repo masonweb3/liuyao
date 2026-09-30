@@ -13,6 +13,9 @@ import {
 	canRemind,
 	type Days,
 	find,
+	googleUrl,
+	icsPath,
+	intent,
 	monthDay,
 	newUid,
 	type Outcome,
@@ -264,24 +267,49 @@ toggle.addEventListener("click", () => {
 	panel.hidden = !open;
 });
 
-// 点了直接生成并下载，不经过服务器；可以换天数再下一次，最后一次为准。
-$("[data-remind-get]", remind).addEventListener("click", () => {
-	const days = Number($<HTMLInputElement>("input[name=remind-days]:checked", remind).value) as Days;
-	const now = new Date();
-	const { summary = "", body = "", url = "" } = remind.dataset;
-	const ics = reminder({ at: shown.at }, shown.gua, days, now, newUid(), { summary, body, url });
-	const a = document.createElement("a");
-	a.href = URL.createObjectURL(new Blob([ics.text], { type: "text/calendar;charset=utf-8" }));
-	a.download = ics.name;
-	a.click();
-	setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-	const kept = keep({ remind: { days, at: now.toISOString() } });
-	const msg = $<HTMLTemplateElement>("[data-remind-done]", remind).content.cloneNode(true) as DocumentFragment;
-	fill(msg, { due: monthDay(ics.start) });
-	// 文件照样下了，但往卦里没记上：回访卡不会按提醒那天出，要说清楚
-	if (!kept) msg.lastElementChild?.append(` ${card.dataset.unsaved ?? ""}`);
-	got.replaceChildren(msg);
-});
+const ua = navigator.userAgent;
+/** iPhone、iPad：iPadOS 的 Safari 报 Mac 的 UA，靠多点触控认出来。 */
+const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+/**
+ * 安卓的 Chrome 用 intent 直接拉起 Google 日历 App；App 内置的浏览器（WebView：微信、LINE、Instagram……）不认 intent，走网页。
+ * 安卓的 WebView 在 UA 里带「; wv)」，另几家自带内核的按名字认；漏认的会打不开，遇到再补进这一行。
+ */
+const intentOk = /Android/.test(ua) && !/; ?wv\)|MicroMessenger|FBAN|FBAV|Instagram|Line\//.test(ua);
+// 苹果设备 Apple 日历在前，其余（安卓、Windows、Linux）Google 在前：紧跟标签的是主按钮
+if (!ios && !/Macintosh/.test(ua)) $("#remind-add", remind).after($("[data-remind-get=google]", remind));
+
+/** Every way out goes through one link click, inside the tap: a download, a new tab, or this tab. */
+const go = (props: Partial<HTMLAnchorElement>) => Object.assign(document.createElement("a"), props).click();
+
+// 不经过服务器生成（iPhone、iPad 除外，见 /api/remind.ics）；可以换天数再加一次，往卦里以最后一次为准。
+for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
+	b.addEventListener("click", () => {
+		const kind = b.dataset.remindGet as "apple" | "google";
+		const days = Number($<HTMLInputElement>("input[name=remind-days]:checked", remind).value) as Days;
+		const now = new Date();
+		const start = remindAt(now, days);
+		const cast = new Date(shown.at);
+		const { summary = "", body = "", url = "" } = remind.dataset;
+		const copy = { summary, body, url };
+		if (kind === "google") {
+			const web = googleUrl(cast, shown.gua, start, now, copy);
+			go(intentOk ? { href: intent(web) } : { href: web, target: "_blank", rel: "noopener" });
+		} else if (ios) {
+			// 当前页打开服务端地址，不带 download：Safari 把 text/calendar 交给日历
+			go({ href: icsPath(cast, shown.gua, start) });
+		} else {
+			const ics = reminder(cast, shown.gua, start, now, newUid(), copy);
+			const href = URL.createObjectURL(new Blob([ics.text], { type: "text/calendar;charset=utf-8" }));
+			go({ href, download: ics.name });
+			setTimeout(() => URL.revokeObjectURL(href), 60_000);
+		}
+		const kept = keep({ remind: { days, at: now.toISOString() } });
+		const msg = $<HTMLTemplateElement>(`[data-remind-done=${kind}]`, remind).content.cloneNode(true) as DocumentFragment;
+		fill(msg, { due: monthDay(start) });
+		// 日历照样加了，但往卦里没记上：回访卡不会按提醒那天出，要说清楚
+		if (!kept) msg.lastElementChild?.append(` ${card.dataset.unsaved ?? ""}`);
+		got.replaceChildren(msg);
+	});
 
 // ---------------------------------------------------------------- 往卦列表
 

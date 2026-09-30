@@ -7,10 +7,15 @@ import {
 	canRemind,
 	find,
 	fold,
+	googleUrl,
+	type IcsCopy,
+	icsPath,
+	intent,
 	newUid,
 	NOTE_MAX,
 	type Past,
 	pasts,
+	remindAt,
 	reminder,
 	save,
 	showCard,
@@ -197,9 +202,11 @@ describe(".ics", () => {
 	const copy = { ...REMIND.ics, url: "https://sixyao.app/?history" };
 	const now = day(1, 21, 30);
 	const unfold = (s: string) => s.replace(/\r\n /g, "");
+	const make = (p: Past, gua: string, days: number, uid = newUid(), c: IcsCopy = copy) =>
+		reminder(new Date(p.at), gua, remindAt(now, days), now, uid, c);
 
 	it("CRLF 换行，结尾也是 CRLF；必填字段齐全", () => {
-		const { text, name, start } = reminder(entry(), "兑为泽之天水讼", 7, now, "abc", copy);
+		const { text, name } = make(entry(), "兑为泽之天水讼", 7, "abc");
 		expect(text.endsWith("\r\n")).toBe(true);
 		expect(text.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
 		const lines = unfold(text).split("\r\n");
@@ -213,7 +220,7 @@ describe(".ics", () => {
 		expect(lines).toContain("DTSTART:20261004T200000");
 		expect(lines).toContain("DTEND:20261004T201500");
 		expect(lines.filter((l) => l.startsWith("DESCRIPTION:"))).toHaveLength(2);
-		expect(start).toEqual(new Date(2026, 9, 4, 20));
+		expect(remindAt(now, 7)).toEqual(new Date(2026, 9, 4, 20));
 		expect(name).toBe("sixyao-2026-10-04.ics");
 	});
 
@@ -231,7 +238,7 @@ describe(".ics", () => {
 
 	it("描述是起卦日期、卦名、「用同一台设备打开」和链接：没有所问、吉凶、附言", () => {
 		const p = entry({ review: { outcome: "no", note: "对方爽约，心里难过。", at: day(1).toISOString() } });
-		const { text } = reminder(p, "兑为泽之天水讼", 3, now, newUid(), copy);
+		const { text } = make(p, "兑为泽之天水讼", 3);
 		const desc =
 			`${dayLabel(new Date(p.at), now)}起的一卦：兑为泽之天水讼。过些日子了，回来看看后来怎样。` +
 			"往卦只保存在起卦那台设备的浏览器里，请用同一台设备打开。\\nhttps://sixyao.app/?history";
@@ -247,7 +254,7 @@ describe(".ics", () => {
 
 	it("每行不超过 75 字节，折行不切断中文，展开后一字不差", () => {
 		const long = "一卦".repeat(60) + "𝌆，a;b\\c";
-		const { text } = reminder(entry(), long, 30, now, newUid(), { ...copy, summary: long });
+		const { text } = make(entry(), long, 30, newUid(), { ...copy, summary: long });
 		physical(text);
 		// 确实折了好几行
 		expect(text.split("\r\n").filter((l) => l.startsWith(" ")).length).toBeGreaterThan(2);
@@ -261,6 +268,56 @@ describe(".ics", () => {
 		const a = newUid();
 		expect(a).toMatch(/^[0-9a-f]{32}$/);
 		expect(newUid()).not.toBe(a);
+	});
+});
+
+describe("Google 日历与 iPhone 的地址", () => {
+	const copy = { ...REMIND.ics, url: "https://sixyao.app/?history" };
+	const now = day(1, 21, 30);
+	const p = entry({ review: { outcome: "no", note: "对方爽约，心里难过。", at: day(1).toISOString() } });
+	const url = googleUrl(new Date(p.at), "兑为泽之天水讼", remindAt(now, 7), now, copy);
+	const q = new URL(url).searchParams;
+
+	it("预填新建日程：标题、浮动时间（没有 Z、没有 ctz）、描述与 .ics 同一套", () => {
+		expect(url.startsWith("https://calendar.google.com/calendar/render?action=TEMPLATE&")).toBe(true);
+		expect(q.get("text")).toBe(REMIND.ics.summary);
+		expect(q.get("dates")).toBe("20261004T200000/20261004T201500");
+		expect(q.has("ctz")).toBe(false);
+		expect(url).not.toMatch(/\d{8}T\d{6}Z/);
+		expect(q.get("details")).toBe(
+			`${dayLabel(new Date(p.at), now)}起的一卦：兑为泽之天水讼。过些日子了，回来看看后来怎样。` +
+				"往卦只保存在起卦那台设备的浏览器里，请用同一台设备打开。\nhttps://sixyao.app/?history",
+		);
+	});
+
+	it("中文、换行、斜杠都编码过，地址里没有裸的空格和换行", () => {
+		expect(url).not.toMatch(/[\s一-鿿]/);
+		expect(url).toContain("dates=20261004T200000%2F20261004T201500");
+		expect(url).toContain("%0Ahttps%3A%2F%2Fsixyao.app%2F%3Fhistory");
+	});
+
+	it("没有所问、吉凶、附言", () => {
+		const plain = decodeURIComponent(url);
+		for (const leak of [p.question, "跳槽", "爽约", "吉", "凶", "应了", "没应"]) expect(plain).not.toContain(leak);
+	});
+
+	it("安卓 intent：拉起 Google 日历 App，没装就回到同一个网页地址", () => {
+		const link = intent(url);
+		expect(link.startsWith("intent://calendar.google.com/calendar/render?action=TEMPLATE&")).toBe(true);
+		expect(link).toContain("#Intent;scheme=https;package=com.google.android.calendar;");
+		expect(link.endsWith(";end")).toBe(true);
+		const fallback = /;S\.browser_fallback_url=([^;]*);/.exec(link)?.[1] ?? "";
+		expect(decodeURIComponent(fallback)).toBe(url);
+		// 查询串原样搬进 intent，不多一层编码
+		expect(link.slice("intent://".length, link.indexOf("#"))).toBe(url.slice("https://".length));
+	});
+
+	it("iPhone 的服务端地址只带提醒那天、起卦那天（北京时间）和卦名", () => {
+		// 北京时间 9月27日 01:00 起的卦，算作 27 日
+		const late = new Date(Date.UTC(2026, 8, 26, 17));
+		const path = icsPath(late, "兑为泽之天水讼", new Date(2026, 9, 4, 20));
+		expect(path).toBe(`/api/remind.ics?d=20261004&c=20260927&g=${encodeURIComponent("兑为泽之天水讼")}`);
+		expect(new URL(path, "https://sixyao.app").searchParams.get("g")).toBe("兑为泽之天水讼");
 	});
 });
 
