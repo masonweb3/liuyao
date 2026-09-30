@@ -1,4 +1,6 @@
 ---
+import Columns from './Columns.astro';
+
 const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, i) => ({ ch, i: r * 4 + i })));
 ---
 
@@ -8,13 +10,15 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
       <span class="seal" aria-hidden="true">爻</span>
       <span class="name">六爻</span>
     </div>
-    <nav class="acts">
-      <!-- 设计稿手机首屏没有往卦入口，照桌面版放在这里 -->
+    {/* 栏目导航只在首屏：跟着这一屏显隐，写下所问以后各屏都看不到它，仪式中不打断这一卦。 */}
+    <Columns at="/" page dark />
+    {/* 页头只留栏目这一个 nav 地标：往卦、音效是两个按钮，用 div */}
+    <div class="acts">
       <button class="past" data-go="history">往卦</button>
       <button class="sound" aria-label="音效：已开启" aria-pressed="true" data-sound>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"></path><path class="on" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"></path></svg>
       </button>
-    </nav>
+    </div>
   </header>
   <div class="center">
     <h1 class="motto" aria-label="心有所疑，不妨一问">
@@ -38,11 +42,13 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
 </section>
 
 <style>
+  /* 手机：两行，上行品牌与往卦、音效，下行栏目（Columns 自己占第二行）；标语、起卦整体下移约 22px。
+     DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序。 */
   header {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto auto;
     justify-content: space-between;
     align-items: center;
-    height: var(--tap);
   }
   .acts {
     display: flex;
@@ -192,7 +198,10 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     }
   }
   @media (min-width: 1024px) {
+    /* 一行：品牌、栏目、工具区，首屏其余一个像素不动 */
     header {
+      display: flex;
+      gap: 34px;
       height: 48px;
     }
     .acts {

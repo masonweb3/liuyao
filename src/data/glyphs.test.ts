@@ -13,6 +13,7 @@ import { brotliDecompressSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import baihuaHant from "./baihua-hant.json" with { type: "json" };
 import baihua from "./baihua.json" with { type: "json" };
+import { COLUMNS } from "./columns";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
@@ -129,4 +130,11 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 		const missing = (text as string[]).filter((ch) => !have.has(ch.codePointAt(0) as number));
 		expect(missing.join(""), "缺这些字：重跑 tools/subset-fonts.py").toBe("");
 	});
+});
+
+// 首页的栏目导航在首屏：栏目名的字要在预加载的首屏子集里，不然回退 fontsource 切片，多下几十 KB，换字体时文字跳动。
+it("首屏子集有栏目导航的每个字", () => {
+	const have = woff2Chars(readFileSync(new URL("../fonts/home-body.woff2", import.meta.url)));
+	const missing = [...COLUMNS.map((c) => c.hans).join("")].filter((ch) => !have.has(ch.codePointAt(0) as number));
+	expect(missing.join(""), "加了栏目要重跑 tools/subset-fonts.py").toBe("");
 });

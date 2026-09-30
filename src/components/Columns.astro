@@ -1,0 +1,123 @@
+---
+// 栏目导航（M16，设计稿 19、20、D16、D17）：首页首屏和纸面页头共用，栏目表在 src/data/columns.ts。
+// 纯 HTML 加 CSS，不带脚本：首页入口包不能因为它变大；当前项在构建时写定。
+// 父级页头：手机是两列网格（上行品牌与工具区），这里自己占第二行整行；桌面是一行 flex，这里撑满中间。
+import { COLUMNS } from '../data/columns';
+
+interface Props {
+  /** 本页属于哪一栏：栏目表里的 path */
+  at: string;
+  /** 本页就是这一栏的首页（首页、目录页），aria-current="page"；栏目里的其他页（卦页）是 "true"，点它回栏目首页 */
+  page?: boolean;
+  hant?: boolean;
+  /** 首页的暗场配色 */
+  dark?: boolean;
+}
+
+const { at, page = false, hant = false, dark = false } = Astro.props;
+---
+
+<nav class:list={['cols', { dark }]} aria-label={hant ? '欄目' : '栏目'}>
+  {COLUMNS.map((c) => (
+    <a href={hant ? (c.hantPath ?? c.path) : c.path} aria-current={c.path === at ? (page ? 'page' : 'true') : undefined}>{hant ? c.hant : c.hans}</a>
+  ))}
+</nav>
+
+<style>
+  /* 手机和 768–1023：页头下面单独一行，高 44。栏目多了横着滑，不折行（M16-3），零 JS：
+     左右出血到屏幕边（外边距与 index.astro 的 .screen、Paper.astro 的 .page 左右内边距逐字对应），两端 24px 渐隐。 */
+  .cols {
+    --on: var(--ink);
+    --off: var(--ink-2);
+    --mark: var(--seal);
+    --edge-l: max(var(--gutter), env(safe-area-inset-left));
+    --edge-r: max(var(--gutter), env(safe-area-inset-right));
+    grid-row: 2;
+    grid-column: 1 / -1;
+    height: var(--tap);
+    margin-inline: calc(-1 * var(--edge-l)) calc(-1 * var(--edge-r));
+    /* 首项的字与品牌左缘对齐：扣掉链接自己的 10px */
+    padding-left: calc(var(--edge-l) - 10px);
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  .cols::-webkit-scrollbar {
+    display: none;
+  }
+  /* 滑到头时末项的字停在右边 24px 处。用占位，不用 padding-right：老 Safari 在滚动容器里不认末端 padding。 */
+  .cols::after {
+    content: '';
+    flex: 0 0 calc(var(--edge-r) - 10px);
+  }
+  .dark {
+    --on: var(--on-night);
+    --off: var(--on-night-2);
+    --mark: var(--gold);
+  }
+  /* 字：正文宋体 400，不加粗（M16-7：首页字形子集只有 400）。行高写死 44，换字体前后不动。 */
+  a {
+    position: relative;
+    flex-shrink: 0;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    white-space: nowrap;
+    color: var(--off);
+    text-decoration: none;
+    transition: color var(--t-hover);
+    /* 滚动容器会裁掉外扩的焦点描边，这一行内收 */
+    outline-offset: -3px;
+  }
+  a:hover,
+  a[aria-current] {
+    color: var(--on);
+  }
+  /* 当前项：主色加一道 12×2 短线，不只靠颜色区分。居中于字，扣掉末尾字距的一半。 */
+  a[aria-current]::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 7px;
+    width: 12px;
+    height: 2px;
+    margin-left: calc(-6px - 0.12em);
+    background: var(--mark);
+  }
+  /* 当前项在屏外时（以后排在右边的栏目页），打开就滚到它（M16-4，渐进增强，不加脚本）。
+     支持情况（2026-10，MDN browser-compat-data）：Chrome、Edge、安卓 Chrome、Samsung Internet 133 起支持；
+     Safari（macOS、iOS，到 27）和 Firefox 都不支持（https://bugs.webkit.org/show_bug.cgi?id=288430），
+     这些浏览器停在最左，页面标题已说明在哪一栏。 */
+  a[aria-current] {
+    scroll-initial-target: nearest;
+  }
+
+  /* 桌面：并进页头那一行，紧跟品牌（品牌到首项的字 48px = 页头 gap 34 + 链接左右 14） */
+  @media (min-width: 1024px) {
+    .cols {
+      flex-grow: 1;
+      height: auto;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .cols::after {
+      content: none;
+    }
+    a {
+      padding: 0 14px;
+      outline-offset: 3px;
+    }
+    /* 这里不是滚动容器，最近的滚动容器是整页：不取消的话，支持的浏览器会把整页滚到页头。 */
+    a[aria-current] {
+      scroll-initial-target: none;
+    }
+  }
+</style>
