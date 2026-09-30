@@ -7,6 +7,15 @@
  * splitting on the colon. 爻辞 lines start with 初九/六二/…/上六 and a full-width
  * colon, each followed by its 小象; 用九/用六 exist only in 乾 and 坤.
  */
+import {
+	Duty,
+	NineStar,
+	PengZuEarthBranch,
+	PengZuHeavenStem,
+	Phenology,
+	SolarTerm,
+	TwelveStar,
+} from "tyme4ts";
 import { describe, expect, it } from "vitest";
 import { yaoTitle } from "../lib/flow.js";
 import { parseGua } from "../lib/gua.js";
@@ -17,6 +26,8 @@ import * as copy from "./copy.js";
 import { GUA } from "./gua-slugs.js";
 import guaciHant from "./guaci-hant.json" with { type: "json" };
 import guaci from "./guaci.json" with { type: "json" };
+import huangliHant from "./huangli-hant.json" with { type: "json" };
+import huangli from "./huangli.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
@@ -99,8 +110,100 @@ describe("爻辞白话", () => {
 	});
 });
 
+interface Entry {
+	name: string;
+	text: string;
+	hou?: string[];
+	note?: boolean;
+}
+type Huangli = { note: string } & Record<Exclude<keyof typeof huangli, "note">, Record<string, Entry>>;
+const HL = huangli as Huangli;
+const HL_HANT = huangliHant as Huangli;
+const CATS = Object.keys(huangli).filter((k) => k !== "note") as Exclude<keyof Huangli, "note">[];
+
+/** 释义正文与注；名称、三候、彭祖原文是照录的旧文（如宜忌里的「开光」），不在检查之列。 */
+function huangliTexts(data: Huangli): string[] {
+	return [data.note, ...CATS.flatMap((cat) => Object.values(data[cat]).map((e) => e.text))];
+}
+
+describe("黄历释义", () => {
+	// 键是 tyme4ts 输出的原名，页面按原名取释义；全集对照，时间窗往前滚也不会冒出没有释义的词。
+	const FULL: Record<string, string[]> = {
+		jieqi: SolarTerm.NAMES,
+		duty: Duty.NAMES,
+		tianshen: TwelveStar.NAMES,
+		ninestar: NineStar.NAMES,
+		pengzu: [...PengZuHeavenStem.NAMES, ...PengZuEarthBranch.NAMES],
+	};
+	const LEN: Record<string, [number, number]> = {
+		jieqi: [180, 300],
+		duty: [40, 90],
+		tianshen: [40, 90],
+		ninestar: [40, 90],
+		pengzu: [15, 40],
+	};
+
+	it("每类的键与 tyme4ts 的名字全集一致", () => {
+		expect([...CATS].sort()).toEqual(Object.keys(FULL).sort());
+		for (const cat of CATS) expect(Object.keys(HL[cat]).sort(), cat).toEqual([...FULL[cat]!].sort());
+	});
+
+	it("繁体与简体逐项对应（键、字段、三候条数、加注标记都一样）", () => {
+		expect(Object.keys(huangliHant)).toEqual(Object.keys(huangli));
+		for (const cat of CATS) {
+			expect(Object.keys(HL_HANT[cat]), cat).toEqual(Object.keys(HL[cat]));
+			for (const [key, e] of Object.entries(HL[cat])) {
+				const t = HL_HANT[cat][key]!;
+				expect(Object.keys(t), key).toEqual(Object.keys(e));
+				expect(t.hou?.length, key).toBe(e.hou?.length);
+				expect(t.note, key).toBe(e.note);
+			}
+		}
+	});
+
+	it("简体显示名就是原名（九星显示「一白水」这样的全称）；三候照 tyme4ts 的原文", () => {
+		for (const cat of CATS)
+			for (const [key, e] of Object.entries(HL[cat]))
+				expect(e.name, key).toBe(cat === "ninestar" ? NineStar.fromName(key).toString() : key);
+		for (const [key, e] of Object.entries(HL.jieqi)) {
+			const i = SolarTerm.NAMES.indexOf(key);
+			expect(e.hou, key).toEqual(Phenology.NAMES.slice(3 * i, 3 * i + 3));
+		}
+	});
+
+	it("天神释义开头写明黄道、黑道，与 tyme4ts 一致", () => {
+		for (const [key, e] of Object.entries(HL.tianshen)) {
+			const ecliptic = TwelveStar.fromName(key).getEcliptic().getName();
+			expect(e.text, key).toMatch(new RegExp(`^${key}，${ecliptic}`));
+			expect(HL_HANT.tianshen[key]!.text, key).toMatch(ecliptic === "黄道" ? /^.+，黃道/ : /^.+，黑道/);
+		}
+	});
+
+	it("每条是完整的话，长短在各类的范围内（简繁都查）", () => {
+		for (const data of [HL, HL_HANT])
+			for (const cat of CATS) {
+				const [min, max] = LEN[cat]!;
+				for (const [key, e] of Object.entries(data[cat])) {
+					expect(e.text, `${cat}${key}`).toMatch(/^[^\s].*。$/);
+					expect([...e.text].length, `${cat}${key}`).toBeGreaterThanOrEqual(min);
+					expect([...e.text].length, `${cat}${key}`).toBeLessThanOrEqual(max);
+				}
+			}
+	});
+
+	it("讲词义和旧说，不对读者说话", () => {
+		for (const s of [...huangliTexts(HL), ...huangliTexts(HL_HANT)]) expect(s).not.toMatch(/你|您/);
+	});
+
+	it("繁体没有 s2twp 的常见误转（兇、矇、佔、鹹；三候的征、咸，「北回歸線」）", () => {
+		for (const s of strings(huangliHant)) expect(s).not.toMatch(/[兇矇佔鹹]|徵鳥|迴歸線/);
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
+		...huangliTexts(HL),
+		...huangliTexts(HL_HANT),
 		...strings(baihua),
 		...strings(baihuaHant),
 		...strings(yaoBaihua),
@@ -112,7 +215,7 @@ describe("红线（简繁都查）", () => {
 
 	it("不出现改命、转运、化解之类的字样", () => {
 		expect(strings(copy).length).toBeGreaterThan(10);
-		for (const s of all) expect(s).not.toMatch(/改命|转运|轉運|化解|算命|消灾|消災|开光|開光|大师|大師|血光/);
+		for (const s of all) expect(s).not.toMatch(/改命|转运|轉運|化解|算命|消灾|消災|开光|開光|大师|大師|血光|大凶|大兇/);
 	});
 
 	it("不打包票，不给应期", () => {
