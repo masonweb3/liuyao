@@ -4,6 +4,13 @@
 
 ## 2026.09.30
 
+- **到时提醒：旧卦没记上提醒时说清楚；Google 日历的日程显示为空闲**。
+  - **提醒没记进往卦时的提示**：点了「Apple 日历」「Google 日历」而往卦写不进去（存储被禁用、写满）时，完成提示后面原来接的是「这台设备暂时无法保存往卦，本次结果不会留下记录。」从往卦点开的旧卦本来就在往卦里，这句不对。现在接「这次提醒没能记进这台设备的往卦，加进日历不受影响。」，紧接在完成提示的句号后面，不加空格（原来多一个半角空格）。不写「日历里的提醒照常」：点完按钮时还没加进日历，Google 要点「保存」，Apple 要按系统提示加入。刚起的卦一开始就存不了时也说得通，页底另有整卦存不下的那句。新句是 `copy.ts` 的 `REMIND.unsaved`，由 `Reading.astro` 写到提醒那块的 `data-unsaved`；回访卡「记下」存不下时仍用 `ERRORS.storage`，没动。
+  - **不说「回访卡不会按时出现」**：没记上提醒时，回访卡按「起卦满 3 天」出，只会比提醒那天早、不会晚，到那天从往卦点开，卡照样在。只有这一卦整个没存上时才没有卡，那时页底已经说了。
+  - **Google 日历显示为空闲**：预填链接加 `crm=AVAILABLE&trp=false`，日程不再占成「忙碌」，与 `.ics` 的 `TRANSP:TRANSPARENT` 一致；安卓的 intent 由同一个地址派生，一起带上。已在 Google 日历网页版确认：不带这两个参数是「忙碌」，带上是「空闲」。
+  - **大小**：首页入口包 17,841 字节，原始字节与 main 相同，把分包文件名里的哈希换成占位后逐字节相同；gzip 7,930 → 7,933，差的 3 字节来自哈希。`view` 包 10,664 → 10,690 字节（gzip 4,755 → 4,772）。新句只在 HTML 里，不在任何 JS 包里。
+  - README 中英文改正两处过时说明：到时提醒不只是本机生成的日历文件（iPhone、iPad 走 `/api/remind.ics`，Google 日历是预填链接）；服务端路由除 `/api/judge` 还有 `/api/remind.ics`。
+
 - **统计脚本改 async，不再挡首页脚本**：`Page.astro` 里 Cloudflare Web Analytics 的 `beacon.min.js` 原是不带 async 的模块脚本。这类脚本等文档解析完，按出现顺序逐个执行，它排在首页入口脚本前面，所以首页渲染今日干支（首页的 LCP）和起卦流程，都要等这个第三方脚本下完；真实手机上还得先连上另一个域名。现在加了 `async`，它下完就自己执行，不再排队。async 脚本照样在 load 事件之前执行，beacon 上报的时机不变。说明写成 Astro 注释，不进 HTML。
   - **产物**：全站 131 个 HTML 与 main 相比只多这一个属性，`_astro/` 里 1,190 个文件逐字节相同。
   - **统计照常发**：Chromium、WebKit 各打开首页、`/gua/`、`/gua/di-tian-tai/`、`/zh-hant/gua/`，main 和改后表现一致：beacon 加载、执行，每页向 `https://cloudflareinsights.com/cdn-cgi/rum` 发两次。第一次在 load 之后（eventType 1，带 pageloadId 和 16 项导航计时），第二次在页面隐藏时（eventType 3，带 lcp、cls、fcp、ttfb；WebKit 看不到 sendBeacon 的请求体）。注意上报地址是 Cloudflare 的域名，不是本站的 `/cdn-cgi/rum`：只带 token 的写法默认发到那里。测的时候 rum 请求在本地拦下，没有发给 Cloudflare。

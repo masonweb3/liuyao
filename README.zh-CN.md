@@ -9,11 +9,11 @@
 - **语义判断用 [TypeSafe Jev](https://docs.typesafe.ai)**：给问题分类以确定用神，并识别自伤、急事、赌博等不宜占问的情况。Jev 不可用时由用户自选类别，流程照样走得通。
 - **解读**：卦爻辞原文，加本项目原创的白话。
 - **手机上**可以长按「摇」，也可以开启摇一摇，直接摇手机。
-- **免费、无广告、不登录。** 访问量只用 Cloudflare Web Analytics 统计：不用 cookie，不追踪个人，不接其他统计。往卦和事后记下的「后来怎样」只存在本机浏览器；到时提醒是在本机生成的日历文件，不收邮箱，不推送。所问只发给 Jev 分类一次，本站不记录。
+- **免费、无广告、不登录。** 访问量只用 Cloudflare Web Analytics 统计：不用 cookie，不追踪个人，不接其他统计。往卦和事后记下的「后来怎样」只存在本机浏览器；到时提醒加进你自己的日历，只带日期和卦名：日历文件在本机生成（iPhone、iPad 上由服务端按网址现生成，不存不记），Google 日历用预填好的新建日程；不收邮箱，不推送。所问只发给 Jev 分类一次，本站不记录。
 
 ## 技术栈
 
-Astro 7 · Cloudflare Workers · TypeScript · [tyme4ts](https://github.com/6tail/tyme4ts)（历法） · Vitest。页面全部预渲染，唯一的服务端路由是调用 Jev 的 `/api/judge`。
+Astro 7 · Cloudflare Workers · TypeScript · [tyme4ts](https://github.com/6tail/tyme4ts)（历法） · Vitest。页面全部预渲染，服务端路由只有两个：调用 Jev 的 `/api/judge`，和给 iPhone、iPad 现生成提醒日历文件的 `/api/remind.ics`。
 
 ## 开发
 
