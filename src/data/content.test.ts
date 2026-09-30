@@ -14,6 +14,7 @@ import {
 	PengZuHeavenStem,
 	Phenology,
 	SolarTerm,
+	Taboo,
 	TwelveStar,
 } from "tyme4ts";
 import { describe, expect, it } from "vitest";
@@ -134,6 +135,7 @@ describe("黄历释义", () => {
 		tianshen: TwelveStar.NAMES,
 		ninestar: NineStar.NAMES,
 		pengzu: [...PengZuHeavenStem.NAMES, ...PengZuEarthBranch.NAMES],
+		yiji: Taboo.NAMES,
 	};
 	const LEN: Record<string, [number, number]> = {
 		jieqi: [180, 300],
@@ -141,6 +143,7 @@ describe("黄历释义", () => {
 		tianshen: [40, 90],
 		ninestar: [40, 90],
 		pengzu: [15, 40],
+		yiji: [20, 50],
 	};
 
 	it("每类的键与 tyme4ts 的名字全集一致", () => {
@@ -189,6 +192,12 @@ describe("黄历释义", () => {
 					expect([...e.text].length, `${cat}${key}`).toBeLessThanOrEqual(max);
 				}
 			}
+	});
+
+	it("求医、词讼一类（AGENTS.md §1.5）都标了加注", () => {
+		const noted = CATS.flatMap((cat) => Object.entries(HL[cat]).flatMap(([key, e]) => (e.note ? [key] : [])));
+		for (const key of ["求医", "治病", "针灸", "求医疗病", "词讼", "癸不词讼理弱敌强", "未不服药毒气入肠"])
+			expect(noted, key).toContain(key);
 	});
 
 	it("讲词义和旧说，不对读者说话", () => {
