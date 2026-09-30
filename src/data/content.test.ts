@@ -9,9 +9,6 @@
  */
 import {
 	Duty,
-	NineStar,
-	PengZuEarthBranch,
-	PengZuHeavenStem,
 	Phenology,
 	SolarTerm,
 	Taboo,
@@ -114,45 +111,48 @@ describe("爻辞白话", () => {
 interface Entry {
 	name: string;
 	text: string;
-	hou?: string[];
+	/** 节气：导语一句 */
+	intro?: string;
+	/** 节气：三候，候名照录 tyme4ts 的原文，白话原创 */
+	hou?: { name: string; text: string }[];
 	note?: boolean;
 }
-type Huangli = { note: string } & Record<Exclude<keyof typeof huangli, "note">, Record<string, Entry>>;
+type Cat = "jieqi" | "duty" | "tianshen" | "yiji";
+type Huangli = { note: string } & Record<Cat, Record<string, Entry>>;
 const HL = huangli as Huangli;
-const HL_HANT = huangliHant as Huangli;
-const CATS = Object.keys(huangli).filter((k) => k !== "note") as Exclude<keyof Huangli, "note">[];
+const HL_HANT = huangliHant as unknown as Huangli & { names: Record<string, string> };
+const CATS: Cat[] = ["jieqi", "duty", "tianshen", "yiji"];
 
-/** 释义正文与注；名称、三候、彭祖原文是照录的旧文（如宜忌里的「开光」），不在检查之列。 */
+/** 本站原创的文字：释义、节气导语、三候白话、注。名称和候名是照录的旧文（如宜忌里的「开光」），不在检查之列。 */
 function huangliTexts(data: Huangli): string[] {
-	return [data.note, ...CATS.flatMap((cat) => Object.values(data[cat]).map((e) => e.text))];
+	return [
+		data.note,
+		...CATS.flatMap((cat) =>
+			Object.values(data[cat]).flatMap((e) => [e.text, ...(e.intro ? [e.intro] : []), ...(e.hou ?? []).map((h) => h.text)]),
+		),
+	];
 }
 
 describe("黄历释义", () => {
-	// 键是 tyme4ts 输出的原名，页面按原名取释义；全集对照，时间窗往前滚也不会冒出没有释义的词。
-	const FULL: Record<string, string[]> = {
+	// 键是 tyme4ts 输出的原名，页面按原名取释义；对照全集，时间窗往前滚也不会冒出没有释义的词。
+	// 「馀事勿取」「诸事不宜」是标记词，页面照录、不写词义（设计 M17-12）。
+	const MARKERS = ["馀事勿取", "诸事不宜"];
+	const FULL: Record<Cat, string[]> = {
 		jieqi: SolarTerm.NAMES,
 		duty: Duty.NAMES,
 		tianshen: TwelveStar.NAMES,
-		ninestar: NineStar.NAMES,
-		pengzu: [...PengZuHeavenStem.NAMES, ...PengZuEarthBranch.NAMES],
-		yiji: Taboo.NAMES,
+		yiji: Taboo.NAMES.filter((n) => !MARKERS.includes(n)),
 	};
-	const LEN: Record<string, [number, number]> = {
-		jieqi: [180, 300],
-		duty: [40, 90],
-		tianshen: [40, 90],
-		ninestar: [40, 90],
-		pengzu: [15, 40],
-		yiji: [20, 50],
-	};
+	const LEN: Record<Cat, [number, number]> = { jieqi: [180, 300], duty: [40, 90], tianshen: [40, 90], yiji: [20, 50] };
 
-	it("每类的键与 tyme4ts 的名字全集一致", () => {
-		expect([...CATS].sort()).toEqual(Object.keys(FULL).sort());
-		for (const cat of CATS) expect(Object.keys(HL[cat]).sort(), cat).toEqual([...FULL[cat]!].sort());
+	it("每类的键与 tyme4ts 的名字全集一致（宜忌除去两个标记词）", () => {
+		expect(Object.keys(huangli).sort()).toEqual(["note", ...CATS].sort());
+		for (const cat of CATS) expect(Object.keys(HL[cat]).sort(), cat).toEqual([...FULL[cat]].sort());
+		expect(Taboo.NAMES).toEqual(expect.arrayContaining(MARKERS));
 	});
 
-	it("繁体与简体逐项对应（键、字段、三候条数、加注标记都一样）", () => {
-		expect(Object.keys(huangliHant)).toEqual(Object.keys(huangli));
+	it("繁体与简体逐项对应（键、字段、三候、加注标记都一样）", () => {
+		expect(Object.keys(huangliHant).filter((k) => k !== "names")).toEqual(Object.keys(huangli));
 		for (const cat of CATS) {
 			expect(Object.keys(HL_HANT[cat]), cat).toEqual(Object.keys(HL[cat]));
 			for (const [key, e] of Object.entries(HL[cat])) {
@@ -164,13 +164,11 @@ describe("黄历释义", () => {
 		}
 	});
 
-	it("简体显示名就是原名（九星显示「一白水」这样的全称）；三候照 tyme4ts 的原文", () => {
-		for (const cat of CATS)
-			for (const [key, e] of Object.entries(HL[cat]))
-				expect(e.name, key).toBe(cat === "ninestar" ? NineStar.fromName(key).toString() : key);
+	it("简体显示名就是原名；节气的三候候名照 tyme4ts 的原文", () => {
+		for (const cat of CATS) for (const [key, e] of Object.entries(HL[cat])) expect(e.name, key).toBe(key);
 		for (const [key, e] of Object.entries(HL.jieqi)) {
 			const i = SolarTerm.NAMES.indexOf(key);
-			expect(e.hou, key).toEqual(Phenology.NAMES.slice(3 * i, 3 * i + 3));
+			expect(e.hou?.map((h) => h.name), key).toEqual(Phenology.NAMES.slice(3 * i, 3 * i + 3));
 		}
 	});
 
@@ -182,22 +180,30 @@ describe("黄历释义", () => {
 		}
 	});
 
-	it("每条是完整的话，长短在各类的范围内（简繁都查）", () => {
+	it("每条是完整的话，长短在各类的范围内；节气导语、三候白话各一句 20–40 字（简繁都查）", () => {
+		const within = (s: string, [min, max]: [number, number], where: string) => {
+			expect(s, where).toMatch(/^[^\s].*。$/);
+			expect([...s].length, where).toBeGreaterThanOrEqual(min);
+			expect([...s].length, where).toBeLessThanOrEqual(max);
+		};
 		for (const data of [HL, HL_HANT])
-			for (const cat of CATS) {
-				const [min, max] = LEN[cat]!;
+			for (const cat of CATS)
 				for (const [key, e] of Object.entries(data[cat])) {
-					expect(e.text, `${cat}${key}`).toMatch(/^[^\s].*。$/);
-					expect([...e.text].length, `${cat}${key}`).toBeGreaterThanOrEqual(min);
-					expect([...e.text].length, `${cat}${key}`).toBeLessThanOrEqual(max);
+					within(e.text, LEN[cat], `${cat}${key}`);
+					if (cat !== "jieqi") continue;
+					within(e.intro!, [20, 40], `${key}导语`);
+					for (const h of e.hou!) within(h.text, [20, 40], `${key}${h.name}`);
 				}
-			}
 	});
 
-	it("求医、词讼一类（AGENTS.md §1.5）都标了加注", () => {
+	it("求医、词讼一类（AGENTS.md §1.5）正好这 6 个词接注；说到医事、诉讼的释义都在其中", () => {
 		const noted = CATS.flatMap((cat) => Object.entries(HL[cat]).flatMap(([key, e]) => (e.note ? [key] : [])));
-		for (const key of ["求医", "治病", "针灸", "求医疗病", "词讼", "癸不词讼理弱敌强", "未不服药毒气入肠"])
-			expect(noted, key).toContain(key);
+		expect(noted.sort()).toEqual(["求医", "治病", "针灸", "探病", "求医疗病", "词讼"].sort());
+		for (const cat of CATS)
+			for (const [key, e] of Object.entries(HL[cat]))
+				if (!e.note)
+					for (const s of [e.text, e.intro ?? "", ...(e.hou ?? []).map((h) => h.text)])
+						expect(s, `${cat}${key}`).not.toMatch(/医|诊|疗|针刺|药|讼|官司/);
 	});
 
 	it("讲词义和旧说，不对读者说话", () => {
