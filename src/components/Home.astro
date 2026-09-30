@@ -95,7 +95,10 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 52px;
+    /* 52px；矮屏（iPhone SE 667 高、安卓 640 高）多了栏目这一行，标语会贴住栏目、「一事一问」贴住日期，
+       所以随视口高收紧，上下各留约 16px：298 ≈ (页头 104 + 页脚 98 + 三块本身 361 + 留白 32) / 2。
+       视口高 ≥ 700 时正好是 52，和原来一样；桌面在下面另写 56。改了页头、页脚或这三块的高度要重算。 */
+    gap: clamp(20px, calc(50dvh - 298px), 52px);
   }
   .motto {
     margin: 0;

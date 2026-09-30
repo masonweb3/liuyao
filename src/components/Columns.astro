@@ -17,10 +17,16 @@ interface Props {
 const { at, page = false, hant = false, dark = false } = Astro.props;
 ---
 
+{/* 当前项另补 aria-label（以可见文字开头）：Chromium 的无障碍树里看不到链接的 aria-current，读屏未必念「当前」。
+    不用视觉隐藏的字：首页上看不见的字也会触发字体下载（首屏字形子集里没有「当前」）。 */}
 <nav class:list={['cols', { dark }]} aria-label={hant ? '欄目' : '栏目'}>
-  {COLUMNS.map((c) => (
-    <a href={hant ? (c.hantPath ?? c.path) : c.path} aria-current={c.path === at ? (page ? 'page' : 'true') : undefined}>{hant ? c.hant : c.hans}</a>
-  ))}
+  {COLUMNS.map((c) => {
+    const name = hant ? c.hant : c.hans;
+    const cur = c.path === at;
+    return (
+      <a href={hant ? (c.hantPath ?? c.path) : c.path} aria-current={cur ? (page ? 'page' : 'true') : undefined} aria-label={cur ? `${name}，${hant ? '目前欄目' : '当前栏目'}` : undefined}>{name}</a>
+    );
+  })}
 </nav>
 
 <style>
