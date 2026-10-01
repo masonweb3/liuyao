@@ -916,9 +916,11 @@ const description = t(
       gap: 12px;
       border-top: none;
     }
+    /* 同一行的卡片等高：li 是网格项，里面的链接撑满它 */
+    .cards li {
+      display: grid;
+    }
     .cards a {
-      height: 100%;
-      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: stretch;

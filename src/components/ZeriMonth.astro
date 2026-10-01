@@ -404,6 +404,9 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
     padding: 16px 28px 16px 0;
     border-bottom: 1px solid var(--rule);
     scroll-margin-top: 16px;
+    /* 行盒的支柱按小字算，各行的高度由格里的字号定 */
+    font-size: 13px;
+    line-height: 1.4;
   }
   tbody tr::after {
     content: '›';
@@ -445,14 +448,16 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
     letter-spacing: 0.1em;
     color: var(--ink-2);
   }
-  tbody td.lunar {
-    display: block;
-    margin-top: 6px;
+  /* 格子都是行内的，农历、冲煞前各断一行（断行符），同一行里的几格接着排 */
+  tbody td.lunar::before,
+  tbody td.chong::before {
+    content: '\A';
+    white-space: pre;
   }
   .lunar,
   .gz {
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 2;
     letter-spacing: 0.06em;
   }
   .gz {
@@ -462,13 +467,9 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
   .duty,
   .star {
     font-size: 13px;
-    line-height: 1.7;
+    line-height: 1.8;
     letter-spacing: 0.04em;
     color: var(--ink-2);
-  }
-  tbody td.chong {
-    display: block;
-    margin-top: 2px;
   }
   .duty,
   .star {
@@ -698,6 +699,10 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
     .lunar .m {
       display: none;
     }
+    tbody td.lunar::before,
+    tbody td.chong::before {
+      content: none;
+    }
     tbody th,
     tbody td,
     tbody td.yi,
@@ -741,11 +746,12 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
       display: inline-grid;
       width: 20px;
       height: 20px;
-      vertical-align: -4px;
+      vertical-align: middle;
       margin-right: 10px;
     }
     tbody td.yi .hits {
       display: inline-flex;
+      vertical-align: middle;
       font-size: 15px;
     }
     tbody td.go {
