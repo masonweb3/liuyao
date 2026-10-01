@@ -33,6 +33,7 @@ import {
   zhiFacts,
   zhiPath,
 } from '../lib/bazi-kb';
+import { fontOf } from '../lib/gua';
 import { dayPath } from '../lib/huangli-days';
 import Invite from './Invite.astro';
 
@@ -129,6 +130,8 @@ switch (kind) {
     break;
 }
 const glyph = kind === 'gan' || kind === 'zhi';
+// h1 是一块小薇文字，过 fontOf：只有己页（小薇的「己」画成「巳」）用宋体。繁体不走这条规则（见 fontOf 的注释）
+const h1Font = hant ? undefined : `font-family: var(${fontOf(h1)})`;
 const cta = {
   gan: t('看自己的日主是哪一个天干：输入生辰，在浏览器里排盘，不上传。', '看自己的日主是哪一個天干：輸入生辰，在瀏覽器裡排盤，不上傳。'),
   tiangan: t('看自己的日主是哪一个天干：输入生辰，在浏览器里排盘，不上传。', '看自己的日主是哪一個天干：輸入生辰，在瀏覽器裡排盤，不上傳。'),
@@ -159,7 +162,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
           八字 ·{' '}
           {kind === 'gan' ? <><a href={pre('/bazi/tiangan/')}>十天干</a> · 第 {gi + 1}</> : kind === 'zhi' ? <><a href={pre('/bazi/dizhi/')}>十二地支</a> · 第 {zj + 1}</> : h1}
         </p>
-        <h1 class:list={{ glyph }}>{h1}</h1>
+        <h1 class:list={{ glyph }} style={h1Font}>{h1}</h1>
         <p class="lead">{lead}</p>
       </section>
 
