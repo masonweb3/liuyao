@@ -200,6 +200,13 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
       transform: scaleX(0);
     }
   }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes unroll {
+      from {
+        opacity: 0;
+      }
+    }
+  }
   @keyframes reading-in {
     from {
       opacity: 0;
