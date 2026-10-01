@@ -58,7 +58,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     </footer>
   </section>
 
-  <noscript><style is:inline>.how[data-later]{content-visibility:auto!important}</style></noscript>
+  <noscript><style is:inline>#how{--font-body:inherit;--font-display:inherit}</style></noscript>
   <section class="how" id="how" aria-labelledby="how-title" data-later>
     <div class="col">
       <div class="part">
@@ -276,18 +276,21 @@ const pad = (n: number) => String(n).padStart(2, '0');
     }
   }
 
-  /* 纸面说明区。它的正文、标题、地支一排版就要三四十个 fontsource 切片（一两 MB），和首屏抢网络，首屏的 LCP
-     晚好几秒；它紧贴首屏底边，content-visibility: auto 也拦不住（浏览器把视口外一段也算看得见）。所以等首屏入场
-     动画播完或一滚动，脚本才去掉 data-later，在那之前不排版、不下字体（没有脚本时见上面的 noscript）；高度先按大约的数占着。 */
+  /* 纸面说明区。它的正文、标题、地支一用网页字体排版就要三四十个 fontsource 切片（一两 MB），和首屏抢网络，首屏的
+     LCP 晚好几秒；它紧贴首屏底边，content-visibility: auto 也拦不住（浏览器把视口外一段也算看得见）。所以等首屏入场
+     动画播完或一滚动，脚本才去掉 data-later，在那之前用系统衬线字：照样排版、显示，在可访问性树里、可以 Tab 到，
+     搜索引擎渲染时也看得见，只是不去下载切片（没有脚本时见上面的 noscript）。 */
   .how {
     content-visibility: auto;
     contain-intrinsic-size: auto 1900px;
+    font-family: var(--font-body);
     padding: 40px max(var(--gutter), env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
     background: var(--paper);
     color: var(--ink);
   }
   .how[data-later] {
-    content-visibility: hidden;
+    --font-body: serif;
+    --font-display: serif;
   }
   .how :focus-visible {
     outline-color: var(--ink);
