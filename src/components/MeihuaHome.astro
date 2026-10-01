@@ -49,6 +49,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
       <div class="cta">
         <button class="btn cast" data-go="ask" data-autofocus>起卦</button>
         <span class="hint">一事一问 · 以时或以数起卦</span>
+        {/* 从往卦点开却排不出那一卦时才有字（scripts/meihua.ts 的 openPast），平时不占位、不下字体 */}
+        <p class="lost" tabindex="-1" hidden data-lost></p>
       </div>
     </div>
     <footer class="foot">
@@ -243,6 +245,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font-size: var(--fs-xs);
     letter-spacing: 0.3em;
     color: rgb(248 244 237 / 0.62);
+  }
+  .lost {
+    margin: 0;
+    max-width: 20em;
+    text-align: center;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.12em;
+    color: var(--on-night-2);
+    outline: none;
   }
   .foot {
     display: flex;

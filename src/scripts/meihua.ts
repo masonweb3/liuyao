@@ -54,6 +54,7 @@ const COPY: {
 	asked: string;
 	rateLimited: string;
 	network: string;
+	lost: string;
 	num: Record<NumError, string>;
 } = JSON.parse(root.dataset.copy ?? "{}");
 
@@ -84,6 +85,8 @@ function settle(el: Element) {
 
 let current: Screen = "home";
 const screen = (s: Screen) => $(`[data-screen="${s}"]`);
+/** 首屏上「找不到这一卦」那一句（openPast），一换屏就收起 */
+const lost = $("[data-lost]");
 
 function go(next: Screen) {
 	if (!NEXT[current].includes(next)) throw new Error(`no way from ${current} to ${next}`);
@@ -96,6 +99,7 @@ function show(next: Screen) {
 		$('meta[name="theme-color"]').setAttribute("content", paper);
 	}
 	screen(current).hidden = true;
+	lost.hidden = true;
 	current = next;
 	const el = screen(next);
 	el.hidden = false;
@@ -579,9 +583,13 @@ async function openPast(at: string) {
 	home.hidden = true;
 	const p = store ? find(store, at) : undefined;
 	const by = p ? meihuaOf(p) : null;
+	let say = COPY.lost;
 	try {
 		if (!p || !by) throw new Error("no such record");
-		const view = await request({ by, at: p.at, topic: p.ask.topic, lateZi: p.lateZi });
+		const view = await request({ by, at: p.at, topic: p.ask.topic, lateZi: p.lateZi }).catch((e: unknown) => {
+			say = COPY.network; // Worker 没载入（断网）：记录也许还在，不说找不到
+			throw e;
+		});
 		// 手改过的记录排不出原来的卦：不信它
 		if (!view || view.params.join() !== p.params.join()) throw new Error("does not match");
 		for (const el of $$("[data-question]")) el.textContent = p.question;
@@ -590,6 +598,10 @@ async function openPast(at: string) {
 	} catch {
 		window.history.replaceState(null, "", "/meihua/");
 		home.hidden = false;
+		// 回到首屏时说一声为什么；焦点落在这一句上，读屏会念出来
+		lost.textContent = say;
+		lost.hidden = false;
+		lost.focus();
 	}
 }
 
