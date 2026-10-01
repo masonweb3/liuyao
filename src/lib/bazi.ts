@@ -404,7 +404,9 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 	}
 
 	// 岁数照 tyme4ts：出生那个公历年算 1 岁，交运那年是起运岁数，与易安居的大运岁数一致。
-	// 元亨利贞的大运岁数是交运年减出生的干支年（立春前出生算上一年），多数比这里少一岁，见 compare.md
+	// 元亨利贞的大运岁数是交运年减出生的干支年（立春前出生算上一年），多数比这里少一岁，见 compare.md。
+	// 出生年取当地的：tyme4ts 的 DecadeFortune.getStartAge() 按传进去的北京时间算，海外 12 月 31 日晚上（北京已是次年）
+	// 出生的会比同一年的流年少一岁，所以大运岁数在这里按当地出生年自己算
 	const born = clock.getYear();
 	const branchStar = (c: SixtyCycle) => star(c.getEarthBranch().getHideHeavenStemMain());
 	const daYun = Array.from({ length: 10 }, (_, i): DaYun => {
@@ -415,8 +417,8 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 			ganZhi: c.getName(),
 			shiShen: star(c.getHeavenStem()),
 			zhiShiShen: branchStar(c),
-			startAge: d.getStartAge(),
-			endAge: d.getEndAge(),
+			startAge: startYear - born + 1,
+			endAge: startYear - born + 10,
 			startYear,
 			endYear: startYear + 9,
 			liuNian: Array.from({ length: 10 }, (_, k): LiuNian => {

@@ -299,6 +299,18 @@ describe("出生地的时区与夏令时（M19-5）", () => {
 		expect(r.zhenTaiYang!.minutes).toBeCloseTo(-123.1 * 4 + 420 + eot, 1);
 		expect(r.zhenTaiYang!.time).toBe("1998-07-05 10:43");
 	});
+
+	it("虚岁按当地的出生年：当地与北京时间不在同一年时，大运岁数与同一年的流年岁数一致", () => {
+		// 洛杉矶 1999-12-31 20:00（UTC−8）是北京时间 2000-01-01 12:00；奥克兰 2000-01-01 01:00（UTC+13）是北京时间 1999-12-31 20:00
+		for (const [birth, offset] of [[solar(1999, 12, 31, 20, 0, "男"), -480], [solar(2000, 1, 1, 1, 0, "女"), 780]] as const) {
+			const r = bazi(birth, { offset });
+			for (const d of r.daYun) {
+				expect(d.startAge).toBe(d.liuNian[0]!.age);
+				expect(d.startAge).toBe(d.startYear - birth.year + 1);
+				expect(d.endAge).toBe(d.liuNian[9]!.age);
+			}
+		}
+	});
 });
 
 describe("时辰不知道（M19-11）", () => {
