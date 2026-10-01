@@ -24,11 +24,12 @@
 黄历与节气（src/fonts/huangli/、huangli-hant/，同样的做法）：
 - day：今日页和全部逐日页共用一份（七百多页各一份太多），含日期数字、农历月日、六十四卦名（读一卦），浏览别的日子不用再下。
 - jieqi：二十四节气目录；每个节气页一份 {slug}：节气名与三候名。
-改了 huangli.json、huangli-hant.json 的三候，或这些页面上用标题字体的文案，就重跑。
+- zeri：择日首页与全部事项月页共用一份（M18）：「择日」、六个事项名（从 src/lib/zeri-rule.ts 读）、「吉日」、公历日期。
+改了 huangli.json、huangli-hant.json 的三候，zeri-rule.ts 的事项名，或这些页面上用标题字体的文案，就重跑。
 
 纸面页（卦页、目录、黄历与节气）的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
 - src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
-  （卦爻辞全文、卦辞白话、爻辞白话、黄历释义与繁体名称表；简体再加 tyme4ts 里的全部名称，宜忌、神煞都是它给的）
+  （卦爻辞全文、卦辞白话、爻辞白话、黄历释义与繁体名称表、择日的事项说明；简体再加 tyme4ts 里的全部名称，宜忌、神煞都是它给的）
   却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
   实际 cmap 自动算（切片 CSS 的 unicode-range 比实际字多，不能信），所以要先 pnpm install。每批白话加了字就重跑；
   src/data/glyphs.test.ts 会在缺字时报错。
@@ -99,8 +100,8 @@ LANG = {
 
 # 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
 BODY = {
-    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json"]),
-    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json"]),
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json"]),
 }
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
@@ -176,6 +177,9 @@ def huangli_blocks(lang: str) -> dict[str, list[str]]:
     }
     for name, slug in terms:
         pages[slug] = [CHROME[lang], tw.get(name, name), *(h["name"] for h in data["jieqi"][name]["hou"])]
+    # 择日（M18）：首页与全部事项月页共用一份（同 day）。标题「择日」、事项名（每个一块）、「吉日」、公历日期。
+    items = re.findall(r'name: "(.+?)", hant: "(.+?)"', open("src/lib/zeri-rule.ts", encoding="utf-8").read())
+    pages["zeri"] = [CHROME[lang], "擇日" if hant else "择日", *(i[1 if hant else 0] for i in items), "吉日", "0123456789年月日"]
     return pages
 
 

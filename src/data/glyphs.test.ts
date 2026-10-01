@@ -6,7 +6,7 @@
  * 读的是切片文件的实际 cmap，不是 CSS 的 unicode-range：fontsource 的 range 比切片里实际有的字多
  * （Noto Serif TC 多四千多个），落在 range 里却没有字形的字照样回退。
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { brotliDecompressSync } from "node:zlib";
@@ -22,6 +22,9 @@ import huangliHant from "./huangli-hant.json" with { type: "json" };
 import huangliData from "./huangli.json" with { type: "json" };
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
+import { ITEMS } from "../lib/zeri-rule.js";
+import zeriHant from "./zeri-hant.json" with { type: "json" };
+import zeri from "./zeri.json" with { type: "json" };
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -130,6 +133,19 @@ const shown = (data: unknown) => [
 	}),
 ];
 
+/**
+ * 择日两页与今日黄历的组件里写在页面上的字（含脚本在浏览器里写进去的）：t('简', '繁') 成对的取本语言那一边，
+ * 其余的字（宜、月份、星期……）简繁页都显示；注释不算。
+ */
+function componentText(hant: boolean): string[] {
+	const pair = /t\(\s*(['`])((?:(?!\1).)*)\1,\s*(['`])((?:(?!\3).)*)\3\s*,?\s*\)/g;
+	return ["Zeri", "ZeriMonth", "HuangliToday"].map((f) =>
+		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8")
+			.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
+			.replace(pair, (...m: string[]) => (hant ? m[4]! : m[2]!)),
+	);
+}
+
 describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	it("WOFF2 读得对：语言切换补字文件正好是这三个字", () => {
 		const file = readFileSync(new URL("../fonts/lang-400.woff2", import.meta.url));
@@ -137,9 +153,9 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData))],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant))],
-	])("%s：卦爻辞、两种白话、黄历的每个字都有字形", (_, pkg, family, text) => {
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true))],
+	])("%s：卦爻辞、两种白话、黄历、择日事项说明与择日页面文字的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
 		const missing = (text as string[]).filter((ch) => !have.has(ch.codePointAt(0) as number));
@@ -152,4 +168,18 @@ it("首屏子集有栏目导航的每个字", () => {
 	const have = woff2Chars(readFileSync(new URL("../fonts/home-body.woff2", import.meta.url)));
 	const missing = [...COLUMNS.map((c) => c.hans).join("")].filter((ch) => !have.has(ch.codePointAt(0) as number));
 	expect(missing.join(""), "加了栏目要重跑 tools/subset-fonts.py").toBe("");
+});
+
+// 择日首页与月页的标题字体（M18）：标题、事项名、公历日期都要在 zeri 子集里（繁体芫荽缺的字在 -wk 补字里）。
+// subset-fonts.py 对小薇缺字的块整块不收，事项名一旦缺字，月页标题会混进宋体。
+it.each([
+	["huangli", "择日吉日年月日0123456789" + ITEMS.map((i) => i.name).join("")],
+	["huangli-hant", "擇日吉日年月日0123456789" + ITEMS.map((i) => i.hant).join("")],
+])("择日标题子集 %s/zeri 有标题、事项名与日期用字", (dir, text) => {
+	const have = new Set<number>();
+	for (const f of ["zeri", "zeri-wk"]) {
+		const url = new URL(`../fonts/${dir}/${f}.woff2`, import.meta.url);
+		if (existsSync(url)) for (const ch of woff2Chars(readFileSync(url))) have.add(ch);
+	}
+	expect([...text].filter((ch) => !have.has(ch.codePointAt(0) as number)).join(""), "改了事项名要重跑 tools/subset-fonts.py").toBe("");
 });

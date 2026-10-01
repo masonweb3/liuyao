@@ -1,0 +1,966 @@
+---
+// 择日首页（M18，设计稿 25、D22）：/zeri/，繁体 /zh-hant/zeri/。黄历栏目里的工具页，栏目表不加项。
+// 不预渲染任何月份的吉日（M18-6）：脚本按北京时间的本月取黄历的按月 JSON（/huangli/data/{年-月}.json），
+// 在浏览器里用 zeri-rule.ts 筛，不加载 tyme4ts。取到之前结果区按常见高度占位。
+// 没有脚本时工具区换成六件事「本月」月页的链接（本月按构建那天定）。
+// 生肖避冲只在本机：选过的生肖记在 localStorage，不上传、不进网址（M18-2）。
+import huangliHant from '../data/huangli-hant.json';
+import zeriHant from '../data/zeri-hant.json';
+import zeri from '../data/zeri.json';
+import Paper from '../layouts/Paper.astro';
+import { beijingYmd, FIRST, LAST, ymd } from '../lib/huangli-days';
+import { ITEMS, zeriPath } from '../lib/zeri-rule';
+import Invite from './Invite.astro';
+
+interface Props {
+  hant?: boolean;
+}
+
+const { hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const text = hant ? zeriHant : zeri;
+const names = (huangliHant as unknown as { names: Record<string, string> }).names;
+const tw = (w: string) => (hant ? (names[w] ?? w) : w);
+const nameOf = (i: (typeof ITEMS)[number]) => (hant ? i.hant : i.name);
+
+// 月份步进的范围：北京时间的本月到时间窗末月（M18-3）。构建时先按构建那天写，脚本载入后改成北京时间的本月。
+const first = FIRST.slice(0, 7);
+const last = LAST.slice(0, 7);
+const [by, bm] = beijingYmd();
+const now = ymd(by, bm, 1).slice(0, 7);
+const month = now < first ? first : now > last ? last : now;
+const [y, m] = month.split('-').map(Number) as [number, number];
+const next = new Date(Date.UTC(y, m, 1));
+
+const ZODIAC = [...t('鼠牛虎兔龙蛇马羊猴鸡狗猪', '鼠牛虎兔龍蛇馬羊猴雞狗豬')];
+const title = t('择日 · 搬家、结婚、开业吉日 · 六爻', '擇日 · 搬家入厝、結婚、開業吉日 · 六爻');
+const description = t(
+  '按传统黄历宜忌、北京时间，挑出搬家、结婚、开业、出行、装修、订婚六件事每个月的吉日，可按生肖避冲。',
+  '按傳統農民曆宜忌、臺灣時間（UTC+8），挑出搬家（入厝）、結婚、開業、出行、裝潢（裝修）、訂婚六件事每個月的吉日，可按生肖避沖。',
+);
+---
+
+<Paper title={title} description={description} path="/zeri/" at="/huangli/" group="huangli" subset="zeri" hant={hant} ogType="website">
+  <main class="zeri" data-zeri data-hant={hant ? '1' : undefined} data-first={first} data-last={last}>
+    <section class="intro">
+      <h1>{t('择日', '擇日')}</h1>
+      <p>{text.intro}</p>
+      <p class="fixed">{t('择日照录传统宜忌，只作习俗参考；就医、手术、诉讼、投资不在此列。', '擇日照錄傳統宜忌，只作習俗參考；就醫、手術、訴訟、投資不在此列。')}</p>
+    </section>
+
+    <section class="pick" aria-labelledby="pick">
+      <h2 class="head" id="pick">挑日子</h2>
+      {/* 没有脚本：工具区换成六件事本月一页的链接（M18-6）。noscript 里的样式只在关掉脚本时生效。 */}
+      <noscript>
+        <style is:inline>[data-tool]{display:none!important}</style>
+        <p class="nojs">{t('挑日子要用到浏览器脚本。也可以直接看各件事这个月的吉日：', '挑日子要用到瀏覽器腳本。也可以直接看各件事這個月的吉日：')}</p>
+        <ul class="links" role="list">
+          {ITEMS.map((i) => (
+            <li><a href={zeriPath(i.slug, month, hant)}><span class="n">{nameOf(i)}</span><span class="c">{y}年{m}月 ›</span></a></li>
+          ))}
+        </ul>
+      </noscript>
+      <div class="tool" data-tool>
+        <div class="controls">
+          <fieldset>
+            <legend>{t('事项', '事項')}</legend>
+            <div class="chips">
+              {ITEMS.map((i) => (
+                <label class="chip"><input class="sr" type="radio" name="item" value={i.slug} checked={i.slug === 'banjia'} />{nameOf(i)}</label>
+              ))}
+            </div>
+          </fieldset>
+          <div class="month">
+            <span class="label" id="zr-month">月份</span>
+            <div class="step" role="group" aria-labelledby="zr-month">
+              <button type="button" data-f="prev" aria-label={t('上个月', '上個月')} disabled>‹ {(m + 10) % 12 + 1}月</button>
+              <span class="mo" data-f="month">{y}年{m}月</span>
+              <button type="button" data-f="next" aria-label={t('下个月', '下個月')} disabled={month >= last}>{next.getUTCMonth() + 1}月 ›</button>
+            </div>
+          </div>
+          <details class="zodiac">
+            <summary>
+              <span class="zt">{t('按生肖避冲', '按生肖避沖')}<span class="opt">{t('（可选）', '（可選）')}</span></span>
+              <span class="zs"><span data-f="zsel">{t('未选', '未選')}</span> · <span class="open">{t('展开', '展開')}</span><span class="close">收起</span></span>
+            </summary>
+            <div class="zbody">
+              <p>{t('选上生肖，冲它的日子就不列出来。可以多选，比如两位新人、一家人。', '選上生肖，沖它的日子就不列出來。可以多選，比如兩位新人、一家人。')}</p>
+              <fieldset>
+                <legend class="sr">生肖</legend>
+                <div class="chips z">
+                  {ZODIAC.map((z, i) => (
+                    <label class="chip"><input class="sr" type="checkbox" name="zodiac" value={i} />{z}</label>
+                  ))}
+                </div>
+              </fieldset>
+              <div class="zfoot">
+                <p>{t('只记在这台设备的浏览器里，不上传，也不进网址。', '只記在這台裝置的瀏覽器裡，不上傳，也不進網址。')}</p>
+                <button type="button" data-f="clear">清除</button>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="result">
+          <p class="rhead" aria-live="polite"><span class="rt" data-f="title">{m}月 · 搬家吉日</span><span class="rc" data-f="count"></span></p>
+          <p class="omit" data-f="omit" hidden></p>
+          {/* 取到之前按常见高度占位（八九天的列表），填进来时不把下面的内容顶下去（CLS 0） */}
+          <ul class="rows wait" role="list" data-f="rows">
+            <li class="msg">{t(`正在取 ${m}月的黄历……`, `正在取 ${m}月的農民曆……`)}</li>
+          </ul>
+          <div class="empty" data-f="empty" hidden>
+            <p data-f="why"></p>
+            <p class="hint" data-f="hint"></p>
+          </div>
+          <nav class="near" aria-label={t('前后月', '前後月')}>
+            <button type="button" data-f="nprev" disabled><span class="kind">{t('上个月', '上個月')}</span><span class="n" data-f="nprevt">‹ {(m + 10) % 12 + 1}月</span></button>
+            <button type="button" class="next" data-f="nnext" disabled={month >= last}><span class="kind">{t('下个月', '下個月')}</span><span class="n" data-f="nnextt">{next.getUTCMonth() + 1}月 ›</span></button>
+          </nav>
+          <a class="more" data-f="more" href={zeriPath('banjia', month, hant)}>{t(`看完整一页：${y}年${m}月搬家吉日`, `看完整一頁：${y}年${m}月搬家吉日`)} ›</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="six" aria-labelledby="six">
+      <h2 class="head" id="six">六件事</h2>
+      <p>{t('每件事链到它本月的吉日一页；那一页逐日写明冲煞、建除与值神。', '每件事連到它本月的吉日一頁；那一頁逐日寫明沖煞、建除與值神。')}</p>
+      <ul class="cards" role="list">
+        {ITEMS.map((i) => (
+          <li>
+            <a href={zeriPath(i.slug, month, hant)} data-item={i.slug}>
+              <span class="nm"><span class="n">{nameOf(i)}</span><span class="w">{i.words.map(tw).join(' ')}</span></span>
+              <span class="c">{text.items[i.slug].card}</span>
+              <span class="go">本月的{nameOf(i)}吉日 ›</span>
+              <span class="arrow" aria-hidden="true">›</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="how" aria-labelledby="how">
+      <h2 class="head" id="how">{t('怎么算吉日', '怎麼算吉日')}</h2>
+      {text.how.map((p) => <p>{p}</p>)}
+    </section>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>宜忌由 <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('按北京时间推算（MIT）；事项说明为本站原创', '按臺灣時間（UTC+8）推算（MIT）；事項說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<script>
+  // 只 import zeri-rule.ts（零依赖），Card 只取类型。不 import huangli-days.ts 等别的模块、不用动态 import()：
+  // 打包时共用的模块会被拆成与今日页、首页共用的分包，首页入口包跟着变（首页首屏 JS 不能增加）。
+  import type { Card } from '../lib/huangli-card';
+  import { cardHits, clash, ITEMS, type Slug, zeriPath } from '../lib/zeri-rule';
+
+  const root = document.querySelector<HTMLElement>('[data-zeri]')!;
+  const hant = root.dataset.hant === '1';
+  const t = (hans: string, tw: string) => (hant ? tw : hans);
+  const $ = <T extends HTMLElement = HTMLElement>(k: string) => root.querySelector<T>(`[data-f="${k}"]`)!;
+  const ZODIAC = t('鼠牛虎兔龙蛇马羊猴鸡狗猪', '鼠牛虎兔龍蛇馬羊猴雞狗豬');
+  // 生肖只记在本机（M18-2）：存生肖序号，读写失败（隐私模式、被禁用）照常可用，只是不记
+  const KEY = 'liuyao:zeri-zodiac';
+
+  // 北京时间的今天（同逐日页的内联脚本）；月份从北京时间的本月步进到时间窗末月
+  const today = new Date(Date.now() + 288e5).toISOString().slice(0, 10);
+  const first = root.dataset.first!;
+  const last = root.dataset.last!;
+  const thisMonth = today.slice(0, 7);
+  const start = thisMonth < first ? first : thisMonth > last ? last : thisMonth;
+  const shift = (x: string, n: number) => new Date(Date.UTC(+x.slice(0, 4), +x.slice(5) - 1 + n, 1)).toISOString().slice(0, 7);
+  const mon = (x: string) => `${+x.slice(5)}月`;
+  const md = (d: string) => `${+d.slice(5, 7)}月${+d.slice(8)}日`;
+  const or = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join('、')}或${l[l.length - 1]}` : l[0]!);
+
+  let month = start;
+  let slug = (root.querySelector<HTMLInputElement>('[name="item"]:checked')?.value ?? 'banjia') as Slug;
+  const picked = new Set<number>();
+  try {
+    for (const s of (localStorage.getItem(KEY) ?? '').split(',')) if (/^\d+$/.test(s) && +s < 12) picked.add(+s);
+  } catch {}
+  const save = () => {
+    try {
+      if (picked.size) localStorage.setItem(KEY, [...picked].sort((a, b) => a - b).join(','));
+      else localStorage.removeItem(KEY);
+    } catch {}
+  };
+
+  // 一个月的按月数据只取一次；取失败的不留在缓存里，换个月再回来会重取
+  const cache = new Map<string, Promise<Record<string, Card>>>();
+  function get(x: string) {
+    let p = cache.get(x);
+    if (!p) {
+      p = fetch(`${hant ? '/zh-hant' : ''}/huangli/data/${x}.json`).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+      p.catch(() => cache.delete(x));
+      cache.set(x, p);
+    }
+    return p;
+  }
+  type Day = { date: string; c: Card; hits: string[] };
+  const good = (cards: Record<string, Card>): Day[] =>
+    Object.entries(cards)
+      .map(([date, c]) => ({ date, c, hits: cardHits(slug, c) }))
+      .filter((d) => d.hits.length);
+  const clashed = (d: Day) => picked.has(clash(d.c.ganzhi));
+
+  const el = (tag: string, cls: string, text?: string) => {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+
+  function row(d: Day) {
+    const a = el('a', 'row') as HTMLAnchorElement;
+    a.href = `${hant ? '/zh-hant' : ''}/huangli/${d.date}/`;
+    const head = el('span', 'd');
+    head.append(el('span', 'md', md(d.date)), el('span', 'wk', d.c.week));
+    if (d.date < today) head.append(el('span', 'past', t('已过', '已過')));
+    const [z, rest] = d.c.chong.split('（');
+    const b = el('span', 'b', z);
+    b.append(el('span', 'full', `（${rest}`));
+    const s = el('span', 's');
+    s.append(el('span', 'a', `${t('农历', '農曆')}${d.c.lunar} · ${d.c.ganzhi.split(' ')[2]}`), b);
+    const left = el('span', 'l');
+    left.append(head, s);
+    const hits = el('span', 'hits');
+    for (const k of d.hits) hits.append(el('span', '', d.c.yi.list.find((w) => w.key === k)!.name));
+    const yi = el('span', 'yi');
+    yi.append(el('span', 'sq', '宜'), hits);
+    const arrow = el('span', 'arrow', '›');
+    arrow.setAttribute('aria-hidden', 'true');
+    a.append(left, yi, arrow);
+    const li = el('li', '');
+    li.append(a);
+    return li;
+  }
+
+  const item = () => ITEMS.find((i) => i.slug === slug)!;
+  const near = [$('nprev'), $('nnext')] as HTMLButtonElement[];
+  const step = [$<HTMLButtonElement>('prev'), $<HTMLButtonElement>('next')];
+  let ticket = 0;
+
+  async function render() {
+    const my = ++ticket;
+    const name = hant ? item().hant : item().name;
+    const [yy, mm] = [month.slice(0, 4), mon(month)];
+    $('month').textContent = `${yy}年${mm}`;
+    const around = [shift(month, -1), shift(month, 1)];
+    around.forEach((x, i) => {
+      const ok = x >= start && x <= last;
+      step[i]!.disabled = !ok;
+      step[i]!.textContent = i ? `${mon(x)} ›` : `‹ ${mon(x)}`;
+      near[i]!.disabled = !ok;
+      $(i ? 'nnextt' : 'nprevt').textContent = i ? `${mon(x)} ›` : `‹ ${mon(x)}`;
+    });
+    $('title').textContent = `${mm} · ${name}吉日`;
+    $('count').textContent = '';
+    const more = $<HTMLAnchorElement>('more');
+    more.href = zeriPath(slug, month, hant);
+    more.textContent = `${t('看完整一页', '看完整一頁')}：${yy}年${mm}${name}吉日 ›`;
+
+    let days: Day[];
+    try {
+      days = good(await get(month));
+    } catch {
+      if (my !== ticket) return;
+      $('omit').hidden = true;
+      $('empty').hidden = true;
+      $('rows').hidden = false;
+      $('rows').replaceChildren(el('li', 'msg', t('没能取到这个月的黄历，请稍后刷新。', '沒能取到這個月的農民曆，請稍後重新整理。')));
+      return;
+    }
+    if (my !== ticket) return;
+    const kept = days.filter((d) => !clashed(d));
+    const gone = days.filter(clashed);
+    // 略去了哪几天写明，不悄悄藏起；说出实际冲到的生肖
+    const zs = [...new Set(gone.map((d) => clash(d.c.ganzhi)))].sort((a, b) => a - b).map((z) => ZODIAC[z]!);
+    $('count').textContent = `${kept.length} 天`;
+    const omit = $('omit');
+    omit.hidden = !(gone.length && kept.length);
+    omit.textContent = `${t('已略去冲', '已略去沖')}${zs.join('、')}的 ${gone.length} 天：${gone.map((d, i) => (i ? `${+d.date.slice(8)}日` : md(d.date))).join('、')}。`;
+    const rows = $('rows');
+    rows.classList.remove('wait');
+    rows.replaceChildren(...kept.map(row));
+    rows.hidden = !kept.length;
+    $('empty').hidden = !!kept.length;
+    if (!kept.length) {
+      $('why').textContent = days.length
+        ? t(`${mm}${name}的 ${days.length} 个吉日，都冲${or(zs)}，避开以后一天不剩。`, `${mm}${name}的 ${days.length} 個吉日，都沖${or(zs)}，避開以後一天不剩。`)
+        : t(`${mm}没有合用的日子。`, `${mm}沒有合用的日子。`);
+      $('hint').textContent = days.length ? t('少选一个生肖，或者看看前后的月份。', '少選一個生肖，或者看看前後的月份。') : t('看看前后的月份。', '看看前後的月份。');
+    }
+    // 前后月的天数（避冲后写「剩几天」）；取不到就只写月份
+    around.forEach((x, i) => {
+      if (x < start || x > last) return;
+      get(x)
+        .then((c) => {
+          if (my !== ticket) return;
+          const n = `${picked.size ? '剩 ' : ''}${good(c).filter((d) => !clashed(d)).length} 天`;
+          $(i ? 'nnextt' : 'nprevt').textContent = i ? `${mon(x)} · ${n} ›` : `‹ ${mon(x)} · ${n}`;
+        })
+        .catch(() => {});
+    });
+  }
+
+  const boxes = [...root.querySelectorAll<HTMLInputElement>('[name="zodiac"]')];
+  function syncZodiac() {
+    for (const b of boxes) b.checked = picked.has(+b.value);
+    const l = [...picked].sort((a, b) => a - b).map((z) => ZODIAC[z]);
+    $('zsel').textContent = l.length ? `${t('已选', '已選')} ${l.join('、')}` : t('未选', '未選');
+  }
+
+  root.addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement;
+    if (input.name === 'item') slug = input.value as Slug;
+    else if (input.name === 'zodiac') {
+      if (input.checked) picked.add(+input.value);
+      else picked.delete(+input.value);
+      save();
+      syncZodiac();
+    } else return;
+    render();
+  });
+  $('clear').addEventListener('click', () => {
+    picked.clear();
+    save();
+    syncZodiac();
+    render();
+  });
+  [...step, ...near].forEach((b, i) =>
+    b.addEventListener('click', () => {
+      month = shift(month, i % 2 ? 1 : -1);
+      render();
+    }),
+  );
+  // 六件事的「本月」改成北京时间的本月（HTML 里是构建那天的月份）
+  for (const a of root.querySelectorAll<HTMLAnchorElement>('[data-item]')) a.href = zeriPath(a.dataset.item as Slug, start, hant);
+
+  syncZodiac();
+  render();
+</script>
+
+<style>
+  p,
+  h1,
+  h2 {
+    margin: 0;
+  }
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  .zeri {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .intro {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.3;
+    letter-spacing: 0.24em;
+  }
+  .intro p,
+  .six > p,
+  .how p,
+  .nojs {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .intro .fixed {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .pick,
+  .tool,
+  .controls,
+  .result,
+  .six,
+  .how {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .six,
+  .how {
+    gap: 12px;
+  }
+  .result {
+    gap: 12px;
+  }
+
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  legend,
+  .label {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .chips.z {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+  /* 事项、生肖的选框：真的 radio、checkbox 藏起来，整格可点；选中的墨色线框，字下 12×2 印章红短线（同栏目当前项） */
+  .chip {
+    position: relative;
+    min-height: var(--tap);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.2em;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: var(--fs-m);
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .chip:hover {
+    border-color: var(--ink-2);
+  }
+  .chip:has(:checked) {
+    border-color: var(--ink);
+  }
+  .chip:has(:checked)::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 12px;
+    height: 2px;
+    margin-left: -6px;
+    background: var(--seal);
+  }
+  .chip:has(:focus-visible) {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .month {
+    display: flex;
+    flex-direction: column;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-block: 1px solid var(--rule);
+  }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .step button {
+    min-width: 64px;
+    height: var(--tap);
+    font-size: var(--fs-s);
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .step button:hover:not(:disabled) {
+    color: var(--ink);
+  }
+  /* 范围外的月份（北京时间本月之前、时间窗之后）：按钮留着位置，不显示 */
+  .step button:disabled,
+  .near button:disabled {
+    visibility: hidden;
+  }
+  .mo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+  }
+
+  .zodiac {
+    border-block: 1px solid var(--rule);
+  }
+  summary {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .zt {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+  }
+  .opt,
+  .zs {
+    color: var(--ink-2);
+  }
+  .zs {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-align: right;
+  }
+  .close,
+  details[open] .open {
+    display: none;
+  }
+  details[open] .close {
+    display: inline;
+  }
+  .zbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0 16px;
+  }
+  .zbody > p {
+    font-size: var(--fs-s);
+    line-height: 1.8;
+  }
+  .zfoot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .zfoot p {
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  [data-f='clear'] {
+    flex-shrink: 0;
+    min-width: var(--tap);
+    height: var(--tap);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .rhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .rt {
+    font-size: var(--fs-m);
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.16em;
+  }
+  .rc {
+    font-size: var(--fs-s);
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  .omit,
+  .hint {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--rule);
+  }
+  /* 占位：常见的八九天高；填好后按实际行数 */
+  .rows.wait {
+    min-height: 560px;
+  }
+  .rows :global(.msg) {
+    padding: 16px 0;
+    font-size: var(--fs-s);
+    color: var(--ink-2);
+  }
+  /* 结果一行由脚本生成，没有组件的作用域标记，用 :global 选中 */
+  .rows :global(.row) {
+    min-height: 64px;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .rows :global(.l) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .rows :global(.d) {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .rows :global(.md) {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+  }
+  .rows :global(.wk),
+  .rows :global(.past),
+  .rows :global(.s) {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .rows :global(.s) {
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .rows :global(.b::before) {
+    content: ' · ';
+  }
+  .rows :global(.full) {
+    display: none;
+  }
+  .rows :global(.yi) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rows :global(.sq) {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    background: var(--seal);
+    color: var(--paper);
+    font-size: 12px;
+    line-height: 1;
+    border-radius: var(--radius);
+  }
+  .rows :global(.hits) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0 12px;
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+  }
+  .rows :global(.arrow),
+  .cards .arrow {
+    color: var(--ink-2);
+  }
+  .rows :global(.row:hover .md) {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .rows :global(.row:focus-visible) {
+    outline-offset: -1px;
+  }
+  .empty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .empty p:first-child {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .near {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .near button {
+    grid-row: 1;
+    min-height: var(--tap);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 0;
+    text-align: left;
+  }
+  .near .next {
+    grid-column: 2;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .kind {
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .n {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+  .near button:hover .n,
+  .more:hover,
+  .links a:hover .n,
+  .cards a:hover .n {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .more {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+  }
+
+  .nojs {
+    margin-bottom: 4px;
+  }
+  .links a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--rule);
+  }
+  .links .n,
+  .cards .n {
+    letter-spacing: 0.16em;
+  }
+  .links .c {
+    font-size: var(--fs-s);
+    color: var(--ink-2);
+  }
+
+  .cards a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .cards .nm {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .cards .n {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .cards .w {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .cards .c {
+    grid-column: 1;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+  }
+  .cards .arrow {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .cards .go {
+    display: none;
+  }
+  .how p {
+    line-height: 1.95;
+  }
+
+  @media (min-width: 1024px) {
+    .zeri {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+    }
+    h1 {
+      font-size: 44px;
+    }
+    .intro p:not(.fixed),
+    .six > p,
+    .how p {
+      font-size: var(--fs-m);
+      max-width: 760px;
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .pick {
+      gap: 18px;
+    }
+    /* 工具是一张卡片：左 360 放事项、月份、避冲，右栏是结果，以竖线隔开（D22） */
+    .tool {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 48px;
+      align-items: start;
+      padding: 32px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+    }
+    .controls {
+      gap: 20px;
+    }
+    .result {
+      gap: 14px;
+      padding-left: 48px;
+      border-left: 1px solid var(--rule);
+      align-self: stretch;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      border-top: none;
+    }
+    /* 同一行的卡片等高：li 是网格项，里面的链接撑满它 */
+    .cards li {
+      display: grid;
+    }
+    .cards a {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 20px 22px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      transition: border-color var(--t-hover);
+    }
+    .cards a:hover {
+      border-color: var(--ink);
+    }
+    .cards a:hover .n {
+      text-decoration: none;
+    }
+    .cards .nm {
+      gap: 12px;
+    }
+    .cards .n {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: 0.12em;
+    }
+    .cards .c {
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .cards .go {
+      display: block;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      color: var(--ink-2);
+    }
+    .cards .arrow {
+      display: none;
+    }
+  }
+  /* 结果一行四栏（D22）：右栏要有 540 宽才放得下。1024–1199 右栏只有 370–530，中间一栏会挤成一字一行，
+     这段宽度沿用手机的两行排法 */
+  @media (min-width: 1200px) {
+    .rows :global(.row) {
+      grid-template-columns: 140px minmax(0, 1fr) 150px 16px;
+      gap: 16px;
+    }
+    .rows :global(.l) {
+      display: contents;
+    }
+    .rows :global(.d) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .rows :global(.s) {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .rows :global(.a) {
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+    }
+    .rows :global(.b::before) {
+      content: none;
+    }
+    .rows :global(.full) {
+      display: inline;
+    }
+    .rows :global(.hits) {
+      justify-content: flex-start;
+    }
+  }
+</style>

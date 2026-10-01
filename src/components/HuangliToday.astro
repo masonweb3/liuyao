@@ -88,6 +88,8 @@ const description = t(
             <button type="submit">查看</button>
           </span>
         </form>
+        {/* 择日入口（M18-8）：纯链接，今日页脚本与按月数据不变；逐日页不加 */}
+        <a class="zeri" href={t('/zeri/', '/zh-hant/zeri/')}>{t('择日：按事项挑这个月的吉日', '擇日：按事項挑這個月的吉日')} ›</a>
       </div>
       <template data-f="yao">
         <svg viewBox="0 0 240 24">{STROKES.yang.map((p) => <path d={p} />)}</svg>
@@ -560,7 +562,8 @@ const description = t(
     font-size: 15px;
     line-height: 1.9;
   }
-  .all {
+  .all,
+  .zeri {
     align-self: flex-start;
     min-height: var(--tap);
     display: flex;
@@ -568,7 +571,8 @@ const description = t(
     font-size: var(--fs-s);
     letter-spacing: 0.16em;
   }
-  .all:hover {
+  .all:hover,
+  .zeri:hover {
     text-decoration: underline;
     text-underline-offset: 4px;
   }
@@ -618,6 +622,11 @@ const description = t(
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 24px;
       align-items: end;
+    }
+    /* 「查另一天」下面一行（右栏） */
+    .zeri {
+      grid-column: 2;
+      margin-top: -12px;
     }
     .termline {
       min-height: 29px;
