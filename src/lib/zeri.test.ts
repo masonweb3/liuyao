@@ -1,11 +1,12 @@
 import { Taboo } from "tyme4ts";
 import { describe, expect, it } from "vitest";
+import huangliHant from "../data/huangli-hant.json" with { type: "json" };
 import huangliData from "../data/huangli.json" with { type: "json" };
 import { type Data, huangliOf, show } from "./huangli.js";
 import { monthCards, months } from "./huangli-card.js";
-import { days } from "./huangli-days.js";
-import { goodDays } from "./zeri.js";
-import { cardHits, clash, hits, ITEMS, keys, type Slug } from "./zeri-rule.js";
+import { days, HANT } from "./huangli-days.js";
+import { goodDays, monthNote, monthRows } from "./zeri.js";
+import { cardHits, clash, hits, ITEMS, keys, type Slug, zeriPath } from "./zeri-rule.js";
 
 const SLUGS = ITEMS.map((i) => i.slug);
 const ZODIAC = "鼠牛虎兔龙蛇马羊猴鸡狗猪";
@@ -152,5 +153,42 @@ describe("吉日与逐日页一致", () => {
 				if (got) expect(yi).toEqual(expect.arrayContaining(got));
 			}
 		}
+	});
+});
+
+describe("事项月页的数据（月页列出的日子、命中的词与逐日页一致）", () => {
+	it("窗内每个事项每个月、简繁：月页逐日一行就是 goodDays 的那几天；命中的词是逐日页宜里的同一个词，冲煞、建除、值神也照逐日页", () => {
+		for (const hant of [false, true]) {
+			const data = (hant ? huangliHant : huangliData) as unknown as Data;
+			for (const m of months())
+				for (const slug of SLUGS) {
+					const good = goodDays(...ym(m), slug);
+					const rows = monthRows(slug, m, hant);
+					expect(rows.map((r) => r.date), `${m} ${slug}`).toEqual(good.map((d) => d.date));
+					rows.forEach((r, i) => {
+						const s = show(huangliOf(r.date), data);
+						expect(r.hits.map((w) => w.key), r.date).toEqual(good[i]!.hits);
+						expect(s.yi.list, r.date).toEqual(expect.arrayContaining(r.hits));
+						expect([r.md, r.week, r.lunar, r.chong, r.duty, r.star], r.date).toEqual([s.md, s.week, s.lunar, s.chong, s.duty, s.star]);
+						expect(s.ganzhi.endsWith(r.gz), r.date).toBe(true);
+					});
+				}
+		}
+	});
+
+	it("说明里按当月数据写的一句（设计稿 26 的两个例子）", () => {
+		expect(monthNote("banjia", "2026-11", false)).toBe("11月的 11 天里，10 天两个词都宜；25日只宜移徙。");
+		expect(monthNote("banjia", "2026-11", true)).toBe("11月的 11 天裡，10 天兩個詞都宜；25日只宜移徙。");
+		expect(monthNote("jiehun", "2026-12", false)).toBe("12月合用的有 4 天；11月有 12 天，明年1月有 11 天。");
+		// 时间窗两端只写窗里的那一个邻月
+		expect(monthNote("kaiye", "2026-01", false)).toMatch(/^1月合用的有 \d+ 天；2月有 \d+ 天。$/);
+		expect(monthNote("kaiye", "2027-12", true)).toMatch(/^12月合用的有 \d+ 天；11月有 \d+ 天。$/);
+	});
+
+	it("网址带尾斜杠，繁体前缀同 huangli-days.ts 的 HANT", () => {
+		expect(zeriPath()).toBe("/zeri/");
+		expect(zeriPath("banjia", "2026-11")).toBe("/zeri/banjia/2026-11/");
+		expect(zeriPath("zhuangxiu", "2027-05", true)).toBe(`${HANT}/zeri/zhuangxiu/2027-05/`);
+		expect(zeriPath(undefined, undefined, true)).toBe(`${HANT}/zeri/`);
 	});
 });

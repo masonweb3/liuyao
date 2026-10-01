@@ -1,0 +1,9 @@
+---
+import ZeriMonth from '../../../../components/ZeriMonth.astro';
+import { months } from '../../../../lib/huangli-card';
+import { ITEMS, type Slug } from '../../../../lib/zeri-rule';
+
+export const getStaticPaths = () => months().flatMap((month) => ITEMS.map(({ slug }) => ({ params: { slug, month } })));
+---
+
+<ZeriMonth slug={Astro.params.slug as Slug} month={Astro.params.month!} hant />

@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { GUA, guaPath, HANT } from '../data/gua-slugs';
+import { months } from '../lib/huangli-card';
 import { dayPath, days, JIEQI, jieqiPath } from '../lib/huangli-days';
+import { ITEMS, zeriPath } from '../lib/zeri-rule';
 
 // 可被收录的页面都登记在这里。带所问的解读结果没有自己的网址，也不该进来。
 // 简繁互指的 hreflang 只写在各页 <head> 里，这里不重复写 xhtml:link：Google 说三种写法等价，同时写没有额外好处，
@@ -16,6 +18,9 @@ const PATHS = [
 		...days().map((d) => dayPath(d, hant)),
 		`${hant ? HANT : ''}/jieqi/`,
 		...JIEQI.map(([name]) => jieqiPath(name, hant)),
+		// 择日（M18）：首页与 6 个事项 × 时间窗每个月的月页
+		zeriPath(undefined, undefined, hant),
+		...months().flatMap((m) => ITEMS.map((i) => zeriPath(i.slug, m, hant))),
 	]),
 ];
 

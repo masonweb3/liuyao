@@ -41,6 +41,9 @@ import huangli from "./huangli.json" with { type: "json" };
 import { SPECIAL, TEMPLATES } from "./templates.js";
 import yaoBaihuaHant from "./yao-baihua-hant.json" with { type: "json" };
 import yaoBaihua from "./yao-baihua.json" with { type: "json" };
+import { ITEMS } from "../lib/zeri-rule.js";
+import zeriHant from "./zeri-hant.json" with { type: "json" };
+import zeri from "./zeri.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -278,8 +281,41 @@ describe("黄历释义", () => {
 	});
 });
 
+describe("择日的事项说明（M18）", () => {
+	type Zeri = { intro: string; how: string[]; items: Record<string, { card: string; words: string; tips: string }> };
+	const [hans, hant] = [zeri, zeriHant] as Zeri[];
+	const SLUGS = ITEMS.map((i) => i.slug);
+
+	it("六件事都写了，简繁逐项对应；每段是完整的话", () => {
+		for (const data of [hans!, hant!]) {
+			expect(Object.keys(data)).toEqual(["intro", "how", "items"]);
+			expect(Object.keys(data.items)).toEqual(SLUGS);
+			for (const v of Object.values(data.items)) expect(Object.keys(v)).toEqual(["card", "words", "tips"]);
+			for (const s of strings(data)) expect(s).toMatch(/^[^\s].*。$/);
+		}
+		expect(hant!.how.length).toBe(hans!.how.length);
+	});
+
+	it("不写凶；结婚、订婚不写婚姻结局，不写冲、克、犯、不吉（M18-5）", () => {
+		for (const s of [...strings(hans), ...strings(hant)]) expect(s).not.toMatch(/凶|兇/);
+		for (const data of [hans!, hant!])
+			for (const slug of ["jiehun", "dinghun"])
+				for (const s of strings(data.items[slug]))
+					expect(s, slug).not.toMatch(/美满|美滿|白头偕老|白頭偕老|旺夫|长久|長久|幸福|冲|沖|克|剋|犯|不吉/);
+	});
+
+	it("繁体：台湾用语（農民曆、臺灣時間），事项名「裝潢」「入厝」照负责人定稿（M18-7）；没有 s2twp 的常见误转", () => {
+		for (const s of strings(hant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|黃曆|北京/);
+		expect(hant!.intro).toContain("裝潢");
+		expect(hant!.items.banjia!.words).toContain("入厝");
+		expect(hant!.items.zhuangxiu!.words).toContain("裝修");
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
+		...strings(zeri),
+		...strings(zeriHant),
 		...huangliTexts(HL),
 		...huangliTexts(HL_HANT),
 		...strings(baihua),

@@ -1,0 +1,10 @@
+---
+import ZeriMonth from '../../../components/ZeriMonth.astro';
+import { months } from '../../../lib/huangli-card';
+import { ITEMS, type Slug } from '../../../lib/zeri-rule';
+
+// 6 个事项 × 黄历时间窗的每个月（M18-3，随 YEARS 加年，旧月不删）
+export const getStaticPaths = () => months().flatMap((month) => ITEMS.map(({ slug }) => ({ params: { slug, month } })));
+---
+
+<ZeriMonth slug={Astro.params.slug as Slug} month={Astro.params.month!} />
