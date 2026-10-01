@@ -17,4 +17,5 @@ export const COLUMNS: Column[] = [
 	{ path: "/gua/", hans: "六十四卦", hant: "六十四卦", hantPath: "/zh-hant/gua/" },
 	// 繁体用台湾日常的叫法「農民曆」（M16-6）；网址仍是 huangli
 	{ path: "/huangli/", hans: "黄历", hant: "農民曆", hantPath: "/zh-hant/huangli/" },
+	{ path: "/bazi/", hans: "八字", hant: "八字", hantPath: "/zh-hant/bazi/" },
 ];

@@ -72,11 +72,13 @@ src/
   lib/huangli-card.ts 今日页的按月数据（构建时生成 /huangli/data/{年-月}.json；择日首页也用它）
   lib/zeri-rule.ts  择日的六个事项、命中规则、冲的生肖、月页网址（零依赖、不 import 任何模块：择日首页脚本也用它，见 §6「择日」）
   lib/zeri.ts       择日的构建时部分（引 huangli.ts）：每月吉日、月页逐日一行、按当月数据写的一句
+  lib/bazi.ts       八字排盘引擎（零 DOM，引 tyme4ts）：四柱、十神藏干、十二长生、纳音空亡、神煞、刑冲合会、胎元命宫身宫、起运大运流年；只在 Worker 里跑（见 §6「八字」）
+  lib/bazi-time.ts  八字的时刻换算（零依赖、不 import 任何模块：/bazi/ 页面脚本也用它）：均时差、按 IANA 时区算出生那一刻的 UTC 偏移与夏令时
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是纸面页底部的起卦块；
                     HuangliToday、HuangliDay、Jieqi、JieqiList 是今日黄历、逐日页、节气页、节气目录的正文，TermGrid 是二十四节气总表；
-                    Zeri、ZeriMonth 是择日首页、事项月页的正文；
+                    Zeri、ZeriMonth 是择日首页、事项月页的正文；Bazi 是八字排盘页的正文（表单、盘面、存盘、盘面上的词）；
                     Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
                     Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
@@ -86,6 +88,7 @@ src/
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   scripts/huangli-worker.ts 今日页在时间窗外的回退：Web Worker 里用 tyme4ts 现算当天
+  scripts/bazi-worker.ts /bazi/ 的排盘：Web Worker 里跑 bazi.ts（生辰只在这里算）
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
@@ -99,12 +102,16 @@ src/
   data/huangli.json 黄历释义：节气（导语、时令、三候白话）、建除、值神、宜忌词义与加注（本项目原创，CC BY-NC-SA 4.0；三候候名照录古籍）
   data/huangli-hant.json 同上的繁体（s2twp 转换后逐条校对），另有 names：tyme4ts 简体名 → 繁体的对照表
   data/zeri.json    择日的导语、「怎么算吉日」与六个事项的说明（本项目原创，CC BY-NC-SA 4.0）；zeri-hant.json 是繁体（s2twp 转换后逐条校对）
+  data/bazi.json    八字排盘页的导语与「盘面上的词」14 条（本项目原创，经独立审查，CC BY-NC-SA 4.0）；bazi-hant.json 是繁体（逐条校对）
+  data/bazi-names-hant.json 八字盘面上 tyme4ts 名字的繁体：十神、十二长生、十三种神煞（纳音、生肖用 huangli-hant.json 的 names）
+  data/cities.json  出生地名单（tools/build-cities.py 生成）：城市简繁名、所属、经度、IANA 时区；经度取自 Natural Earth（公有领域），/bazi/ 点进出生地才下载
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
   pages/huangli/    今日黄历 /huangli/、逐日页 /huangli/{YYYY-MM-DD}/、按月数据 /huangli/data/{YYYY-MM}.json（都预渲染）
   pages/jieqi/      二十四节气目录 /jieqi/ 与 24 个节气页 /jieqi/{无调全拼}/；繁体同构在 pages/zh-hant/huangli/、pages/zh-hant/jieqi/
   pages/zeri/       择日首页 /zeri/ 与事项月页 /zeri/{事项}/{YYYY-MM}/（预渲染）；繁体同构在 pages/zh-hant/zeri/
+  pages/bazi/       八字排盘 /bazi/（预渲染标题区、表单与盘面上的词，盘面在浏览器里算）；繁体 pages/zh-hant/bazi/
   pages/api/judge.ts 服务端路由：调用 Jev
   pages/api/remind.ics.ts 服务端路由：iPhone、iPad 的到时提醒 .ics（只按网址里的两个日期和卦名现生成，不存不记）
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
@@ -114,7 +121,7 @@ src/
   styles/webfonts.css fontsource 全部切片，异步加载；webfonts-hant.css 是繁体页的（Noto Serif TC）
   styles/paper-fonts.css 卦页、目录页的正文补字与语言切换用字的 @font-face（生成文件，Paper.astro 引入）
   fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
-                    芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
+                    芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；fonts/bazi/、bazi-hant/ 是八字排盘页的；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
                     lang-400/600.woff2 是语言切换用字（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
 tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
@@ -152,7 +159,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 2025-02-03 22:00 → 甲辰年丁丑月
   - 2025-02-03 22:20 → 乙巳年戊寅月
 - 起卦时刻一律按 UTC+8 计算，与用户和服务器所在时区无关。
-- 晚子时（23–24 点）是否换日做成选项，默认不换日。
+- 晚子时（23–24 点）是否换日做成选项，默认不换日。（八字排盘的默认是换日，见 §6「八字」M19-1。）
 
 ### 4.5 用神映射（由代码完成，Jev 只负责给出类别）
 | 问题类别 | 用神 |
@@ -244,7 +251,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 解读页上本卦、变卦的卦名链到卦页。
   - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
 - **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
-  - 现在三栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
+  - 现在四栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17）。四项在 390、320 宽都一行放得下（末项右缘 268 px）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
   - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时传 `at`（本页属于哪一栏）、`home`（是不是这一栏的首页）、`group`（标题字体子集的目录），数据来源与许可写进 `slot="foot"`。梅花上线后第一栏仍叫「起卦」（M16-9）。
   - **位置**：手机和 768–1023 在页头下面单独一行，高 44，首项的字与品牌左缘对齐；≥1024 并进页头那一行，紧跟品牌（品牌到首项的字 48px）。首页只在首屏：写在 `Home.astro` 的首屏 section 里，跟着这一屏显隐，写下所问以后各屏都没有导航，仪式中不打断这一卦。纸面页头是品牌、栏目、工具区（往卦、简 | 繁），手机两行共 88 高；桌面不再有「起卦」线框按钮（M16-1），卦页左栏和页底的起卦块仍直达写下所问。页头只有这一个 nav 地标（`aria-label` 栏目／欄目），首页的往卦、音效和纸面页的工具区都是 div。DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序；手机上栏目行在工具区下面，Tab 先到栏目再回上行的往卦。
   - **样式**：正文宋体 400，14px，字距 0.24em，项与项之间只靠间距（手机每项左右 10px、桌面 14px，点击区高 44）。当前项主色加一道 12×2 短线（暗场金、纸面印章红），不加粗（M16-7：首页字形子集只有 400）；其余次要色，悬停变主色。首页、目录页这种栏目首页 `aria-current="page"`，栏目里的其他页（卦页）`"true"`，点它回栏目首页；当前项另带 `aria-label`「起卦，当前栏目」（繁体「六十四卦，目前欄目」），不用视觉隐藏的字（首页上看不见的字也会触发字体下载）。
@@ -268,6 +275,17 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **说明文字**：`zeri.json` 原创，经独立审查；结婚、订婚只写词义、当月数据、实际安排，不写婚姻结局，不写冲、克、犯、不吉；其余事项也不承诺结果（M18-5，`content.test.ts` 核对）。
   - **入口**：今日黄历（简繁）「查另一天」下一行「择日：按事项挑这个月的吉日 ›」，纯链接，今日页脚本与数据不变；逐日页不加（M18-8）。
   - **字体**：标题字体子集 `fonts/huangli/zeri`（繁体 `huangli-hant/zeri`），择日首页与全部月页共用一份：「择日」、事项名（`subset-fonts.py` 从 `zeri-rule.ts` 读）、「吉日」、公历日期。改了事项名要重跑，`glyphs.test.ts` 核对子集里有这些字，正文补字包括 `zeri*.json`。
+- **八字（M19a，设计稿第十二行 27、28、D24、D25，待定 M19-1 至 M19-18 见 CHANGELOG 2026.10.01）：** 栏目「八字」的首页 `/bazi/`（繁体 `/zh-hant/bazi/`），纸面页照栏目首页的通用版式；知识页（日柱、天干地支等）拆到 M19b（M19-18）。纯计算：只排盘面，不断吉凶，页脚写数据来源与「仅供传统文化参考与娱乐」，不写「AI 辅助判断」。
+  - **口径**：晚子时默认算次日（M19-1，与六爻不同：多数排盘网站这样排，用户常拿别家的盘来对），选项里能改成不换日。起运默认 sect2，界面只写到天，交运时刻到分（M19-2）。命宫按节定月，身宫用 tyme4ts 与命宫对称的算法（M19-3）。岁数是虚岁（M19-9），出生年按当地的（不用 tyme4ts 按北京时间算的大运岁数）。开了真太阳时只有日柱、时柱跟着当地的太阳走，年柱、月柱与起运按瞬间比节气（M19-10）。神煞只出 13 种中性或吉神的名字，阴干羊刃取禄前一位（M19-6）。刑冲合会每个关系一种写法：两字按干支序（辰戌相冲、卯戌合火），半合照三合局次序（申子），同名合成一行写出涉及哪几柱（M19-15）。
+  - **出生地与时区**（M19-4、M19-5、M19-12）：表单里「出生地（可不选）」是 `<input list>` 加 `<datalist>`，只认名单里的城市，不让输地址；不选就按 UTC+8。选了城市，时间照当地钟表填，页面脚本用 `Intl` 按城市的 IANA 时区算出那一刻的 UTC 偏移和夏令时（`bazi-time.ts` 的 `localOffset`，含大陆 1986–1991、台湾、香港的历史夏令时），框下写出时差与对应的北京时间。引擎收 `offset`、`dst`：年柱、月柱、起运按同一瞬间的北京时间比节气，日柱、时柱按当地标准时（夏令时拨回去）。名单 `cities.json` 由 `tools/build-cities.py` 生成：大陆地级以上（Natural Earth 有的才收，没有的脚本列出）、台港澳、海外华人常住城市；中文名、所属、时区本项目写定，Natural Earth 只取经度。按需加载：第一次点进出生地才下载（gzip 约 8 KB）。
+  - **为什么用 Worker**：排盘要 tyme4ts（gzip 约 70 KB），首页按需加载的起卦包也用它。页面脚本一 import 它（或用动态 `import()`），打包时就拆出与首页共用的分包，首页产物跟着变；放进 `scripts/bazi-worker.ts` 单独打包。页面脚本只 import 零依赖的 `bazi-time.ts`（只有它用），表单第一次被操作时就把 Worker 开起来。农历的月份、大小月、正月初一的日子在构建时写进页面（`data-lunar`），下拉不等 Worker。
+  - **隐私**（§1.5）：生辰、性别、出生地只在浏览器里算，不上传、不进日志、不进网址：表单没有提交按钮（「排盘」是 `type=button`，回车由脚本接），控件不写 `name`（单选按钮除外），表单是 `method="dialog"`：脚本没载入时按「排盘」、按回车都什么也不发生（没有它时，在出生地框里按回车 Chromium、WebKit 会隐式提交，单选按钮的性别会拼进网址）；盘面不写进 query、hash，「盘面上的词是什么意思」是按钮不是锚点；没有分享卡、没有复制链接。
+  - **存盘**（M19-8、M19-14）：点「存到这台设备」才存，存在 localStorage（`liuyao:bazi`），只存输入（历法、生辰、性别、选项、出生城市的名字与经度时区），没有名字栏；列表写「1998年11月5日 07:25」「女 · 公历」，点一行重排，可逐条删、全部清除。读写都 try/catch，存不了照常排盘。
+  - **时辰不知道**（M19-11）：勾上后时间与真太阳时不能填，只排三柱，命宫身宫不出，五行、刑冲合会、神煞按三柱，起运按当天中午估并写出 0:00、23:59 的范围；当天交节时写明年柱月柱要看时刻、不估起运。
+  - **农历**（M19-7）：月份下拉直接列闰月，日子按大小月列，选不出不存在的日子；换月、换年时超出的日子、没有的闰月自动改并 `role=status` 说一声。春节与立春之间出生（农历年与年柱不同）时盘面加一行说明。
+  - **繁体**：tyme4ts 的名字查 `bazi-names-hant.json`（十神、十二长生、神煞）与 `huangli-hant.json` 的 names（纳音、生肖、节气）；刑冲合会、农历里只换冲、会、闰、腊四个字。时区写「臺灣時間（UTC+8）」。
+  - **字体**：标题字体子集 `fonts/bazi/index`（繁体 `bazi-hant/index`）：「八字」、干支、0–9、乾造坤造。正文补字算进 `bazi*.json`、`bazi-names-hant.json` 与出生地名单；`glyphs.test.ts` 也核对 `Bazi.astro` 里写在页面上的字（代码里不显示的简体字写成转义）。
+  - **布局**：手机一栏，次序是表单、盘面、存过的盘、盘面上的词，排盘后表单收成一行（可「改」）；≥1024 左 360 表单（sticky）、右栏盘面。「正在排盘」的占位按常见盘面的高度先占好。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。

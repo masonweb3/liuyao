@@ -21,6 +21,8 @@ const PATHS = [
 		// 择日（M18）：首页与 6 个事项 × 时间窗每个月的月页
 		zeriPath(undefined, undefined, hant),
 		...months().flatMap((m) => ITEMS.map((i) => zeriPath(i.slug, m, hant))),
+		// 八字排盘（M19a）：只有栏目首页，盘面在浏览器里算、不进网址
+		`${hant ? HANT : ''}/bazi/`,
 	]),
 ];
 

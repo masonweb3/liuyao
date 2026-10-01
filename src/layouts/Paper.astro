@@ -9,7 +9,7 @@ import Page from './Page.astro';
 
 // 每页一份标题字体子集（tools/subset-fonts.py）：预加载，首次渲染就用标题字体，不再换字体。
 // 简体是站酷小薇；繁体是芫荽，它缺的字另有一份霞鹜文楷 TC 子集（{slug}-wk），两条 @font-face 同名，
-// 按 unicode-range 分工。按栏目分目录：gua/（卦页、目录）、huangli/（黄历与节气），繁体各带 -hant。
+// 按 unicode-range 分工。按栏目分目录：gua/（卦页、目录）、huangli/（黄历与节气、择日）、bazi/（八字排盘），繁体各带 -hant。
 const SUBSETS = import.meta.glob<string>('../fonts/*/*.woff2', { query: '?url', import: 'default', eager: true });
 const RANGES = import.meta.glob<Record<string, string>>('../fonts/*/ranges.json', { import: 'default', eager: true });
 
