@@ -859,7 +859,8 @@ const table = kind === 'shishen' ? shishenTable() : [];
   td {
     padding: 0;
   }
-  /* 横滑的出血容器：外边距、内边距的表达式与 Paper .page、Columns 逐字对应，两端 24px 渐隐（同栏目行） */
+  /* 横滑的出血容器：外边距、内边距的表达式与 Paper .page、Columns 逐字对应，右端 24px 渐隐（同栏目行）。
+     左端不渐隐：320 宽十神表只滑 18px，滑出去的只是出血的内边距，左边没有藏起的内容，渐隐反倒盖住滑到底时的行头 */
   .scroll {
     --edge-l: max(var(--gutter), env(safe-area-inset-left));
     --edge-r: max(var(--gutter), env(safe-area-inset-right));
@@ -867,8 +868,8 @@ const table = kind === 'shishen' ? shishenTable() : [];
     padding-inline: var(--edge-l) var(--edge-r);
     overflow-x: auto;
     scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
     outline-offset: -3px;
   }
   .scroll::-webkit-scrollbar {
