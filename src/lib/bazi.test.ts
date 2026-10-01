@@ -1,6 +1,7 @@
 import { ChildLimit, DefaultChildLimitProvider, EightChar, SixtyCycle } from "tyme4ts";
 import { describe, expect, it } from "vitest";
-import { type Birth, bazi, equationOfTime, guanXi, type Options, shenSha } from "./bazi.js";
+import { type Birth, bazi, guanXi, type Options, shenSha } from "./bazi.js";
+import { equationOfTime, localOffset } from "./bazi-time.js";
 
 const solar = (y: number, m: number, d: number, h: number, mi: number, gender: Birth["gender"]): Birth => ({
 	calendar: "solar",
@@ -12,7 +13,7 @@ const solar = (y: number, m: number, d: number, h: number, mi: number, gender: B
 	gender,
 });
 
-// 命例对照（2026-10-01）：易安居（zhouyi.cc/bazi/pp）与元亨利贞（china95.net/paipan/bazi）同一生辰的结果，详见 docs/review-m19/compare.md。
+// 命例对照（2026-10-01；默认选项：晚子时换日、起运 sect2，M19-1、M19-2）：易安居（zhouyi.cc/bazi/pp）与元亨利贞（china95.net/paipan/bazi）同一生辰的结果，详见 docs/review-m19/compare.md。
 // 四柱、胎元、命宫、大运干支与岁数逐项与易安居一致；元亨利贞的节气表在 2000 年后、1900 年代偏差十几到四十分钟，
 // 2025-02-03 22:20 那一例它排成甲辰年（它的立春是 22:27，日本国立天文台是 22:10），其余四柱一致。
 // yiAnJu 是易安居的起运（周岁、月、天）与交运月日，对 tyme4ts 的 china95 算法（只算到天）。
@@ -33,7 +34,9 @@ const CASES: {
 	{ label: "2025 立春前十分钟", birth: solar(2025, 2, 3, 22, 0, "男"), pillars: "甲辰 丁丑 癸卯 癸亥", taiYuan: "戊辰", mingGong: "己巳", daYun: "戊寅 己卯 庚辰", startAge: 1, startYear: 2025, yiAnJu: [0, 0, 0, "02-03"] },
 	// 易安居起运 9 岁 10 个月 29 天：它的节气取到分，差两小时进成一天
 	{ label: "2025 立春后十分钟", birth: solar(2025, 2, 3, 22, 20, "女"), pillars: "乙巳 戊寅 癸卯 癸亥", taiYuan: "己巳", mingGong: "庚辰", daYun: "己卯 庚辰 辛巳", startAge: 11, startYear: 2035 },
-	{ label: "晚子时（换日）", birth: solar(1990, 5, 15, 23, 30, "男"), options: { lateZi: "day-advances" }, pillars: "庚午 辛巳 辛巳 戊子", taiYuan: "壬申", mingGong: "戊子", daYun: "壬午 癸未 甲申", startAge: 8, startYear: 1997, yiAnJu: [7, 1, 6, "06-21"] },
+	{ label: "晚子时（默认换日）", birth: solar(1990, 5, 15, 23, 30, "男"), pillars: "庚午 辛巳 辛巳 戊子", taiYuan: "壬申", mingGong: "戊子", daYun: "壬午 癸未 甲申", startAge: 8, startYear: 1997, yiAnJu: [7, 1, 6, "06-21"] },
+	// 两站都按换日排；选「仍算当天」时只有日柱不同
+	{ label: "晚子时（不换日）", birth: solar(1990, 5, 15, 23, 30, "男"), options: { lateZi: "day-stays" }, pillars: "庚午 辛巳 庚辰 戊子", taiYuan: "壬申", mingGong: "戊子", daYun: "壬午 癸未 甲申", startAge: 8, startYear: 1997 },
 	{ label: "早子时", birth: solar(1990, 5, 16, 0, 30, "女"), pillars: "庚午 辛巳 辛巳 戊子", taiYuan: "壬申", mingGong: "戊子", daYun: "庚辰 己卯 戊寅", startAge: 4, startYear: 1993, yiAnJu: [3, 3, 19, "09-04"] },
 	{ label: "农历闰四月", birth: { calendar: "lunar", year: 2020, month: 4, day: 10, hour: 8, minute: 30, leap: true, gender: "男" }, pillars: "庚子 辛巳 乙亥 庚辰", taiYuan: "壬申", mingGong: "甲申", daYun: "壬午 癸未 甲申", startAge: 2, startYear: 2021, yiAnJu: [1, 4, 22, "10-23"] },
 	{ label: "1905 年", birth: solar(1905, 7, 8, 6, 15, "女"), pillars: "乙巳 癸未 戊申 乙卯", taiYuan: "甲戌", mingGong: "癸未", daYun: "甲申 乙酉 丙戌", startAge: 11, startYear: 1915, yiAnJu: [10, 5, 8, "12-16"] },
@@ -72,7 +75,7 @@ describe("命例对照", () => {
 			{ ganZhi: "丁巳", gan: "丁", zhi: "巳", ganWuXing: "火", zhiWuXing: "火", shiShen: "正印", cangGan: [{ gan: "丙", shiShen: "偏印" }, { gan: "庚", shiShen: "食神" }, { gan: "戊", shiShen: "比肩" }], xingYun: "临官", ziZuo: "帝旺", naYin: "沙中土", kongWang: "子丑", shenSha: ["天乙贵人", "太极贵人", "禄神", "驿马"] },
 		]);
 		expect(r.wuXing).toEqual({ 木: 1, 火: 2, 土: 3, 金: 0, 水: 2 });
-		expect(r.guanXi.map((g) => g.name)).toEqual(["癸戊合火", "亥巳相冲"]);
+		expect(r.guanXi.map((g) => g.name)).toEqual(["戊癸合火", "巳亥相冲"]);
 		expect(r.qiYun).toEqual({ years: 9, months: 7, days: 21, hours: 14, at: "1993-09-26 00:00", forward: false });
 		expect(r.daYun).toHaveLength(10);
 		expect(r.daYun[9]).toMatchObject({ ganZhi: "乙卯", startAge: 100, startYear: 2083, endYear: 2092 });
@@ -109,10 +112,10 @@ describe("时刻", () => {
 		expect(at(20)).toEqual(["乙巳", "戊寅"]);
 	});
 
-	it("晚子时：默认不换日（与六爻一致），可选换日；时柱都用次日天干起子时", () => {
+	it("晚子时：默认换日（M19-1，与六爻的默认不同），可选不换日；时柱都用次日天干起子时", () => {
 		const b = solar(1990, 5, 15, 23, 30, "男");
-		expect(bazi(b).pillars.slice(2).map((p) => p.ganZhi)).toEqual(["庚辰", "戊子"]);
-		expect(bazi(b, { lateZi: "day-advances" }).pillars.slice(2).map((p) => p.ganZhi)).toEqual(["辛巳", "戊子"]);
+		expect(bazi(b).pillars.slice(2).map((p) => p.ganZhi)).toEqual(["辛巳", "戊子"]);
+		expect(bazi(b, { lateZi: "day-stays" }).pillars.slice(2).map((p) => p.ganZhi)).toEqual(["庚辰", "戊子"]);
 	});
 
 	it("均时差：十一月初约 +16 分，二月中约 −14 分", () => {
@@ -167,11 +170,11 @@ describe("刑冲合会", () => {
 		expect(names("甲申 丙子 戊寅 庚午")).toEqual([
 			"半合:申子半合水局:01",
 			"半合:寅午半合火局:23",
-			"六冲:申寅相冲:02",
+			"六冲:寅申相冲:02",
 			"六冲:子午相冲:13",
-			"相刑:申寅相刑:02",
+			"相刑:寅申相刑:02",
 		]);
-		expect(names("甲申 丙辰 戊寅 庚戌")).toEqual(["六冲:申寅相冲:02", "六冲:辰戌相冲:13", "相刑:申寅相刑:02"]);
+		expect(names("甲申 丙辰 戊寅 庚戌")).toEqual(["六冲:寅申相冲:02", "六冲:辰戌相冲:13", "相刑:寅申相刑:02"]);
 	});
 
 	it("三刑凑齐不再列相刑；子卯相刑、自刑、六害", () => {
@@ -181,7 +184,7 @@ describe("刑冲合会", () => {
 			"相刑:子卯相刑:23",
 			"六害:寅巳相害:01",
 		]);
-		expect(names("壬辰 癸卯 庚辰 癸未")).toEqual(["半合:卯未半合木局:13", "自刑:辰辰自刑:02", "六害:辰卯相害:01", "六害:卯辰相害:12"]);
+		expect(names("壬辰 癸卯 庚辰 癸未")).toEqual(["半合:卯未半合木局:13", "自刑:辰辰自刑:02", "六害:卯辰相害:01", "六害:卯辰相害:12"]);
 	});
 
 	it("天干五合、地支六合、三会", () => {
@@ -225,5 +228,124 @@ describe("命宫、身宫的排法", () => {
 				expect([e.getOwnSign().getEarthBranch().getName(), e.getBodySign().getEarthBranch().getName()]).toEqual([Z[ming], Z[shen]]);
 			}
 		}
+	});
+});
+
+describe("刑冲合会的写法（M19-15）", () => {
+	it("每个关系只有一种写法，与柱序无关：两字按干支序，半合照三合局的次序", () => {
+		const names = (gz: string[]) => guanXi(gz).map((g) => g.name).sort();
+		for (const c of CASES) {
+			const gz = bazi(c.birth, c.options).pillars.map((p) => p.ganZhi);
+			expect(names([...gz].reverse()), c.label).toEqual(names(gz));
+		}
+		expect(guanXi(["丙子", "甲申"]).map((g) => g.name)).toEqual(["申子半合水局"]);
+		expect(guanXi(["丙戌", "乙卯"]).map((g) => g.name)).toEqual(["卯戌合火"]);
+		expect(guanXi(["丙戌", "乙未"]).map((g) => g.name)).toEqual(["未戌相刑"]);
+	});
+
+	it("最密的一盘（甲寅 己巳 甲寅 己巳）12 条，只有 3 个名字", () => {
+		const gx = guanXi(["甲寅", "己巳", "甲寅", "己巳"]);
+		expect(gx).toHaveLength(12);
+		expect([...new Set(gx.map((g) => g.name))]).toEqual(["甲己合土", "寅巳相刑", "寅巳相害"]);
+		expect(gx.filter((g) => g.name === "甲己合土").map((g) => g.zhu.join(""))).toEqual(["01", "03", "12", "23"]);
+	});
+});
+
+describe("出生地的时区与夏令时（M19-5）", () => {
+	it("浏览器时区库给出当天的偏移与夏令时：大陆 1988、台湾 1975、香港 1970 的夏令时，南半球，钟表跳过与重复的一小时", () => {
+		expect(localOffset("Asia/Shanghai", 1998, 11, 5, 7, 25)).toEqual({ offset: 480, dst: 0 });
+		expect(localOffset("Asia/Shanghai", 1988, 7, 1, 7, 30)).toEqual({ offset: 540, dst: 60 });
+		expect(localOffset("Asia/Taipei", 1975, 7, 1, 12, 0)).toEqual({ offset: 540, dst: 60 });
+		expect(localOffset("Asia/Hong_Kong", 1970, 7, 1, 12, 0)).toEqual({ offset: 540, dst: 60 });
+		expect(localOffset("America/Vancouver", 1998, 11, 5, 7, 25)).toEqual({ offset: -480, dst: 0 });
+		expect(localOffset("America/Vancouver", 1998, 7, 5, 7, 25)).toEqual({ offset: -420, dst: 60 });
+		expect(localOffset("Australia/Sydney", 2000, 1, 15, 12, 0)).toEqual({ offset: 660, dst: 60 });
+		expect(localOffset("America/Los_Angeles", 2021, 3, 14, 2, 30).offset).toBe(-480);
+		expect(localOffset("America/Los_Angeles", 2021, 11, 7, 1, 30).offset).toBe(-420);
+	});
+
+	it("海外出生：年柱、月柱按同一瞬间的北京时间比节气，日柱、时柱按当地钟表", () => {
+		// 洛杉矶 2025-02-03 07:00（UTC−8）是北京时间 23:00，已过立春（22:10）
+		const la = bazi(solar(2025, 2, 3, 7, 0, "男"), { offset: -480 });
+		expect([la.solar, la.beijing]).toEqual(["2025-02-03 07:00", "2025-02-03 23:00"]);
+		expect(la.pillars.map((p) => p.ganZhi)).toEqual(["乙巳", "戊寅", "癸卯", "丙辰"]);
+		// 同一个钟表时刻在北京还没到立春
+		const bj = bazi(solar(2025, 2, 3, 7, 0, "男"));
+		expect(bj.pillars.map((p) => p.ganZhi)).toEqual(["甲辰", "丁丑", "癸卯", "丙辰"]);
+		expect(bj.beijing).toBeUndefined();
+		// 起运按同一瞬间算：与北京时间 23:00 出生的一样
+		expect(la.qiYun).toEqual(bazi(solar(2025, 2, 3, 23, 0, "男")).qiYun);
+		// 温哥华 1998-11-05 07:25（设计稿 27 ⑤）：北京时间当天 23:25，四柱同北京 07:25 那一盘
+		const van = bazi(solar(1998, 11, 5, 7, 25, "女"), { offset: -480 });
+		expect(van.beijing).toBe("1998-11-05 23:25");
+		expect(van.pillars.map((p) => p.ganZhi)).toEqual(["戊寅", "壬戌", "丙辰", "壬辰"]);
+	});
+
+	it("夏令时：日柱、时柱按标准时（钟表拨回一小时），年柱、月柱与起运按真实的瞬间", () => {
+		// 大陆 1988-07-01 07:30（夏令时 UTC+9）：标准时 06:30 是卯时，不按钟表的辰时
+		const dst = bazi(solar(1988, 7, 1, 7, 30, "女"), { offset: 540, dst: 60 });
+		expect(dst.beijing).toBe("1988-07-01 06:30");
+		expect(dst.pillars[3]!.zhi).toBe("卯");
+		expect(bazi(solar(1988, 7, 1, 7, 30, "女")).pillars[3]!.zhi).toBe("辰");
+		expect(dst.qiYun).toEqual(bazi(solar(1988, 7, 1, 6, 30, "女")).qiYun);
+		// 温哥华 1998-07-05 07:25（夏令时 UTC−7）：标准时 06:25，卯时
+		expect(bazi(solar(1998, 7, 5, 7, 25, "女"), { offset: -420, dst: 60 }).pillars[3]!.zhi).toBe("卯");
+	});
+
+	it("海外开真太阳时：按出生地的经度与那一刻的 UTC 偏移校正（夏令时也拨掉）", () => {
+		// 温哥华西经 123.1°、UTC−7：太阳时 = 钟表 + (−123.1×4 + 420) 分 + 均时差
+		const r = bazi(solar(1998, 7, 5, 12, 0, "男"), { offset: -420, dst: 60, longitude: -123.1 });
+		const eot = equationOfTime(Date.UTC(1998, 6, 5, 19, 0));
+		expect(r.zhenTaiYang!.minutes).toBeCloseTo(-123.1 * 4 + 420 + eot, 1);
+		expect(r.zhenTaiYang!.time).toBe("1998-07-05 10:43");
+	});
+});
+
+describe("时辰不知道（M19-11）", () => {
+	const noHour = { calendar: "solar", year: 1998, month: 11, day: 5, gender: "女" } as const;
+
+	it("只排三柱：命宫、身宫不出；五行、刑冲合会、神煞按三柱；起运按中午估，另给当天 0:00 与 23:59 的范围", () => {
+		const r = bazi(noHour);
+		expect(r.solar).toBe("1998-11-05");
+		expect(r.pillars.map((p) => p.ganZhi)).toEqual(["戊寅", "壬戌", "丙辰"]);
+		expect([r.mingGong, r.shenGong, r.zhenTaiYang, r.jie]).toEqual([undefined, undefined, undefined, undefined]);
+		expect(r.taiYuan.ganZhi).toBe("癸丑");
+		expect(r.wuXing).toEqual({ 木: 1, 火: 1, 土: 3, 金: 0, 水: 1 });
+		expect(r.guanXi.map((g) => `${g.name}:${g.zhu.join("")}`)).toEqual(["辰戌相冲:12"]);
+		expect(r.pillars.map((p) => p.shenSha)).toEqual([0, 1, 2].map((k) => shenSha(["戊寅", "壬戌", "丙辰"], k)));
+		expect([r.qiYun.years, r.qiYun.months, r.qiYun.days]).toEqual([9, 2, 20]);
+		expect(r.qiYun.range).toEqual([
+			{ years: 9, months: 0, days: 20 },
+			{ years: 9, months: 4, days: 20 },
+		]);
+		// 真太阳时、晚子时都不起作用
+		expect(bazi(noHour, { longitude: 104.07, lateZi: "day-stays" }).pillars).toEqual(r.pillars);
+	});
+
+	it("出生那天交节：写出是哪个节、几点交节，盘按中午 12 点排", () => {
+		const r = bazi({ ...noHour, year: 2025, month: 2, day: 3 });
+		expect(r.jie).toEqual({ name: "立春", time: "2025-02-03 22:10" });
+		expect(r.pillars.map((p) => p.ganZhi)).toEqual(["甲辰", "丁丑", "癸卯"]);
+	});
+
+	it("农历输入也能不填时辰", () => {
+		const r = bazi({ calendar: "lunar", year: 2020, month: 4, day: 10, leap: true, gender: "男" });
+		expect([r.solar, r.lunar]).toEqual(["2020-06-01", "庚子年闰四月初十"]);
+	});
+});
+
+describe("农历年与年柱不同（立春换年）", () => {
+	it("春节后、立春前：农历已是新年，年柱仍是上一年，给出立春的交节时刻", () => {
+		const r = bazi(solar(1984, 2, 4, 10, 0, "男"));
+		expect([r.lunar.slice(0, 2), r.pillars[0]!.ganZhi, r.liChun]).toEqual(["甲子", "癸亥", "1984-02-04 23:18"]);
+	});
+
+	it("立春后、春节前：年柱已换，农历还是上一年", () => {
+		const r = bazi(solar(2021, 2, 8, 10, 0, "女"));
+		expect([r.lunar.slice(0, 2), r.pillars[0]!.ganZhi, r.liChun]).toEqual(["庚子", "辛丑", "2021-02-03 22:58"]);
+	});
+
+	it("两者相同时不给", () => {
+		expect(bazi(solar(1998, 11, 5, 7, 25, "女")).liChun).toBeUndefined();
 	});
 });

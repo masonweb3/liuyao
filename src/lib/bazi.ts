@@ -4,9 +4,11 @@
  * 只出盘面，不带断语。四柱、十神、藏干、十二长生、纳音、空亡、胎元、命宫、身宫、大运都查 tyme4ts；
  * 刑冲合会、神煞、五行个数自写（tyme4ts 的 God 是黄历日神，不是八字神煞，这里不用）。
  *
- * 时刻的前提：输入是北京时间（UTC+8）的钟表时刻，节气也按北京时间算，所以和六爻一样与机器所在时区无关。
- * 海外出生的怎么输入还没定（engine.md 待定 M19-5）。
+ * 时刻（M19-5、M19-10）：输入是出生地的钟表时刻，另给那一刻的 UTC 偏移（默认 UTC+8）。年柱、月柱与起运按同一瞬间的
+ * 北京时间比节气（tyme4ts 的节气按北京时间；交节是一个瞬间，与出生地无关）；日柱、时柱按当地：标准时（夏令时拨回去），
+ * 开了真太阳时就按当地的太阳。和六爻一样与机器所在时区无关。
  */
+import { equationOfTime } from "./bazi-time.js";
 import type { LateZiSect } from "./liuyao/calendar.js";
 import {
 	ChildLimit,
@@ -22,6 +24,7 @@ import {
 	SixtyCycle,
 	SixtyCycleYear,
 	SolarDay,
+	SolarTerm,
 	SolarTime,
 } from "tyme4ts";
 
@@ -33,8 +36,9 @@ export interface Birth {
 	year: number;
 	month: number;
 	day: number;
-	hour: number;
-	minute: number;
+	/** 时辰不知道（M19-11）时不给：只排年、月、日三柱 */
+	hour?: number;
+	minute?: number;
 	leap?: boolean;
 	gender: Gender;
 }
@@ -49,12 +53,19 @@ export interface Birth {
 export type QiYunSect = "sect2" | "default" | "china95" | "sect1";
 
 export interface Options {
-	/** 晚子时（23–24 点）日柱换不换日。默认与六爻一致：不换日（待定 M19-1）。时柱两种都按次日起。 */
+	/**
+	 * 晚子时（23–24 点）日柱换不换日。默认换日（M19-1：多数排盘网站这样排，用户常拿别家的盘来对；
+	 * 六爻的默认仍是不换日）。时柱两种都按次日起。
+	 */
 	lateZi?: LateZiSect;
-	/** 默认 sect2（待定 M19-2） */
+	/** 默认 sect2（M19-2） */
 	qiYun?: QiYunSect;
 	/** 真太阳时：出生地东经度数（西经为负）。不给就不校正 */
 	longitude?: number;
+	/** 出生那一刻当地的 UTC 偏移（分钟，东正西负，可带小数），含夏令时。默认 480：北京时间 */
+	offset?: number;
+	/** 那一刻夏令时拨快了多少分钟（默认 0）。日柱、时柱按标准时排，钟表减去它 */
+	dst?: number;
 }
 
 export interface Pillar {
@@ -121,27 +132,43 @@ export interface DaYun {
 	liuNian: LiuNian[];
 }
 
+/** 起运的年、月、天（时辰不详时给范围用） */
+export interface Span {
+	years: number;
+	months: number;
+	days: number;
+}
+
 export interface Bazi {
 	gender: Gender;
-	/** 排盘用的公历时刻（北京时间）「1990-05-15 23:30」；农历输入已换成公历 */
+	/** 出生的公历时刻，当地钟表时间「1990-05-15 23:30」；农历输入已换成公历。时辰不详时只有日期「1990-05-15」 */
 	solar: string;
+	/** 不是北京时间（偏移不是 UTC+8）时：同一瞬间的北京时间 */
+	beijing?: string;
 	/** 开了真太阳时才有：校正后的时刻与校正了多少分钟（经度差加均时差） */
 	zhenTaiYang?: { time: string; minutes: number };
-	/** 农历「庚午年四月廿一」，闰月写「闰四月」，十一、十二月写「冬月」「腊月」 */
+	/** 农历「庚午年四月廿一」，按当地的日子；闰月写「闰四月」，十一、十二月写「冬月」「腊月」 */
 	lunar: string;
+	/** 农历年与年柱不同（春节后、立春前，或立春后、春节前）时：那一年立春的交节时刻（北京时间） */
+	liChun?: string;
 	/** 生肖，按年柱（立春起） */
 	shengXiao: string;
-	/** 年、月、日、时四柱 */
-	pillars: [Pillar, Pillar, Pillar, Pillar];
-	/** 胎元（taiYuan）、命宫（mingGong）、身宫（shenGong） */
+	/** 年、月、日、时四柱；时辰不详时只有前三柱 */
+	pillars: Pillar[];
+	/** 胎元（taiYuan）、命宫（mingGong）、身宫（shenGong）。命宫、身宫要用生时，时辰不详时没有 */
 	taiYuan: GanZhiNaYin;
-	mingGong: GanZhiNaYin;
-	shenGong: GanZhiNaYin;
+	mingGong?: GanZhiNaYin;
+	shenGong?: GanZhiNaYin;
 	/** 五行个数（wuXing）：四柱八个字各算一个，地支取本身五行，不算藏干 */
 	wuXing: Record<"木" | "火" | "土" | "金" | "水", number>;
 	guanXi: GuanXi[];
-	/** 起运：出生后几年几月几天几小时（算法不到的单位为 0），交运时刻（北京时间），大运顺排还是逆排 */
-	qiYun: { years: number; months: number; days: number; hours: number; at: string; forward: boolean };
+	/**
+	 * 起运：出生后几年几月几天几小时（算法不到的单位为 0），交运时刻（北京时间），大运顺排还是逆排。
+	 * 时辰不详时按当天中午 12 点估，range 是当天 0:00 与 23:59 出生的起运
+	 */
+	qiYun: Span & { hours: number; at: string; forward: boolean; range?: [Span, Span] };
+	/** 时辰不详、出生那天正好交节（年柱、月柱要看出生时刻）时：那个节与交节时刻（北京时间）。盘按中午 12 点排 */
+	jie?: { name: string; time: string };
 	/** 十步大运，从起运那步开始 */
 	daYun: DaYun[];
 }
@@ -161,20 +188,6 @@ const zi = (gz: string) => Z.indexOf(gz[1]!);
 const pad = (n: number) => String(n).padStart(2, "0");
 const fmt = (t: SolarTime) =>
 	`${t.getYear()}-${pad(t.getMonth())}-${pad(t.getDay())} ${pad(t.getHour())}:${pad(t.getMinute())}`;
-
-/**
- * 均时差（真太阳时减平太阳时，分钟）。NOAA 的近似式，误差在半分钟以内，排时辰够用。
- * @param utcMs 出生时刻（UTC 毫秒）
- */
-export function equationOfTime(utcMs: number): number {
-	const d = new Date(utcMs);
-	const start = Date.UTC(d.getUTCFullYear(), 0, 1);
-	const g = ((2 * Math.PI) / 365) * ((utcMs - start) / 86_400_000 - 0.5);
-	return (
-		229.18 *
-		(0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g))
-	);
-}
 
 /**
  * 神煞：以什么查、查到哪个字。规则是古籍里的公有领域查法，出处见每行（卷次按维基文库本《三命通会》）；
@@ -239,9 +252,13 @@ const SAN_HUI = [["寅卯辰", "木"], ["巳午未", "火"], ["申酉戌", "金"
 const SAN_XING = ["寅巳申", "丑戌未"];
 const ZI_XING = "辰午酉亥";
 
+// 两字的关系按干支序写（M19-15）：甲己合土、辰戌相冲、卯戌合火，与柱序无关，同一个关系只有一种写法
+const pair = (a: string, b: string, order: string) => (order.indexOf(a) <= order.indexOf(b) ? a + b : b + a);
+
 /**
  * 刑冲合会。传任意几柱的干支（四柱，或以后加上大运、流年），两两查合、冲、刑、害，
  * 三个一组查三合、三会、三刑。三合、三刑凑齐了就不再列其中两两的半合、相刑。半合只算含旺支的，不算拱合。
+ * 名字只按干支取，同名的（月日、月时各一个辰戌相冲）靠 zhu 区分，界面合成一行。
  */
 export function guanXi(gz: string[]): GuanXi[] {
 	const out: GuanXi[] = [];
@@ -263,24 +280,25 @@ export function guanXi(gz: string[]): GuanXi[] {
 		for (let j = i + 1; j < gz.length; j++) {
 			const [a, b] = [gz[i]!, gz[j]!];
 			const zhu = [i, j];
-			const ga = HeavenStem.fromName(a[0]!);
-			const he = ga.combine(HeavenStem.fromName(b[0]!));
-			if (he) out.push({ type: "天干五合", name: `${a[0]}${b[0]}合${he.getName()}`, zhu });
+			const he = HeavenStem.fromName(a[0]!).combine(HeavenStem.fromName(b[0]!));
+			if (he) out.push({ type: "天干五合", name: `${pair(a[0]!, b[0]!, G)}合${he.getName()}`, zhu });
 
 			const [x, y] = [a[1]!, b[1]!];
+			const xy = pair(x, y, Z);
 			const zx = EarthBranch.fromName(x);
 			const zy = EarthBranch.fromName(y);
 			const liuHe = zx.combine(zy);
-			if (liuHe) out.push({ type: "地支六合", name: `${x}${y}合${liuHe.getName()}`, zhu });
-			if (zx.getOpposite().equals(zy)) out.push({ type: "六冲", name: `${x}${y}相冲`, zhu });
-			if (zx.getHarm().equals(zy)) out.push({ type: "六害", name: `${x}${y}相害`, zhu });
-			if (x === y && ZI_XING.includes(x)) out.push({ type: "自刑", name: `${x}${y}自刑`, zhu });
-			const xing = x + y === "子卯" || x + y === "卯子" || SAN_XING.some((s) => !full(s) && s.includes(x) && s.includes(y) && x !== y);
-			if (xing) out.push({ type: "相刑", name: `${x}${y}相刑`, zhu });
+			if (liuHe) out.push({ type: "地支六合", name: `${xy}合${liuHe.getName()}`, zhu });
+			if (zx.getOpposite().equals(zy)) out.push({ type: "六冲", name: `${xy}相冲`, zhu });
+			if (zx.getHarm().equals(zy)) out.push({ type: "六害", name: `${xy}相害`, zhu });
+			if (x === y && ZI_XING.includes(x)) out.push({ type: "自刑", name: `${xy}自刑`, zhu });
+			const xing = xy === "子卯" || SAN_XING.some((s) => !full(s) && s.includes(x) && s.includes(y) && x !== y);
+			if (xing) out.push({ type: "相刑", name: `${xy}相刑`, zhu });
 
 			for (const [chars, wx] of SAN_HE) {
-				const pair = x !== y && chars.includes(x) && chars.includes(y) && (x === chars[1] || y === chars[1]);
-				if (pair && !full(chars)) out.push({ type: "半合", name: `${x}${y}半合${wx}局`, zhu });
+				const half = x !== y && chars.includes(x) && chars.includes(y) && (x === chars[1] || y === chars[1]);
+				// 半合照三合局的次序写：申子、子辰，不写子申
+				if (half && !full(chars)) out.push({ type: "半合", name: `${[...chars].filter((c) => c === x || c === y).join("")}半合${wx}局`, zhu });
 			}
 		}
 	}
@@ -300,31 +318,38 @@ const naYin = (c: SixtyCycle): GanZhiNaYin => ({ ganZhi: c.getName(), naYin: c.g
  * 排一个八字盘。农历日期不存在（闰月不对、小月三十）时 tyme4ts 会抛错，界面应先按 LunarYear/LunarMonth 只给合法选项。
  */
 export function bazi(birth: Birth, options: Options = {}): Bazi {
-	const { year, month, day, hour, minute } = birth;
-	// 钟表时刻（北京时间）。年、月柱和起运按这个时刻比节气：交节是一个确定的瞬间，与出生地无关
-	const clock =
+	const { year, month, day } = birth;
+	const known = birth.hour !== undefined;
+	const offset = options.offset ?? 480;
+	// 当地的钟表时刻。农历按当地的日子换成公历；时辰不详按中午 12 点估
+	const at = (h: number, mi: number) =>
 		birth.calendar === "lunar"
-			? LunarHour.fromYmdHms(year, birth.leap ? -month : month, day, hour, minute, 0).getSolarTime()
-			: SolarTime.fromYmdHms(year, month, day, hour, minute, 0);
+			? LunarHour.fromYmdHms(year, birth.leap ? -month : month, day, h, mi, 0).getSolarTime()
+			: SolarTime.fromYmdHms(year, month, day, h, mi, 0);
+	const clock = known ? at(birth.hour!, birth.minute ?? 0) : at(12, 0);
+	// 同一瞬间的北京时间。年柱、月柱和起运按它比节气，精确到秒：交节是一个瞬间，与出生地无关（M19-10）
+	const beijingOf = (t: SolarTime) => t.next(Math.round((480 - offset) * 60));
+	const beijing = beijingOf(clock);
 
-	// 日、时柱按出生地的太阳：开了真太阳时就用经度差（每度 4 分钟）加均时差校正
-	let local = clock;
+	// 日柱、时柱按当地：标准时（夏令时拨回去）；开了真太阳时按出生地的太阳，经度每度 4 分钟加均时差
+	let local = clock.next(-Math.round((options.dst ?? 0) * 60));
 	let zhenTaiYang: Bazi["zhenTaiYang"];
-	if (options.longitude !== undefined) {
-		const utc = Date.UTC(clock.getYear(), clock.getMonth() - 1, clock.getDay(), clock.getHour() - 8, clock.getMinute());
-		const minutes = (options.longitude - 120) * 4 + equationOfTime(utc);
+	if (options.longitude !== undefined && known) {
+		const utc = Date.UTC(clock.getYear(), clock.getMonth() - 1, clock.getDay(), clock.getHour(), clock.getMinute()) - offset * 60_000;
+		const minutes = options.longitude * 4 - offset + equationOfTime(utc);
 		local = clock.next(Math.round(minutes * 60));
 		zhenTaiYang = { time: fmt(local), minutes: Math.round(minutes * 10) / 10 };
 	}
 
-	const yearMonth = clock.getSixtyCycleHour();
+	const yearMonth = beijing.getSixtyCycleHour();
 	const dayHour = local.getSixtyCycleHour();
 	const dayCycle =
-		(options.lateZi ?? "day-stays") === "day-advances"
+		known && (options.lateZi ?? "day-advances") === "day-advances"
 			? dayHour.getDay()
 			: SolarDay.fromYmd(local.getYear(), local.getMonth(), local.getDay()).getSixtyCycleDay().getSixtyCycle();
+	// 时辰不详也照样构造四柱（胎元只看月柱），时柱不出
 	const eight = new EightChar(yearMonth.getYear(), yearMonth.getMonth(), dayCycle, dayHour.getSixtyCycle());
-	const cycles = [eight.getYear(), eight.getMonth(), eight.getDay(), eight.getHour()];
+	const cycles = [eight.getYear(), eight.getMonth(), eight.getDay(), eight.getHour()].slice(0, known ? 4 : 3);
 	const gz = cycles.map((c) => c.getName());
 	const me = eight.getDay().getHeavenStem();
 	const star = (g: HeavenStem) => me.getTenStar(g).getName();
@@ -346,7 +371,7 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 			kongWang: kong(c),
 			shenSha: shenSha(gz, k),
 		};
-	}) as Bazi["pillars"];
+	});
 
 	const wuXing = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
 	for (const c of cycles) {
@@ -354,14 +379,28 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 		wuXing[c.getEarthBranch().getElement().getName() as keyof typeof wuXing]++;
 	}
 
-	// tyme4ts 的起运算法是全局静态设置，只在这一次构造里换掉，用完还原，免得影响别的调用
+	// tyme4ts 的起运算法是全局静态设置，只在这几次构造里换掉，用完还原，免得影响别的调用
+	const sex = birth.gender === "男" ? TymeGender.MAN : TymeGender.WOMAN;
 	const saved = ChildLimit.provider;
 	ChildLimit.provider = new PROVIDERS[options.qiYun ?? "sect2"]();
 	let limit: ChildLimit;
+	let range: [ChildLimit, ChildLimit] | undefined;
 	try {
-		limit = ChildLimit.fromSolarTime(clock, birth.gender === "男" ? TymeGender.MAN : TymeGender.WOMAN);
+		limit = ChildLimit.fromSolarTime(beijing, sex);
+		if (!known) range = [ChildLimit.fromSolarTime(beijingOf(at(0, 0)), sex), ChildLimit.fromSolarTime(beijingOf(at(23, 59)), sex)];
 	} finally {
 		ChildLimit.provider = saved;
+	}
+	const span = (l: ChildLimit): Span => ({ years: l.getYearCount(), months: l.getMonthCount(), days: l.getDayCount() });
+
+	// 时辰不详、当天交节：这一天出生的年柱、月柱要看时刻（立春那天连大运顺逆都会变），盘按中午排，界面写明
+	let jie: Bazi["jie"];
+	if (!known) {
+		const [early, late] = [beijingOf(at(0, 0)), beijingOf(at(23, 59))];
+		if (early.getSixtyCycleHour().getMonth().getName() !== late.getSixtyCycleHour().getMonth().getName()) {
+			const term = late.getTerm();
+			jie = { name: term.getName(), time: fmt(term.getJulianDay().getSolarTime()) };
+		}
 	}
 
 	// 岁数照 tyme4ts：出生那个公历年算 1 岁，交运那年是起运岁数，与易安居的大运岁数一致。
@@ -388,32 +427,35 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 		};
 	});
 
-	// 农历与 solar 同按钟表时刻，真太阳时校正后的时刻另见 zhenTaiYang
-	const lunarDay = clock.getLunarHour().getLunarDay();
+	// 农历按当地的日子（农历输入原样换回），不跟真太阳时、晚子时变
+	const lunarDay = SolarDay.fromYmd(clock.getYear(), clock.getMonth(), clock.getDay()).getLunarDay();
 	const lunarMonth = lunarDay.getLunarMonth();
+	const lunarYear = lunarMonth.getLunarYear().getSixtyCycle().getName();
 	// 十一月、十二月写冬月、腊月，与黄历同（M17-15）
 	const monthName = lunarMonth.getName().replace("十一月", "冬月").replace("十二月", "腊月");
 
 	return {
 		gender: birth.gender,
-		solar: fmt(clock),
+		solar: known ? fmt(clock) : fmt(clock).slice(0, 10),
+		...(offset !== 480 && known && { beijing: fmt(beijing) }),
 		...(zhenTaiYang && { zhenTaiYang }),
-		lunar: `${lunarMonth.getLunarYear().getSixtyCycle().getName()}年${monthName}${lunarDay.getName()}`,
+		lunar: `${lunarYear}年${monthName}${lunarDay.getName()}`,
+		// 春节与立春之间出生，农历年与年柱不是同一个干支：界面写一行说明（以立春换年）
+		...(lunarYear !== gz[0] && { liChun: fmt(SolarTerm.fromName(beijing.getYear(), "立春").getJulianDay().getSolarTime()) }),
 		shengXiao: eight.getYear().getEarthBranch().getZodiac().getName(),
 		pillars,
 		taiYuan: naYin(eight.getFetalOrigin()),
-		mingGong: naYin(eight.getOwnSign()),
-		shenGong: naYin(eight.getBodySign()),
+		...(known && { mingGong: naYin(eight.getOwnSign()), shenGong: naYin(eight.getBodySign()) }),
 		wuXing,
 		guanXi: guanXi(gz),
 		qiYun: {
-			years: limit.getYearCount(),
-			months: limit.getMonthCount(),
-			days: limit.getDayCount(),
+			...span(limit),
 			hours: limit.getHourCount(),
 			at: fmt(limit.getEndTime()),
 			forward: limit.isForward(),
+			...(range && { range: [span(range[0]), span(range[1])] as [Span, Span] }),
 		},
+		...(jie && { jie }),
 		daYun,
 	};
 }
