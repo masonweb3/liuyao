@@ -76,6 +76,16 @@ src/data/baihua-hant.json、src/data/yao-baihua-hant.json 是 baihua.json、yao-
 src/data/huangli.json（节气导语、时令与三候白话，建除、值神、宜忌词义与注）为本项目原创，许可同上；
 其中三候的候名照录古籍（公有领域）。src/data/huangli-hant.json 是它的繁体版（做法同上），另附 tyme4ts 名称的繁体对照表。
 黄历的宜忌、冲煞、建除、值神、神煞、彭祖百忌、节气时刻由 tyme4ts 计算（见下「依赖」），页面照录。
+src/data/bazi.json（八字排盘页的导语与「盘面上的词」）为本项目原创，许可同上；src/data/bazi-hant.json 是它的繁体版，
+src/data/bazi-names-hant.json 是八字盘面上 tyme4ts 名称（十神、十二长生、神煞）的繁体对照表。
+八字的四柱、十神、藏干、十二长生、纳音、大运由 tyme4ts 计算；神煞、刑冲合会按《三命通会》（公有领域）的查法由本项目实现。
+
+---------------------------------------------------------------------------
+地理数据
+
+src/data/cities.json（八字排盘的出生地名单）由本项目的 tools/build-cities.py 生成：城市经度取自
+Natural Earth 1:10m Populated Places v5.1.2（https://www.naturalearthdata.com/ ，公有领域，不要求署名）；
+城市的中文名（简繁）、所属的省或国家、IANA 时区由本项目写定。
 
 ---------------------------------------------------------------------------
 依赖
@@ -88,15 +98,15 @@ tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail�
 Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站酷小薇 ZCOOL XiaoWei
 （Copyright 2018 The ZCOOL XiaoWei Project Authors），均采用 SIL Open Font
 License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；
-src/fonts/home-*.woff2、src/fonts/gua/*.woff2 与 src/fonts/huangli/*.woff2 是 tools/subset-fonts.py 从 google/fonts
-（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字、黄历与节气页用字），保留原字体里的版权与许可信息。
+src/fonts/home-*.woff2、src/fonts/gua/*.woff2、src/fonts/huangli/*.woff2 与 src/fonts/bazi/*.woff2 是 tools/subset-fonts.py 从 google/fonts
+（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字、黄历与节气页用字、八字排盘页用字），保留原字体里的版权与许可信息。
 
 繁体页（/zh-hant/）另用三款字体，均采用 SIL Open Font License 1.1：
 - Noto Serif TC（字形 (c) 2017-2024 Adobe），正文，经 @fontsource 分片自托管；
 - 芫荽 Iansui v1.012（Copyright 2025 The Iansui Project Authors，https://github.com/ButTaiwan/iansui），标题；
 - 霞鹜文楷 TC LXGW WenKai TC v1.522（Copyright 2022-2026 LXGW，https://github.com/lxgw/LxgwWenkaiTC；
   Copyright 2020 The Klee Project Authors），补芫荽缺的字。
-src/fonts/gua-hant/*.woff2 是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
+src/fonts/gua-hant/*.woff2（以及 huangli-hant/、bazi-hant/）是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
 霞鹜文楷 TC 取自其 GitHub 发布的 v1.522；src/fonts/lang-400.woff2、lang-600.woff2 是 Noto Serif SC 的几字子集
 （页头语言切换「简 | 繁」用的字，Noto Serif TC 没有「简」）；src/fonts/body-hans.woff2、body-hant.woff2 是
 google/fonts（commit 23e54b5）上完整的 Noto Serif SC / TC 的子集，只含 fontsource 切片里缺、正文却要用的字。

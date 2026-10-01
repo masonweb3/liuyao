@@ -392,6 +392,8 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
   const zoneName = (tz: string, at: number) =>
     new Intl.DateTimeFormat(hant ? 'zh-TW' : 'zh-CN', { timeZone: tz, timeZoneName: 'long' }).formatToParts(at).find((p) => p.type === 'timeZoneName')?.value ?? '';
   const md = (y: number, m: number, d: number) => `${y}年${m}月${d}日`;
+  /** 当地的日期、钟表时刻按偏移换成 UTC 毫秒 */
+  const utcOf = ([y, m, d]: [number, number, number], [hh, mm]: [number, number], offset: number) => Date.UTC(y, m - 1, d, hh, mm) - offset * 6e4;
   const hmOf = (minutes: number) => `${pad(Math.floor((((minutes % 1440) + 1440) % 1440) / 60))}:${pad(Math.floor((((minutes % 1440) + 1440) % 1440) % 60))}`;
   const lonText = (lon: number) => `${lon < 0 ? t('西经', '西經') : t('东经', '東經')} ${Math.abs(lon).toFixed(1)}°`;
 
@@ -410,7 +412,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     else if (!s || !c) hint.textContent = t(`${cityName(city)}在${lonText(city.lon)}。填好日期和时间，这里会写出那一天的时差。`, `${cityName(city)}在${lonText(city.lon)}。填好日期和時間，這裡會寫出那一天的時差。`);
     else {
       const { offset, dst } = localOffset(city.tz, ...s, ...c);
-      const at = Date.UTC(...s, ...c) - offset * 6e4;
+      const at = utcOf(s, c, offset);
       const name = cityName(city);
       if (offset === 480 && !dst) hint.textContent = t(`${md(...s)}这天${name}是 UTC+8，与北京时间相同，时间照填。`, `${md(...s)}這天${name}是 UTC+8，與臺灣時間相同，時間照填。`);
       else {
@@ -429,7 +431,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     else if (!s || !c) ztyHint.textContent = t(`${cityName(city)}在${lonText(city.lon)}。填好日期和时间，这里会写出校正多少。`, `${cityName(city)}在${lonText(city.lon)}。填好日期和時間，這裡會寫出校正多少。`);
     else {
       const { offset, dst } = localOffset(city.tz, ...s, ...c);
-      const minutes = city.lon * 4 - offset + equationOfTime(Date.UTC(...s, ...c) - offset * 6e4);
+      const minutes = city.lon * 4 - offset + equationOfTime(utcOf(s, c, offset));
       const n = Math.round(Math.abs(minutes));
       const from = c[0] * 60 + c[1];
       const word = offset === 480 && !dst ? t('北京时间', '臺灣時間') : t('当地钟表', '當地鐘錶');
@@ -729,8 +731,8 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
 
     const parts: Kid[] = [h('div', { class: 'top' }, lines, save)];
 
-    // 农历年与年柱不同（设计稿 28 ④）
-    if (c.liChun) {
+    // 农历年与年柱不同（设计稿 28 ④）。时辰不详又正好那天交节时，年柱要看时刻，下面另写一句，这句不出
+    if (c.liChun && !c.jie) {
       const before = (c.beijing ?? c.solar) < c.liChun;
       const at = `${+c.liChun.slice(5, 7)}月${+c.liChun.slice(8, 10)}日 ${c.liChun.slice(11, 16)}`;
       const lunarText = tw(c.lunar);
@@ -899,7 +901,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
         row('自坐', 'z', (p) => h('td', null, tw(p.ziZuo))),
         row(t('纳音', '納音'), undefined, (p) => h('td', null, tw(p.naYin))),
         row('空亡', 'z', (p) => h('td', null, p.kongWang)),
-        row('神煞', undefined, (p) => h('td', null, h('span', { class: 'list ss' }, ...(p.shenSha.length ? p.shenSha.map((s) => h('span', null, tw(s))) : [h('span', { class: 'none' }, '—')])))),
+        row('神煞', undefined, (p) => h('td', null, h('span', { class: 'list sha' }, ...(p.shenSha.length ? p.shenSha.map((s) => h('span', null, tw(s))) : [h('span', { class: 'none' }, '—')])))),
       ),
     );
   }
@@ -1684,7 +1686,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     font-size: var(--fs-xs);
     color: var(--ink-2);
   }
-  .bazi .pillars .ss {
+  .bazi .pillars .sha {
     gap: 3px;
     font-size: var(--fs-xs);
     line-height: 1.5;
