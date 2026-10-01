@@ -153,7 +153,7 @@ def cmap(key: str) -> dict[int, str]:
     return TTFont(io.BytesIO(load(key)), lazy=True).getBestCmap()
 
 
-def make_subset(raw: bytes, text: str, wght: int = 400) -> TTFont:
+def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False) -> TTFont:
     # 不写入当前时间，重跑结果逐字节相同，git 里不出现无谓的改动。
     font = TTFont(io.BytesIO(raw), recalcTimestamp=False)
     if "fvar" in font:
@@ -163,6 +163,12 @@ def make_subset(raw: bytes, text: str, wght: int = 400) -> TTFont:
     options.flavor = "woff2"
     options.layout_features = ["*"]  # 竖排要用 vert / vrt2
     options.name_IDs = ["*"]  # OFL：版权与许可信息随字体走
+    if lean:
+        # 首屏子集（M21）：名称表只留版权、字体名、版本、商标与许可（OFL 要求的都在），不留可变字体各字重实例的名字，
+        # 连同引用它们的 STAT 一起去掉。首页正文子集因此小了近 500 字节：加「梅」「花」两字后多出的 500 字节
+        # 让 Lighthouse 模拟的首页 LCP 慢了一个往返（约 145 ms），去掉这些就回到原样。
+        options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14]
+        options.drop_tables += ["STAT"]
     sub = subset.Subsetter(options)
     sub.populate(text=text)
     sub.subset(font)
@@ -359,7 +365,7 @@ def first_screen(name: str, text: dict[str, str], out: str) -> None:
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
     for key, (family, src) in HOME.items():
-        font = make_subset(load(src), text[key])
+        font = make_subset(load(src), text[key], lean=True)
         path = f"src/fonts/{name}-{key}.woff2"
         font.save(path)
         css.append(
