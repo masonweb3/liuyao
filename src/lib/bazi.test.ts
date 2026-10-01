@@ -130,6 +130,8 @@ describe("时刻", () => {
 	it("真太阳时只校正日、时柱：立冬 00:23 后出生，校正到前一天 23:06，月柱仍是亥月（元亨利贞排成戌月，见 compare.md）", () => {
 		const r = bazi(solar(1990, 11, 8, 1, 0, "男"), { longitude: 87.6, lateZi: "day-advances" });
 		expect(r.zhenTaiYang?.time).toBe("1990-11-07 23:06");
+		// 公历、农历都写钟表时刻那一天，不跟着校正退到前一天
+		expect([r.solar, r.lunar]).toEqual(["1990-11-08 01:00", "庚午年九月廿二"]);
 		expect(r.pillars.map((p) => p.ganZhi)).toEqual(["庚午", "丁亥", "丁丑", "庚子"]);
 		expect(r.qiYun.at).toBe(bazi(solar(1990, 11, 8, 1, 0, "男")).qiYun.at);
 	});
@@ -142,6 +144,11 @@ describe("农历输入", () => {
 		expect(r.lunar).toBe("庚子年闰四月初十");
 		const plain = bazi({ calendar: "lunar", year: 2020, month: 4, day: 10, hour: 8, minute: 30, gender: "男" });
 		expect(plain.solar).toBe("2020-05-02 08:30");
+	});
+
+	it("十一月、十二月写冬月、腊月（与黄历同）", () => {
+		expect(bazi(solar(1937, 12, 21, 18, 40, "女")).lunar).toBe("丁丑年冬月十九");
+		expect(bazi(solar(1938, 1, 10, 12, 0, "女")).lunar).toBe("丁丑年腊月初九");
 	});
 
 	it("不存在的日子抛错：没有的闰月、小月三十", () => {
