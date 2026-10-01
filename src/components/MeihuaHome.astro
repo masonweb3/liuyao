@@ -313,7 +313,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
      搜索引擎渲染时也看得见，只是不去下载切片（没有脚本时见上面的 noscript）。 */
   .how {
     content-visibility: auto;
-    contain-intrinsic-size: auto 1900px;
+    /* 量过的高度（正式稿）：390 宽约 3,330，820 宽约 2,345，桌面约 2,555 */
+    contain-intrinsic-size: auto 3300px;
     font-family: var(--font-body);
     padding: 40px max(var(--gutter), env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
     background: var(--paper);
@@ -491,6 +492,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       font-size: 13px;
     }
     .how {
+      contain-intrinsic-size: auto 2560px;
       padding: 72px 64px 80px;
     }
     .col {
