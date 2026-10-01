@@ -155,13 +155,18 @@ const nowLine = $("[data-now-line]");
 
 let ticker: ReturnType<typeof setTimeout> | undefined;
 
+/** 字变了才写：首屏「此刻」一行是 LCP，同样的字重写一遍会换一个文本节点，浏览器可能把它当成新的一次绘制。 */
+function put(el: Element, text: string) {
+	if (el.textContent !== text) el.textContent = text;
+}
+
 /** 首屏页脚、选起法卡片、报数提示里的「此刻」，与海外访客的那一句；在下一个时辰交界（untilNext）再写一次。 */
 function tick(now = new Date()) {
-	nowLine.textContent = `此刻　${nowText(TABLE, now, "　")}（北京时间）`;
-	for (const el of $$("[data-now-card]")) el.textContent = nowText(TABLE, now);
+	put(nowLine, `此刻　${nowText(TABLE, now, "　")}（北京时间）`);
+	for (const el of $$("[data-now-card]")) put(el, nowText(TABLE, now));
 	const h = hourOf(now);
-	for (const el of $$("[data-hour-name]")) el.textContent = h.name;
-	for (const el of $$("[data-hour-num]")) el.textContent = String(h.num);
+	for (const el of $$("[data-hour-name]")) put(el, h.name);
+	for (const el of $$("[data-hour-num]")) put(el, String(h.num));
 	const note = localNote(now);
 	const local = $("[data-local]");
 	local.hidden = !note;
