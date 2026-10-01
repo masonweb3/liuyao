@@ -132,7 +132,8 @@ OVERSEAS = [
     ("IDN", "印尼", "Asia/Jakarta", "Jakarta=雅加达|雅加達; Bandung=万隆|萬隆; Semarang=三宝垄|三寶瓏; Surabaya=泗水; Medan=棉兰|棉蘭; Palembang=巨港; Pekanbaru=北干巴鲁|北干巴魯; Pontianak=坤甸@Asia/Pontianak; Singkawang=山口洋@Asia/Pontianak; Makassar=望加锡|望加錫@Asia/Makassar; Denpasar=登巴萨|登巴薩@Asia/Makassar"),
     ("THA", "泰国|泰國", "Asia/Bangkok", "Bangkok=曼谷; Chiang Mai=清迈|清邁; Hat Yai=合艾; Phuket=普吉"),
     ("PHL", "菲律宾|菲律賓", "Asia/Manila", "Manila=马尼拉|馬尼拉; Cebu=宿务|宿霧; Davao=达沃|納卯"),
-    ("VNM", "越南", "Asia/Ho_Chi_Minh", "Ho Chi Minh City=胡志明市; Hanoi=河内|河內; Haiphong=海防; Da Nang=岘港|峴港"),
+    # 北越用 Asia/Bangkok（tzdata zone1970.tab「north Vietnam」）：Asia/Ho_Chi_Minh 是南方，1960–1975 年是 UTC+8，北方是 UTC+7
+    ("VNM", "越南", "Asia/Ho_Chi_Minh", "Ho Chi Minh City=胡志明市; Hanoi=河内|河內@Asia/Bangkok; Haiphong=海防@Asia/Bangkok; Da Nang=岘港|峴港"),
     ("KHM", "柬埔寨", "Asia/Phnom_Penh", "Phnom Penh=金边|金邊"),
     ("LAO", "老挝|寮國", "Asia/Vientiane", "Vientiane=万象|永珍"),
     ("MMR", "缅甸|緬甸", "Asia/Yangon", "Yangon=仰光; Mandalay=曼德勒"),
