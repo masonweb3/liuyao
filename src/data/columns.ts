@@ -18,4 +18,6 @@ export const COLUMNS: Column[] = [
 	// 繁体用台湾日常的叫法「農民曆」（M16-6）；网址仍是 huangli
 	{ path: "/huangli/", hans: "黄历", hant: "農民曆", hantPath: "/zh-hant/huangli/" },
 	{ path: "/bazi/", hans: "八字", hant: "八字", hantPath: "/zh-hant/bazi/" },
+	// 梅花易数（M21）：先只有简体（M21-20），繁体页上也链简体页
+	{ path: "/meihua/", hans: "梅花", hant: "梅花" },
 ];

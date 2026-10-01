@@ -1,0 +1,306 @@
+---
+// 写下所问（设计稿 35 ②，M21-14）：版式与文案逐字照六爻的所问屏（Ask.astro），返回键旁品牌写「梅花」，
+// 没有「专业模式」。梅花页另写一份，不和首页共用组件：共用的组件样式会被拆成两页共用的文件，首页多一个请求。
+const chips = ["这次考试能过吗", "这段感情还有可能吗", "这笔生意值得做吗"];
+---
+
+<section class="screen ask" data-screen="ask" tabindex="-1" hidden>
+  <header>
+    <button class="back" data-go="home" aria-label="返回首屏">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+    <button class="brand" data-go="home" aria-label="回到梅花首屏">
+      <span class="seal" aria-hidden="true">爻</span>
+      <span class="name" aria-hidden="true">梅花</span>
+    </button>
+  </header>
+  <div class="col">
+    <div class="title">
+      <h1>所问何事</h1>
+      <p>一事一问。问得越具体，卦象越清楚。</p>
+    </div>
+    <div class="field">
+      <label for="q">所问</label>
+      <textarea id="q" rows="3" maxlength="200" placeholder="例如：下个月跳槽去新公司，能成吗？" enterkeyhint="done" data-autofocus></textarea>
+      <div class="meta">
+        <span class="keys">Enter 落笔 · Shift + Enter 换行</span>
+        <span data-count>0 / 200</span>
+      </div>
+      <p class="error" role="alert" data-error></p>
+    </div>
+    <div class="chips">
+      <span class="lead">不知从何问起</span>
+      <div class="row">
+        {chips.map((c) => <button type="button" data-chip>{c}</button>)}
+      </div>
+    </div>
+    <footer class="dock">
+      <button class="btn solid" data-submit>落笔</button>
+    </footer>
+  </div>
+  <div class="stamp" aria-hidden="true">问</div>
+</section>
+
+<style>
+  header {
+    display: flex;
+    align-items: center;
+    height: var(--tap);
+  }
+  .back {
+    width: var(--tap);
+    height: var(--tap);
+    margin-left: -10px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgb(248 244 237 / 0.7);
+    cursor: pointer;
+  }
+  header .brand {
+    min-height: var(--tap);
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  /* 手机上品牌小一号，跟在返回键后面（设计稿 35 ②） */
+  header .seal {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+  }
+  header .name {
+    font-size: 13px;
+  }
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    padding-top: 56px;
+    transition: opacity var(--t-seal) ease-out;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: 0.3em;
+  }
+  .title p {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.8;
+    letter-spacing: 0.08em;
+    color: var(--on-night-2);
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  label {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+  textarea {
+    width: 100%;
+    height: calc(3 * 1.75em + 18px);
+    box-sizing: border-box;
+    padding: 6px 0 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgb(192 147 81 / 0.55);
+    border-radius: 0;
+    font-size: var(--fs-l);
+    line-height: 1.75;
+    letter-spacing: 0.04em;
+    resize: none;
+    outline: none;
+    transition: border-color var(--t-hover);
+  }
+  textarea:focus {
+    border-bottom-color: var(--gold-hi);
+  }
+  textarea::placeholder {
+    color: rgb(248 244 237 / 0.4);
+  }
+  .meta {
+    display: flex;
+    justify-content: flex-end;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: rgb(248 244 237 / 0.55);
+  }
+  .keys {
+    display: none;
+  }
+  .error {
+    min-height: 1.6em;
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--gold-hi);
+  }
+  .chips {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .lead {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: rgb(248 244 237 / 0.55);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  [data-chip] {
+    min-height: var(--tap);
+    padding: 0 16px;
+    background: rgb(28 41 56 / 0.9);
+    border: 1px solid rgb(248 244 237 / 0.14);
+    border-radius: var(--radius);
+    color: rgb(248 244 237 / 0.82);
+    font-size: var(--fs-s);
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  [data-chip]:hover {
+    border-color: var(--gold);
+  }
+  footer {
+    margin-top: auto;
+  }
+  footer .btn {
+    width: 100%;
+  }
+  .stamp {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 72px;
+    height: 72px;
+    margin: auto;
+    place-items: center;
+    background: var(--seal);
+    color: var(--on-night);
+    font-family: var(--font-display);
+    font-size: 44px;
+    border-radius: var(--radius);
+  }
+  .sealing .col,
+  .sealing header {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sealing .stamp {
+    display: grid;
+    animation: ask-stamp var(--t-seal) var(--ease-out) both;
+  }
+  @keyframes ask-stamp {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+  }
+  @media (max-height: 700px) {
+    .col {
+      gap: 28px;
+      padding-top: 24px;
+    }
+  }
+  @media (min-width: 1024px) {
+    header {
+      height: 48px;
+    }
+    .back {
+      display: none;
+    }
+    header .seal {
+      width: 30px;
+      height: 30px;
+      font-size: 19px;
+    }
+    header .name {
+      font-size: 15px;
+    }
+    .ask {
+      background: radial-gradient(ellipse 55% 60% at 50% 50%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .col {
+      flex-grow: 0;
+      width: 680px;
+      margin: auto;
+      gap: 44px;
+      padding-top: 0;
+    }
+    .title {
+      gap: 16px;
+    }
+    h1 {
+      font-size: 44px;
+    }
+    .title p {
+      font-size: var(--fs-m);
+    }
+    .field {
+      gap: 12px;
+    }
+    label,
+    .meta,
+    .lead {
+      font-size: 13px;
+    }
+    textarea {
+      height: calc(2 * 1.7em + 20px);
+      padding-bottom: 14px;
+      font-size: 26px;
+      line-height: 1.7;
+    }
+    .meta {
+      justify-content: space-between;
+    }
+    .keys {
+      display: inline;
+    }
+    .chips {
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .lead {
+      margin-right: 8px;
+    }
+    [data-chip] {
+      padding: 0 18px;
+    }
+    footer {
+      margin-top: 0;
+      display: flex;
+      justify-content: flex-end;
+    }
+    footer .btn {
+      width: 220px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes ask-stamp {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+</style>

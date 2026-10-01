@@ -1,0 +1,1218 @@
+---
+// 梅花解读（设计稿 38、D30，M21-5 A：给吉凶）。版式照六爻解读页 Reading.astro，梅花页另写一份（理由见 MeihuaAsk.astro）。
+// 内容由 scripts/meihua.ts 按 Worker 算好的结果填入（src/lib/meihua-reading.ts）；没有分享卡（M21-19）、没有到时提醒（M21-22）。
+// 回访卡同六爻（M14）：从往卦点开（/meihua/?at=…）、到了日子才出，记下的写进同一条往卦的 review 字段。
+import { DISCLAIMER, ERRORS, REVIEW } from "../data/copy";
+import Slots from "./Slots.astro";
+
+const OUTCOMES = Object.keys(REVIEW.outcomes) as (keyof typeof REVIEW.outcomes)[];
+const ROWS = ["体卦", "用卦", "互卦", "变卦"];
+---
+
+<section class="screen reading" data-screen="reading" tabindex="-1" hidden>
+  <header class="top">
+    <div class="left">
+      <a class="back" href="/meihua/" aria-label="回到梅花首屏" data-back>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </a>
+      <a class="brand" href="/" aria-label="六爻，回到首屏">
+        <span class="seal" aria-hidden="true">爻</span>
+        <span class="name" aria-hidden="true"><span class="six">六爻 · </span>梅花</span>
+      </a>
+    </div>
+    <a class="to-history" href="/?history">往卦</a>
+  </header>
+
+  <!-- 回访卡：从往卦点开、到了日子的卦（同六爻，设计稿 17、D14）。卡上没有起卦、重摇、再问的入口（一事一占）。 -->
+  <section
+    class="visit"
+    aria-labelledby="visit-ask"
+    hidden
+    data-visit
+    data-outcomes={JSON.stringify(REVIEW.outcomes)}
+    data-pick={REVIEW.pick}
+    data-saved={REVIEW.saved}
+    data-unsaved={ERRORS.storage}
+  >
+    <form class="visit-form" data-visit-form>
+      <fieldset>
+        <legend id="visit-ask" tabindex="-1">
+          <span class="kick">{REVIEW.kicker}</span>
+          <span class="recall"><Slots text={REVIEW.ask} /></span>
+        </legend>
+        <p class="alert" role="alert" data-visit-alert></p>
+        <div class="opts">
+          {OUTCOMES.map((k) => (
+            <Fragment>
+              {k === "pending" && <span class="split" aria-hidden="true" />}
+              <label class="chip"><input class="sr-only" type="radio" name="outcome" value={k} />{REVIEW.outcomes[k]}</label>
+            </Fragment>
+          ))}
+        </div>
+      </fieldset>
+      <label class="note">
+        <span>{REVIEW.note}</span>
+        <input type="text" name="note" maxlength="100" autocomplete="off" />
+      </label>
+      <span class="local">{REVIEW.local}</span>
+      <button class="keep" type="submit">{REVIEW.save}</button>
+    </form>
+    <div class="visit-done" hidden data-visit-done>
+      <h2 id="visit-told" tabindex="-1">
+        <span class="kick"><Slots text={REVIEW.doneKicker} /></span>
+        <span class="recall"><Slots text={REVIEW.doneAsk} /></span>
+      </h2>
+      <div class="told">
+        <p><Slots text={REVIEW.told} /></p>
+        <p class="told-note" data-visit-note>「<span data-slot="note"></span>」</p>
+      </div>
+      <button type="button" class="edit" aria-label={REVIEW.editLabel} data-visit-edit>{REVIEW.edit}</button>
+      <p class="local">{REVIEW.local}</p>
+    </div>
+    <div class="visit-skip" hidden data-visit-skip>
+      <h2 id="visit-skip" tabindex="-1">{REVIEW.skipped}</h2>
+      <span aria-hidden="true">·</span>
+      <button type="button" class="edit-link" aria-label={REVIEW.editLabel} data-visit-edit>{REVIEW.edit}</button>
+    </div>
+    <p class="bless" data-visit-bless>{REVIEW.bless}</p>
+    <p class="sr-only" role="status" data-visit-status></p>
+  </section>
+
+  <div class="layout">
+    <div class="lead">
+      <section class="asked">
+        <span class="label">所问</span>
+        <p data-question></p>
+      </section>
+      <section class="gua" aria-label="卦象">
+        <div class="lines" data-lines></div>
+        <div class="names">
+          <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
+          <span class="zhi">之<a class="to-gua" data-zhi-name></a></span>
+        </div>
+      </section>
+      <p class="gz">
+        <span data-by></span>（北京时间）<br />互卦 <span class="hu-n" data-hu-n></span><span data-hu-qk hidden> · 乾坤无互，取变卦之互</span>
+      </p>
+      <section class="verdict" aria-label="结论">
+        <span class="duan" role="img" data-duan></span>
+        <div class="said">
+          <p class="conclusion" data-conclusion></p>
+          {/* 发现第 4 条：同一时辰（同一组数）起出同一卦，吉凶也就相同，这是起法本身的性质，类别只换断语和建议的说法 */}
+          <p class="basis">
+            <span data-basis="time">按体用生克断。同一天同一时辰起卦，卦与吉凶都相同，这是起法本身的性质；</span><span data-basis="num" hidden>按体用生克断。同一时辰报同样的数，卦与吉凶都相同，这是起法本身的性质；</span>所问属「<span data-topic-label></span>」，只决定断语和建议的说法。
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="main">
+      <section class="block">
+        <h2 class="head">依据 · 体用生克</h2>
+        <table class="rel">
+          <caption class="sr-only">体用生克</caption>
+          <thead class="sr-only"><tr><th scope="col">卦</th><th scope="col">经卦</th><th scope="col">对体卦</th></tr></thead>
+          <tbody>
+            {ROWS.map((r) => (
+              <tr><th scope="row">{r}</th><td data-row></td><td class="r" data-rel></td></tr>
+            ))}
+          </tbody>
+        </table>
+        <ol class="list" data-reasons></ol>
+        <p class="tail">体卦代表问事的人，用卦代表所问的事；互卦看经过，变卦看结局。本站分三步判：先看用卦，生体、比和、为体所克为吉，为体所生为平，克体为凶；再看变卦，与用卦一吉一凶断平，用卦为平就随变卦；最后四处合看，两处以上克体、又没有一处生体，断凶。不看卦气旺衰（体卦在当季是旺是衰），也不兼看卦辞、爻辞与外应（起卦时身边的见闻）。</p>
+      </section>
+      <section class="block">
+        <h2 class="head">建议</h2>
+        <ul class="list advice" data-advice></ul>
+      </section>
+      <div class="texts">
+        <section class="block text" data-text="ben">
+          <h2 class="kicker">卦辞 · 本卦 <span data-short></span></h2>
+          <p class="ci" data-ci></p>
+          <p class="bh" data-bh></p>
+          <a class="page" data-page><span class="pn" data-pn></span>卦页 ›</a>
+        </section>
+        <section class="block text">
+          <h2 class="kicker">动爻 · <span data-dong-title></span></h2>
+          <div class="yc"><span class="t" data-dong-t></span><p data-dong-text></p></div>
+          <p class="bh" data-dong-bh></p>
+        </section>
+        <section class="block text" data-text="bian">
+          <h2 class="kicker">变卦 · <span data-short></span></h2>
+          <p class="ci" data-ci></p>
+          <p class="bh" data-bh></p>
+          <a class="page" data-page><span class="pn" data-pn></span>卦页 ›</a>
+        </section>
+        {/* 互卦只写卦名与两个经卦，不链卦页、不读卦辞（M21-9） */}
+        <section class="block text hu">
+          <h2 class="kicker">互卦 · <span data-hu-short></span></h2>
+          <div class="hu-row"><span class="hu-name" data-hu-name></span><div class="mini" data-hu-lines aria-hidden="true"></div></div>
+          {/* 这一段随卦而变（上下同一经卦、乾坤取变卦之互），由 Worker 整句拼好（meihua-reading.ts 的 huSay） */}
+          <p class="hu-say" data-hu-say></p>
+        </section>
+      </div>
+
+      <details class="panel" data-panel>
+        <summary>
+          <h2>怎么起的</h2>
+          <span class="toggle" aria-hidden="true"></span>
+        </summary>
+        <p class="o-head"><span data-origin></span>（北京时间）</p>
+        <div class="formula" data-formula></div>
+        <p class="xian">先天数：乾一 兑二 离三 震四 巽五 坎六 艮七 坤八。上卦、下卦除以八，动爻除以六，取余数；余数为零时，卦作坤，爻作上爻。</p>
+      </details>
+    </div>
+  </div>
+
+  <footer class="end">
+    <a class="again" href="/meihua/?ask" data-again>再问一事</a>
+    <p>同一件事，一卦为定</p>
+    <p class="warn" data-storage hidden>{ERRORS.storage}</p>
+    <p>{DISCLAIMER[0]}<br />{DISCLAIMER[1]}</p>
+  </footer>
+</section>
+
+<style>
+  /* 展卷：纸色自中轴向两侧展开，正文随后淡入（同六爻 05→06）。只动 transform 与 opacity。 */
+  .screen.reading {
+    isolation: isolate;
+    gap: 40px;
+    color: var(--ink);
+    animation: none;
+  }
+  .reading::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--paper);
+    animation: unroll var(--t-unroll) var(--ease-out) both;
+  }
+  .reading > * {
+    animation: reading-in 200ms ease-out var(--t-unroll) both;
+  }
+  /* 从往卦点开的旧卦不再展卷，直接是纸面 */
+  .reading.old::before,
+  .reading.old > * {
+    animation: none;
+  }
+  @keyframes unroll {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes unroll {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+  @keyframes reading-in {
+    from {
+      opacity: 0;
+    }
+  }
+  :global(html:has(.reading:not([hidden]))),
+  :global(html:has(.reading:not([hidden])) body) {
+    background: var(--paper);
+    transition: background-color 0s var(--t-unroll);
+  }
+  :global(html:has(.reading.old:not([hidden]))),
+  :global(html:has(.reading.old:not([hidden])) body) {
+    transition: none;
+  }
+  .reading :focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--tap);
+  }
+  .left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .back {
+    width: var(--tap);
+    height: var(--tap);
+    margin-left: -10px;
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+  }
+  .top .brand {
+    min-height: var(--tap);
+    text-decoration: none;
+  }
+  .top .seal {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+  }
+  .reading .brand .name {
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .six {
+    display: none;
+  }
+  .to-history {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .to-history:hover {
+    color: var(--ink);
+  }
+
+  .layout,
+  .lead,
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .asked {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .label {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .asked p {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+  }
+
+  .gua {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px 0 20px;
+  }
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .lines :global(.grp) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .lines :global(.tri) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .lines :global(.yao) {
+    position: relative;
+  }
+  .lines :global(svg) {
+    display: block;
+    /* 爻旁还有体用标签：320 宽时六爻、标签、竖排卦名放不下，爻跟着视口收短，卦名不被挤出屏 */
+    width: min(140px, 36vw);
+    height: 14px;
+    fill: var(--ink);
+  }
+  .lines :global(.mark) {
+    position: absolute;
+    top: -3px;
+    left: -20px;
+    font-size: var(--fs-s);
+    line-height: 1;
+    color: var(--vermilion);
+  }
+  .lines :global(.tag) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 4.5em;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .lines :global(.tag b) {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .lines :global(.tag.yong b) {
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .names {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  h1 {
+    margin: 0;
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 44px;
+    letter-spacing: 0.24em;
+    line-height: 1;
+    outline: none;
+  }
+  .to-gua {
+    color: inherit;
+    text-decoration: none;
+    text-underline-offset: 0.3em;
+  }
+  .to-gua:hover,
+  .to-gua:focus-visible {
+    text-decoration: underline 1px;
+  }
+  .zhi .to-gua {
+    display: inline-block;
+    padding: 0 6px 6px;
+    margin: 0 -6px -6px;
+    outline-offset: 0;
+  }
+  .zhi {
+    padding-top: 50px;
+    writing-mode: vertical-rl;
+    font-size: var(--fs-m);
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .gz {
+    margin: -16px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.14em;
+    color: var(--ink-2);
+  }
+  .hu-n {
+    color: var(--ink);
+  }
+
+  .verdict {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 24px 0;
+    border-block: 1px solid var(--rule);
+  }
+  /* 断语印章：吉红底白字，平墨线框，凶墨底白字 */
+  .duan {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: 36px;
+    border-radius: 3px;
+  }
+  .duan[data-verdict="吉"] {
+    background: var(--seal);
+    color: var(--paper);
+  }
+  .duan[data-verdict="平"] {
+    border: 1.5px solid var(--ink);
+  }
+  .duan[data-verdict="凶"] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .said {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .conclusion {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .basis {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .head {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .rel {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid var(--rule);
+  }
+  .rel tr {
+    border-bottom: 1px solid var(--rule);
+  }
+  .rel th {
+    width: 56px;
+    padding: 11px 0;
+    text-align: left;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+  }
+  .rel td {
+    padding: 11px 8px 11px 0;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .rel .r {
+    padding-right: 0;
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 15px;
+    line-height: 1.85;
+  }
+  .list :global(li) {
+    display: flex;
+    gap: 12px;
+  }
+  .list :global(.n) {
+    flex-shrink: 0;
+    color: var(--seal);
+  }
+  .advice :global(.n) {
+    color: var(--ink-2);
+  }
+  .tail {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+
+  .texts {
+    display: contents;
+  }
+  .text {
+    gap: 16px;
+  }
+  .kicker {
+    margin: 0;
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    letter-spacing: 0.4em;
+    color: var(--ink-2);
+  }
+  .ci {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 1.6;
+    letter-spacing: 0.16em;
+  }
+  [data-text="bian"] .ci {
+    font-size: 22px;
+    letter-spacing: 0.12em;
+  }
+  .bh {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .bh:empty {
+    display: none;
+  }
+  .page {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .page:hover {
+    color: var(--ink);
+  }
+  .pn {
+    color: var(--ink);
+  }
+  .yc {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  .yc .t {
+    flex-shrink: 0;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--seal);
+  }
+  .yc p {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.6;
+    letter-spacing: 0.16em;
+  }
+  .hu {
+    gap: 12px;
+  }
+  .hu-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .hu-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.16em;
+  }
+  .mini {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .mini :global(.tri) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mini :global(svg) {
+    display: block;
+    width: 22px;
+    height: 3px;
+    fill: var(--ink-2);
+  }
+  .hu-say {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.85;
+    color: var(--ink-2);
+  }
+
+  /* 怎么起的：同「完整盘面」，手机默认收起，桌面默认展开 */
+  .panel {
+    padding: 8px 16px 20px;
+    background: var(--paper-2);
+    border-radius: var(--radius);
+  }
+  .panel:not([open]) {
+    padding-bottom: 8px;
+  }
+  summary {
+    min-height: var(--tap);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+  }
+  .toggle::after {
+    content: "展开";
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .panel[open] .toggle::after {
+    content: "收起";
+  }
+  .o-head {
+    margin: 4px 0 10px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .formula :global(p) {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+  }
+  .xian {
+    margin: 12px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+
+  .end {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding-top: 16px;
+  }
+  .again {
+    width: 100%;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding-left: 0.6em;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-size: 17px;
+    letter-spacing: 0.6em;
+    text-decoration: none;
+    transition: background-color var(--t-hover);
+  }
+  .again:hover {
+    background: rgb(45 46 54 / 0.05);
+  }
+  .end p {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.12em;
+    text-align: center;
+    color: var(--ink-2);
+  }
+  .end .warn {
+    color: var(--seal);
+  }
+
+  /* 回访卡（同六爻 Reading.astro） */
+  .chip {
+    min-height: var(--tap);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .chip:has(:checked) {
+    border: 1.5px solid var(--ink);
+    font-weight: 600;
+  }
+  .chip:has(:focus-visible) {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  legend {
+    padding: 0;
+  }
+  .visit {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 16px;
+    background: var(--paper-2);
+    border-radius: var(--radius);
+  }
+  .visit :global(.sr-inline) {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+  .visit .kick {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.4em;
+    color: var(--ink-2);
+  }
+  .visit legend,
+  .visit h2 {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-weight: 400;
+    outline: none;
+  }
+  .visit-form legend {
+    margin-bottom: 14px;
+  }
+  .visit-form legend .recall {
+    font-size: 17px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+  }
+  .visit-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "set set" "note note" "local keep";
+    align-items: center;
+    gap: 14px 12px;
+  }
+  .visit-form fieldset {
+    grid-area: set;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .alert {
+    margin: -6px 0 0;
+    font-size: 13px;
+    color: var(--seal);
+  }
+  .alert:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .opts {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .opts .chip {
+    grid-column: span 2;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+  .opts .split + .chip,
+  .opts .split + .chip + .chip {
+    grid-column: span 3;
+  }
+  .split {
+    display: none;
+  }
+  .note {
+    grid-area: note;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .note span {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .note input {
+    height: var(--tap);
+    box-sizing: border-box;
+    padding: 0 12px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .note input:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .visit .local {
+    grid-area: local;
+    margin: 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .keep,
+  .edit {
+    min-height: var(--tap);
+    background: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background-color var(--t-hover);
+  }
+  .keep {
+    grid-area: keep;
+    min-width: 96px;
+    padding: 0 16px 0 calc(16px + 0.4em);
+    border: 1px solid var(--ink);
+    font-size: 15px;
+    letter-spacing: 0.4em;
+  }
+  .keep:hover,
+  .edit:hover {
+    background: rgb(45 46 54 / 0.05);
+  }
+  .visit-done {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title title" "told edit" "local local";
+    align-items: start;
+    gap: 12px;
+  }
+  .visit-done h2 {
+    grid-area: title;
+  }
+  .visit-done .recall {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .told {
+    grid-area: told;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .told p {
+    margin: 0;
+    font-size: 17px;
+    letter-spacing: 0.06em;
+  }
+  .told :global([data-slot="outcome"]) {
+    font-weight: 600;
+  }
+  .told .told-note {
+    font-size: 15px;
+    line-height: 1.7;
+    letter-spacing: normal;
+    overflow-wrap: anywhere;
+  }
+  .edit {
+    grid-area: edit;
+    min-width: 64px;
+    border: 1px solid var(--rule);
+    font-size: var(--fs-s);
+    letter-spacing: 0.2em;
+  }
+  .visit-skip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .visit-skip h2 {
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+  }
+  .edit-link {
+    min-width: var(--tap);
+    min-height: var(--tap);
+    padding: 0 4px;
+    background: none;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .bless {
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 0.14em;
+  }
+
+  @media (min-width: 1024px) {
+    .screen.reading {
+      gap: 56px;
+    }
+    .top {
+      height: 48px;
+    }
+    .back {
+      display: none;
+    }
+    .top .seal {
+      width: 30px;
+      height: 30px;
+      font-size: 19px;
+    }
+    .reading .brand .name {
+      font-size: 15px;
+    }
+    .six {
+      display: inline;
+    }
+    .layout {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: 400px minmax(0, 1fr);
+      gap: 96px;
+      align-items: start;
+    }
+    /* 左栏卦象与结论随滚动固定 */
+    .lead {
+      position: sticky;
+      top: 32px;
+      gap: 36px;
+    }
+    .main {
+      gap: 52px;
+      padding-top: 8px;
+    }
+    .asked {
+      gap: 10px;
+    }
+    .asked p {
+      font-size: var(--fs-l);
+    }
+    .gua {
+      padding: 12px 0 12px 24px;
+    }
+    .lines {
+      gap: 26px;
+    }
+    .lines :global(.tri) {
+      gap: 16px;
+    }
+    .lines :global(svg) {
+      width: 200px;
+      height: 19px;
+    }
+    .lines :global(.mark) {
+      left: -24px;
+      font-size: var(--fs-m);
+    }
+    .lines :global(.tag) {
+      font-size: var(--fs-xs);
+    }
+    .lines :global(.tag b) {
+      font-size: 13px;
+    }
+    .names {
+      gap: 16px;
+    }
+    h1 {
+      font-size: 60px;
+      letter-spacing: 0.22em;
+    }
+    .zhi {
+      padding-top: 70px;
+      font-size: 18px;
+    }
+    .gz {
+      margin: 0;
+      font-size: 13px;
+    }
+    .verdict {
+      gap: 22px;
+      padding: 28px 0;
+    }
+    .duan {
+      width: 76px;
+      height: 76px;
+      font-size: 44px;
+    }
+    .said {
+      gap: 10px;
+    }
+    .conclusion {
+      font-size: 26px;
+    }
+    .basis {
+      font-size: var(--fs-s);
+    }
+    .block {
+      gap: 18px;
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .rel td {
+      font-size: var(--fs-m);
+    }
+    .list {
+      font-size: 17px;
+      line-height: 1.9;
+    }
+    .list :global(li) {
+      gap: 14px;
+    }
+    .tail {
+      font-size: var(--fs-s);
+    }
+    .ci {
+      font-size: 28px;
+    }
+    .bh {
+      font-size: var(--fs-m);
+    }
+    .yc p {
+      font-size: 26px;
+    }
+    .hu-name {
+      font-size: 24px;
+    }
+    .panel {
+      padding: 16px 32px 28px;
+    }
+    .panel:not([open]) {
+      padding-bottom: 16px;
+    }
+    summary h2 {
+      font-size: var(--fs-m);
+    }
+    .toggle::after {
+      font-size: var(--fs-s);
+    }
+    .o-head,
+    .formula :global(p) {
+      font-size: var(--fs-s);
+    }
+    .xian {
+      font-size: 13px;
+    }
+    .end {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      padding: 24px 0 0 496px;
+      box-sizing: border-box;
+      border-top: 1px solid var(--rule);
+    }
+    .again {
+      height: 56px;
+      font-size: 18px;
+    }
+    .end p {
+      font-size: 13px;
+    }
+
+    .visit {
+      width: min(1120px, 100%);
+      box-sizing: border-box;
+      margin-inline: auto;
+      gap: 18px;
+      padding: 28px 32px;
+    }
+    .visit:has(.visit-done:not([hidden])) {
+      padding: 24px 32px;
+    }
+    .visit-form {
+      grid-template-areas: "set set" "note keep" "local local";
+      gap: 18px 16px;
+    }
+    .visit-form fieldset {
+      gap: 16px;
+    }
+    .visit-form legend {
+      margin-bottom: 16px;
+    }
+    .visit-form legend .recall {
+      font-size: var(--fs-l);
+    }
+    .opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .opts .chip {
+      min-width: 104px;
+      min-height: 48px;
+      padding: 0 20px;
+      font-size: var(--fs-m);
+    }
+    .split {
+      display: block;
+      width: 1px;
+      margin: 10px 6px;
+      background: var(--rule);
+    }
+    .note {
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+    }
+    .note span {
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+    .note input {
+      flex-grow: 1;
+    }
+    .keep {
+      min-width: 112px;
+      padding: 0 18px 0 calc(18px + 0.4em);
+    }
+    .visit-done {
+      grid-template-areas: "title edit" "told edit" "local edit";
+      align-items: center;
+      gap: 10px 32px;
+    }
+    .visit-done h2 {
+      gap: 6px;
+    }
+    .told {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 20px;
+      padding-top: 0;
+    }
+    .told p {
+      font-size: 18px;
+    }
+    .told .told-note {
+      font-size: var(--fs-m);
+    }
+    .edit {
+      min-width: 88px;
+    }
+    .bless {
+      padding-top: 16px;
+      font-size: var(--fs-l);
+    }
+  }
+</style>

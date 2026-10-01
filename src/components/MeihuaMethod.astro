@@ -1,0 +1,396 @@
+---
+// 选起法与报数（设计稿 36、D29）。两屏都还没起卦：报数屏可以退回选起法；按下起卦那一刻才成卦、写进往卦。
+// 手机：两张卡都是按钮，「报数起卦」另开一屏报数。桌面（≥1024）：两卡并排，数直接填在右卡里，不另开报数屏。
+// 报数屏不预示卦名（免得挑卦），只写算法要加的时辰数。
+import MeihuaBar from "./MeihuaBar.astro";
+import Slots from "./Slots.astro";
+
+/** 报数的两格：手机报数屏一组（n），桌面右卡一组（d）。 */
+const fields = (p: string) => [
+  { id: `${p}1`, label: "第一个数 · 作上卦" },
+  { id: `${p}2`, label: "第二个数 · 作下卦（可不填）" },
+];
+---
+
+<section class="screen method" data-screen="method" tabindex="-1" hidden>
+  <MeihuaBar />
+  <div class="col">
+    <div class="title">
+      <h1 tabindex="-1" data-autofocus>以何起卦</h1>
+      <p>梅花不摇铜钱，以时或以数成卦。<br class="m" />卦一起就定下，同一件事只起这一次。</p>
+    </div>
+    <div class="cards" role="group" aria-label="起卦方法">
+      <button type="button" class="card now" data-cast-time>
+        <span class="t">以此刻起卦</span>
+        <span class="when"><span data-now-card></span>（北京时间）</span>
+        <span class="s">年、月、日、时之数相加成卦<span class="d">。同一天的同一个时辰里起卦，得的都是同一卦。</span></span>
+        <span class="go" aria-hidden="true">以此刻起卦</span>
+      </button>
+      <div class="card num">
+        <button type="button" class="hit" data-go="num">
+          <span class="t">报数起卦</span>
+          <span class="when">报两个数，或一个数</span>
+          <span class="s">心里浮现的，或眼前所见的；再加此刻的时辰</span>
+        </button>
+        <form class="desk" novalidate data-num-form aria-labelledby="num-desk">
+          <h2 class="t" id="num-desk">报数起卦</h2>
+          <p class="s">报两个数，或一个数，心里浮现的、眼前所见的都可以。起卦还要加上此刻的时辰数（<span data-hour-name></span>，<span data-hour-num></span>）。</p>
+          <div class="pair">
+            {fields("d").map((f) => (
+              <div class="field">
+                <label for={f.id}>{f.label}</label>
+                <input id={f.id} type="text" inputmode="numeric" autocomplete="off" enterkeyhint="go" maxlength="6" aria-describedby={`${f.id}-e`} data-n />
+                <p class="err" id={`${f.id}-e`} role="alert" data-err></p>
+              </div>
+            ))}
+          </div>
+          <p class="s rule">只收正整数，最多四位。</p>
+          <button class="btn line" type="submit">以数起卦</button>
+        </form>
+      </div>
+    </div>
+    <p class="local" role="note" hidden data-local>
+      <Slots text="你那里是 {local}，{localHour}时；梅花按北京时间起卦，此刻是 {beijing} {beijingHour}时。" />
+    </p>
+    <p class="fail" role="alert" data-cast-error></p>
+    <p class="foot">时辰按北京时间 · 同一件事，一卦为定</p>
+  </div>
+</section>
+
+<section class="screen num" data-screen="num" tabindex="-1" hidden>
+  <MeihuaBar>
+    <button class="back" data-go="method" aria-label="回到选起法">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+  </MeihuaBar>
+  <form class="col" novalidate data-num-form>
+    <div class="title">
+      <h1 tabindex="-1">报一个数，或两个</h1>
+      <p>不必多想，先浮现的那个就好。</p>
+    </div>
+    {fields("n").map((f, i) => (
+      <div class="field">
+        <label for={f.id}>{f.label}</label>
+        <input id={f.id} type="text" inputmode="numeric" autocomplete="off" enterkeyhint={i ? "go" : "next"} maxlength="6" aria-describedby={`${f.id}-e`} data-n data-autofocus={i ? undefined : ""} />
+        <p class="err" id={`${f.id}-e`} role="alert" data-err></p>
+      </div>
+    ))}
+    <p class="s">只收正整数，最多四位。起卦还要加上此刻的时辰数：<span data-hour-name></span>，<span data-hour-num></span>。</p>
+    <p class="fail" role="alert" data-cast-error></p>
+    <footer class="dock">
+      <button class="btn solid" type="submit">起卦</button>
+    </footer>
+  </form>
+</section>
+
+<style>
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-top: 40px;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: 0.24em;
+    outline: none;
+  }
+  .num h1 {
+    letter-spacing: 0.2em;
+  }
+  .title p {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    color: var(--on-night-2);
+  }
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card {
+    position: relative;
+    box-sizing: border-box;
+    border-radius: var(--radius);
+  }
+  /* 手机：整张卡是按钮 */
+  .card.now,
+  .hit {
+    width: 100%;
+    min-height: 128px;
+    box-sizing: border-box;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    border-radius: var(--radius);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .card.now {
+    background: rgb(192 147 81 / 0.08);
+    border: 1px solid var(--gold);
+  }
+  .card.now:hover {
+    border-color: var(--gold-hi);
+  }
+  .card.now:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .hit {
+    background: var(--night-2);
+    border: 1px solid rgb(248 244 237 / 0.2);
+  }
+  .hit:hover {
+    border-color: var(--gold);
+  }
+  .t {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 24px;
+    letter-spacing: 0.2em;
+  }
+  .now .t {
+    color: var(--gold-hi);
+  }
+  .when {
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+  }
+  .s {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--on-night-2);
+  }
+  .d,
+  .go,
+  .desk {
+    display: none;
+  }
+  .local {
+    margin: 0;
+    padding: 14px 16px;
+    border: 1px solid rgb(248 244 237 / 0.14);
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--on-night-2);
+  }
+  .fail {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+    color: var(--gold-hi);
+  }
+  .fail:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .foot {
+    margin: auto 0 0;
+    text-align: center;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    color: rgb(248 244 237 / 0.55);
+  }
+
+  /* 报数 */
+  .num .col {
+    gap: 30px;
+    padding-top: 36px;
+  }
+  .back {
+    width: var(--tap);
+    height: var(--tap);
+    margin-left: -10px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgb(248 244 237 / 0.7);
+    cursor: pointer;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.24em;
+    color: var(--gold);
+  }
+  input {
+    width: 100%;
+    height: 56px;
+    box-sizing: border-box;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgb(192 147 81 / 0.55);
+    border-radius: 0;
+    color: var(--on-night);
+    font: inherit;
+    font-size: 30px;
+    letter-spacing: 0.1em;
+    outline: none;
+    transition: border-color var(--t-hover);
+  }
+  input:focus,
+  input[aria-invalid="true"] {
+    border-bottom-color: var(--gold-hi);
+  }
+  .err {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+    color: var(--gold-hi);
+  }
+  .err:empty {
+    display: none;
+  }
+  .num footer {
+    margin-top: auto;
+  }
+  .num footer .btn {
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .method {
+      background: radial-gradient(ellipse 55% 60% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .col {
+      flex-grow: 0;
+      /* 1024–1167 宽减去左右 64 的内边距放不下 1040：跟着收窄，不出横向滚动 */
+      width: min(1040px, 100%);
+      margin: auto;
+      gap: 40px;
+      padding-top: 0;
+    }
+    .title {
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 40px;
+    }
+    .title p {
+      font-size: var(--fs-m);
+    }
+    .m {
+      display: none;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px;
+    }
+    .card.now {
+      min-height: 380px;
+      gap: 12px;
+      padding: 36px;
+      background: linear-gradient(160deg, rgb(192 147 81 / 0.1), rgb(28 41 56 / 0.4));
+    }
+    .card.num {
+      padding: 36px;
+      background: var(--night-2);
+      border: 1px solid rgb(248 244 237 / 0.2);
+    }
+    .hit {
+      display: none;
+    }
+    .desk {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+    }
+    .d {
+      display: inline;
+    }
+    .t {
+      font-size: 30px;
+    }
+    .when {
+      font-size: var(--fs-m);
+      font-weight: 600;
+    }
+    .s {
+      font-size: var(--fs-s);
+      line-height: 1.8;
+    }
+    /* 「以此刻起卦」的样子：整张卡就是按钮，这里只是看得见的字 */
+    .go {
+      display: grid;
+      place-items: center;
+      width: 260px;
+      height: var(--btn-h);
+      margin-top: auto;
+      padding-left: 0.5em;
+      background: var(--gold);
+      color: var(--night);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5em;
+      border-radius: var(--radius);
+      transition: background-color var(--t-hover);
+    }
+    .card.now:hover .go {
+      background: var(--gold-hi);
+    }
+    .pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      margin-top: 8px;
+    }
+    .desk input {
+      height: 52px;
+      font-size: 28px;
+    }
+    .desk .err {
+      font-size: 13px;
+    }
+    .rule {
+      color: rgb(248 244 237 / 0.62);
+    }
+    .desk .btn {
+      --ls: 0.5em;
+      width: 260px;
+      margin-top: auto;
+    }
+    .local {
+      width: calc(50% - 16px);
+      box-sizing: border-box;
+    }
+    .foot {
+      margin: 0;
+      font-size: 13px;
+    }
+  }
+</style>

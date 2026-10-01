@@ -1,0 +1,176 @@
+---
+// 自选类别（设计稿 41 ②）：Jev 不可用、超时、拿不准、没配 key 时才出现。梅花版不写用神（梅花不取用神），
+// 婚恋不问性别（M21-11）：类别只用来选断语与建议的说法（templates.ts），吉凶按体用生克判。
+import { ERRORS } from "../data/copy";
+import MeihuaBar from "./MeihuaBar.astro";
+
+const cats = [
+  { topic: "财", label: "财", sub: "收入 · 投资 · 买卖" },
+  { topic: "事业", label: "事业", sub: "工作 · 升迁 · 官司" },
+  { topic: "父母", label: "父母", sub: "长辈 · 房屋 · 文书 · 考试" },
+  { topic: "子孙", label: "子女", sub: "子女 · 晚辈 · 医药" },
+  { topic: "兄弟", label: "朋友", sub: "兄弟 · 同事 · 竞争 · 合伙" },
+  { topic: "婚恋", label: "婚恋", sub: "恋爱 · 婚姻 · 复合" },
+];
+---
+
+<section class="screen topic" data-screen="topic" tabindex="-1" hidden>
+  <MeihuaBar />
+  <div class="col">
+    <div class="title">
+      <h1 tabindex="-1" data-autofocus>此事关乎</h1>
+      <p>{ERRORS.topicFallback}</p>
+      <p class="why">梅花按体用生克断吉凶，类别只决定断语和建议的说法。</p>
+    </div>
+    <div class="grid" role="group" aria-label="问题类别">
+      {cats.map((c) => (
+        <button type="button" class="cat" data-topic={c.topic} aria-pressed="false">
+          <span class="head">{c.label}</span>
+          <span class="sub">{c.sub}</span>
+        </button>
+      ))}
+      <button type="button" class="cat wide" data-topic="自身" aria-pressed="false">
+        <span class="head">自身</span>
+        <span class="sub">自己的运势</span>
+      </button>
+    </div>
+    <button class="btn solid done dock" data-topic-done disabled>定</button>
+  </div>
+</section>
+
+<style>
+  .col {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding-top: 26px;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: 0.24em;
+    outline: none;
+  }
+  .title p {
+    margin: 0;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    color: var(--on-night-2);
+  }
+  .title .why {
+    font-size: var(--fs-xs);
+    color: rgb(248 244 237 / 0.62);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cat {
+    min-height: 72px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    background: var(--night-2);
+    border: 1px solid rgb(248 244 237 / 0.12);
+    border-radius: var(--radius);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .cat:hover {
+    border-color: var(--gold);
+  }
+  .cat[aria-pressed="true"] {
+    background: rgb(192 147 81 / 0.12);
+    border-color: var(--gold);
+  }
+  .head {
+    font-size: 17px;
+    letter-spacing: 0.2em;
+  }
+  .cat[aria-pressed="true"] .head {
+    color: var(--gold-hi);
+  }
+  .sub {
+    font-size: var(--fs-xs);
+    color: rgb(248 244 237 / 0.6);
+  }
+  .cat[aria-pressed="true"] .sub {
+    color: rgb(248 244 237 / 0.7);
+  }
+  .wide {
+    grid-column: span 2;
+    min-height: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .done {
+    width: 100%;
+    margin-top: auto;
+  }
+  @media (min-width: 1024px) {
+    .topic {
+      background: radial-gradient(ellipse 55% 60% at 50% 50%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .col {
+      flex-grow: 0;
+      width: 960px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 36px;
+      padding-top: 0;
+    }
+    .title,
+    .grid {
+      grid-column: 1 / -1;
+    }
+    .title {
+      gap: 12px;
+    }
+    h1 {
+      font-size: 40px;
+    }
+    .title p {
+      font-size: var(--fs-m);
+    }
+    .title .why {
+      font-size: 13px;
+    }
+    .grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .cat {
+      min-height: 96px;
+      padding: 18px 20px;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .head {
+      font-size: var(--fs-l);
+    }
+    .sub {
+      font-size: 13px;
+    }
+    .done {
+      grid-column: 2;
+      align-self: end;
+      width: 220px;
+      margin-top: 0;
+    }
+  }
+</style>

@@ -27,6 +27,8 @@ const PATHS = [
 		// 八字知识页（M19b）：十天干、十二地支（各带目录）、十神、纳音、十二长生，27 页
 		...KB_PAGES.map((p) => kbPath(p.path, hant)),
 	]),
+	// 梅花易数（M21）：先只有简体（M21-20）；起出的卦不进网址
+	'/meihua/',
 ];
 
 export const GET: APIRoute = ({ site }) =>

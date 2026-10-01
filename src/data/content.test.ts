@@ -59,6 +59,7 @@ import baziPages from "./bazi-pages.json" with { type: "json" };
 import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
 import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
+import { compose } from "../lib/meihua-reading.js";
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -450,5 +451,23 @@ describe("红线（简繁都查）", () => {
 
 	it("不打包票，不给应期", () => {
 		for (const s of all) expect(s).not.toMatch(/一定|必定|必然|保证|保證|之内|之內/);
+	});
+
+	// 梅花页（M21）：说明区、各屏的字写在组件里，依据与算式由 Worker 拼（meihua-reading.ts），384 种起法全拼一遍
+	it("梅花页的说明、界面与依据句也守这两条", () => {
+		const page = ["Meihua", "MeihuaHome", "MeihuaMethod", "MeihuaReading", "MeihuaReveal", "MeihuaTopic"].map((f) =>
+			readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->|\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""),
+		);
+		const said: string[] = [];
+		for (let a = 1; a <= 8; a++)
+			for (let b = 1; b <= 8; b++)
+				for (let h = 0; h < 12; h += 2) {
+					const v = compose({ by: { by: "num", nums: [a, b] }, at: `2026-10-01T${String(h).padStart(2, "0")}:30:00+08:00`, topic: "自身", lateZi: "day-stays" });
+					said.push(...v.reasons, v.hu.say);
+				}
+		for (const s of [...page, ...said]) {
+			expect(s).not.toMatch(/改命|转运|化解|算命|消灾|开光|大师|血光|大凶/);
+			expect(s).not.toMatch(/一定|必定|必然|保证|之内/);
+		}
 	});
 });
