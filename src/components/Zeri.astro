@@ -260,6 +260,7 @@ const description = t(
       $(i ? 'nnextt' : 'nprevt').textContent = i ? `${mon(x)} ›` : `‹ ${mon(x)}`;
     });
     $('title').textContent = `${mm} · ${name}吉日`;
+    $('count').textContent = '';
     const more = $<HTMLAnchorElement>('more');
     more.href = zeriPath(slug, month, hant);
     more.textContent = `${t('看完整一页', '看完整一頁')}：${yy}年${mm}${name}吉日 ›`;
@@ -269,9 +270,9 @@ const description = t(
       days = good(await get(month));
     } catch {
       if (my !== ticket) return;
-      $('count').textContent = '';
       $('omit').hidden = true;
       $('empty').hidden = true;
+      $('rows').hidden = false;
       $('rows').replaceChildren(el('li', 'msg', t('没能取到这个月的黄历，请稍后刷新。', '沒能取到這個月的農民曆，請稍後重新整理。')));
       return;
     }
