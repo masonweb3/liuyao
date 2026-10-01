@@ -26,6 +26,8 @@ import { ITEMS } from "../lib/zeri-rule.js";
 import zeriHant from "./zeri-hant.json" with { type: "json" };
 import zeri from "./zeri.json" with { type: "json" };
 import { TenStar, Terrain } from "tyme4ts";
+import baziBaihuaHant from "./bazi-baihua-hant.json" with { type: "json" };
+import baziBaihua from "./bazi-baihua.json" with { type: "json" };
 import baziHant from "./bazi-hant.json" with { type: "json" };
 import baziNamesHant from "./bazi-names-hant.json" with { type: "json" };
 import bazi from "./bazi.json" with { type: "json" };
@@ -173,9 +175,9 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0),
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0),
 			baziRizhu)],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1),
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1),
 			baziRizhuHant)],
 	])("%s：卦爻辞、两种白话、黄历、择日、八字的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
