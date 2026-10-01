@@ -27,12 +27,12 @@
 - zeri：择日首页与全部事项月页共用一份（M18）：「择日」、六个事项名（从 src/lib/zeri-rule.ts 读）、「吉日」、公历日期。
 改了 huangli.json、huangli-hant.json 的三候，zeri-rule.ts 的事项名，或这些页面上用标题字体的文案，就重跑。
 
-八字排盘（src/fonts/bazi/、bazi-hant/，M19a）：/bazi/ 一页一份 index，用标题字体的字是固定的一组：
-「八字」、十天干、十二地支、0–9、乾造、坤造，加纸面页都有的标题字。
+八字（src/fonts/bazi/、bazi-hant/）：排盘页 /bazi/（M19a）与全部知识页（M19b-3）共用一份 index，用标题字体的字是固定的一组：
+「八字」、十天干、十二地支、0–9、乾造、坤造，知识页的「十神」「纳音」「十二长生」「十天干」「十二地支」，加纸面页都有的标题字。
 
 纸面页（卦页、目录、黄历与节气）的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
 - src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
-  （卦爻辞全文、卦辞白话、爻辞白话、黄历释义与繁体名称表、择日的事项说明、八字的词语说明与繁体名称表、出生地名单；
+  （卦爻辞全文、卦辞白话、爻辞白话、黄历释义与繁体名称表、择日的事项说明、八字的词语说明、知识页释义与繁体名称表、出生地名单；
   简体再加 tyme4ts 里的全部名称，宜忌、神煞都是它给的）
   却要用的字，从完整字体截出来，不让这些字回退到系统字体。缺哪些字按切片的
   实际 cmap 自动算（切片 CSS 的 unicode-range 比实际字多，不能信），所以要先 pnpm install。每批白话加了字就重跑；
@@ -104,8 +104,8 @@ LANG = {
 
 # 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
 BODY = {
-    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json"]),
-    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-names-hant.json"]),
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json"]),
 }
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
@@ -188,8 +188,10 @@ def huangli_blocks(lang: str) -> dict[str, list[str]]:
 
 
 def bazi_blocks(lang: str) -> dict[str, list[str]]:
-    """八字排盘页（M19a）用标题字体的字：h1、四柱与大运流年的干支、五行个数、乾造坤造。"""
-    return {"index": [CHROME[lang], "八字", GANZHI[:22], "0123456789", "乾造坤造"]}
+    """八字排盘页（M19a）与知识页（M19b-3，共用一份）用标题字体的字：h1、四柱与大运流年的干支、五行个数、乾造坤造，
+    知识页的 h1（十神、纳音、十二长生、十天干、十二地支；天干、地支页的 h1 是一个干支字）与表格里的干支。"""
+    kb = ["十神", "納音", "十二長生"] if lang == "hant" else ["十神", "纳音", "十二长生"]
+    return {"index": [CHROME[lang], "八字", GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支"]}
 
 
 def city_chars(lang: str) -> str:
