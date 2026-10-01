@@ -119,8 +119,6 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
           )}
         </div>
         <p class="key"><span class="box" aria-hidden="true"></span>{t('框起来的是吉日，点一下跳到下面那一天', '框起來的是吉日，點一下跳到下面那一天')}</p>
-        {/* 「今天」按北京时间在浏览器里判断，字下加印章色短线（同逐日页的本月日历） */}
-        <script is:inline>(function(){var t=new Date(Date.now()+288e5).toISOString().slice(0,10),a=document.querySelector('.days [data-d="'+t+'"]');if(a)a.classList.add('now')})()</script>
       </section>
     </div>
 
@@ -191,6 +189,10 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
         <a class="go-zeri" href={zeriPath(undefined, undefined, hant)}>{t('想避开冲自己生肖的日子：去择日', '想避開沖自己生肖的日子：去擇日')} ›</a>
       </section>
     </div>
+    {/* 「今天」按北京时间在浏览器里判断，本月一览里字下加印章色短线（同逐日页的本月日历）。
+        放在正文末尾：内联脚本前浏览器可能先画一帧，放在一览后面时那一帧页面还不够长、没有滚动条，
+        随后滚动条出现、整页左移（桌面 Lighthouse 量到 CLS 0.008）。 */}
+    <script is:inline>(function(){var t=new Date(Date.now()+288e5).toISOString().slice(0,10),a=document.querySelector('.days [data-d="'+t+'"]');if(a)a.classList.add('now')})()</script>
   </main>
   <Invite hant={hant} />
   <Fragment slot="foot">
@@ -662,10 +664,35 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
     }
 
     /* 桌面：真的表格（D23） */
+    /* 列宽写定：自动布局按字宽分列，字体换上时各列左右挪动（算布局偏移） */
     table {
       display: table;
       width: 100%;
+      table-layout: fixed;
       border-bottom: 1px solid var(--rule);
+    }
+    thead th:nth-child(1) {
+      width: 12%;
+    }
+    thead th:nth-child(2),
+    thead th:nth-child(4) {
+      width: 8%;
+    }
+    thead th:nth-child(3) {
+      width: 10%;
+    }
+    thead th:nth-child(5) {
+      width: 17%;
+    }
+    thead th:nth-child(6) {
+      width: 6%;
+    }
+    thead th:nth-child(7),
+    thead th:nth-child(9) {
+      width: 12%;
+    }
+    thead th:nth-child(8) {
+      width: 15%;
     }
     thead {
       position: static;
@@ -719,8 +746,11 @@ const kinds = [t('上个月', '上個月'), t('下个月', '下個月')];
       letter-spacing: 0.04em;
       white-space: nowrap;
     }
+    /* 日期独占一块、定高：标题字体和正文宋体混在一行时，行高随哪款字体先到而变，一行差 1px，整张表跟着动 */
     tbody th a {
+      display: block;
       font-size: 20px;
+      line-height: 28px;
     }
     tbody th a:focus-visible {
       outline: 1px solid var(--ink);
