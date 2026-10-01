@@ -73,6 +73,7 @@ src/
   lib/zeri-rule.ts  择日的六个事项、命中规则、冲的生肖、月页网址（零依赖、不 import 任何模块：择日首页脚本也用它，见 §6「择日」）
   lib/zeri.ts       择日的构建时部分（引 huangli.ts）：每月吉日、月页逐日一行、按当月数据写的一句
   lib/bazi.ts       八字排盘引擎（零 DOM，引 tyme4ts）：四柱、十神藏干、十二长生、纳音空亡、神煞、刑冲合会、胎元命宫身宫、起运大运流年；只在 Worker 里跑（见 §6「八字」）
+  lib/bazi-baihua.ts 八字白话（M20，零 DOM，引 bazi.ts 的 guanXi）：把盘面说成日主、五行与十神、大运时间轴三块，只填句式的空位；在 Worker 里拼（见 §6「八字」）
   lib/bazi-time.ts  八字的时刻换算（零依赖、不 import 任何模块：/bazi/ 页面脚本也用它）：均时差、按 IANA 时区算出生那一刻的 UTC 偏移与夏令时
   lib/bazi-kb.ts    八字知识页的数据（构建时，引 tyme4ts 与 bazi.ts）：十天干、十二地支、十神表、三十组纳音、十二长生表、网址与小节名（见 §6「八字知识页」）
   lib/meihua.ts     梅花易数引擎（零 DOM，引 tyme4ts）：时间起卦、数字起卦、体用与生克、构建时写进页面的农历表；只在 Worker 里跑（见 §6「梅花」）
@@ -83,7 +84,7 @@ src/
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是纸面页底部的起卦块；
                     HuangliToday、HuangliDay、Jieqi、JieqiList 是今日黄历、逐日页、节气页、节气目录的正文，TermGrid 是二十四节气总表；
-                    Zeri、ZeriMonth 是择日首页、事项月页的正文；Bazi 是八字排盘页的正文（表单、盘面、存盘、盘面上的词、八字知识）；
+                    Zeri、ZeriMonth 是择日首页、事项月页的正文；Bazi 是八字排盘页的正文（表单、盘面、白话、存盘、盘面上的词、八字知识）；
                     BaziKb 是八字知识页的正文（27 种页一个组件，简繁共用）；
                     Meihua.astro 是梅花页（/meihua/）的全部，各屏在 Meihua*.astro（首屏与说明区、所问、提示页、择类、选起法与报数、成卦、解读），不和首页共用组件；
                     Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
@@ -95,8 +96,8 @@ src/
   scripts/card.ts   分享卡的 canvas 绘制（按需加载）
   scripts/sound.ts  音效：Web Audio 现场合成
   scripts/huangli-worker.ts 今日页在时间窗外的回退：Web Worker 里用 tyme4ts 现算当天
-  scripts/bazi-worker.ts /bazi/ 的排盘：Web Worker 里跑 bazi.ts（生辰只在这里算）
   scripts/meihua.ts 梅花页的状态机（只 import meihua-page.ts，不用动态 import）；scripts/meihua-worker.ts 在 Worker 里起卦、备好解读
+  scripts/bazi-worker.ts /bazi/ 的排盘：Web Worker 里跑 bazi.ts（生辰只在这里算），白话（bazi-baihua.ts）也在这里拼
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
@@ -111,6 +112,7 @@ src/
   data/huangli-hant.json 同上的繁体（s2twp 转换后逐条校对），另有 names：tyme4ts 简体名 → 繁体的对照表
   data/zeri.json    择日的导语、「怎么算吉日」与六个事项的说明（本项目原创，CC BY-NC-SA 4.0）；zeri-hant.json 是繁体（s2twp 转换后逐条校对）
   data/bazi.json    八字排盘页的导语与「盘面上的词」14 条（本项目原创，经独立审查，CC BY-NC-SA 4.0）；bazi-hant.json 是繁体（逐条校对）
+  data/bazi-baihua.json 八字白话的句式（M20：键是英文，值带 {空位}，由 bazi-baihua.ts 填；本项目原创，待独立审查，CC BY-NC-SA 4.0）；bazi-baihua-hant.json 是繁体（键不转，s2twp 后逐条校对）
   data/bazi-names-hant.json 八字盘面上 tyme4ts 名字的繁体：十神、十二长生、十三种神煞（纳音、生肖用 huangli-hant.json 的 names）
   data/bazi-tiangan.json、bazi-dizhi.json、bazi-pages.json 八字知识页的释义：天干、地支各导语与「怎么读」三段，十神、纳音、十二长生页，两个目录页的导语（本项目原创，经独立审查，CC BY-NC-SA 4.0）；各带 -hant 繁体（逐条校对）
   data/cities.json  出生地名单（tools/build-cities.py 生成）：城市简繁名、所属、经度、IANA 时区；经度取自 Natural Earth（公有领域），/bazi/ 点进出生地才下载
@@ -295,7 +297,12 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **农历**（M19-7）：月份下拉直接列闰月，日子按大小月列，选不出不存在的日子；换月、换年时超出的日子、没有的闰月自动改并 `role=status` 说一声。春节与立春之间出生（农历年与年柱不同）时盘面加一行说明。
   - **繁体**：tyme4ts 的名字查 `bazi-names-hant.json`（十神、十二长生、神煞）与 `huangli-hant.json` 的 names（纳音、生肖、节气）；刑冲合会、农历里只换冲、会、闰、腊四个字。时区写「臺灣時間（UTC+8）」。
   - **字体**：标题字体子集 `fonts/bazi/index`（繁体 `bazi-hant/index`）：「八字」、干支、0–9、乾造坤造。盘面上的干支（四柱、胎元命宫身宫、大运流年）简体用宋体、繁体用芫荽（`--font-gz`，见「八字知识页」的字体）。正文补字算进 `bazi*.json`、`bazi-names-hant.json` 与出生地名单；`glyphs.test.ts` 也核对 `Bazi.astro` 里写在页面上的字（代码里不显示的简体字写成转义）。
-  - **布局**：手机一栏，次序是表单、盘面、存过的盘、盘面上的词、八字知识，排盘后表单收成一行（可「改」）；≥1024 左 360 表单（sticky）、右栏盘面。「正在排盘」的占位按常见盘面的高度先占好。
+  - **布局**：手机一栏，次序是表单、盘面、白话、存过的盘、盘面上的词、八字知识，排盘后表单收成一行（可「改」）；≥1024 左 360 表单（sticky）、右栏盘面与白话。「正在排盘」的占位按常见盘面的高度先占好；白话一节排盘出来之前藏着。
+  - **白话（M20，设计稿第十五行 43、44、D31，待定 M20-1 至 M20-12 见 CHANGELOG 2026.10.02）**：盘面之后单列 h2「白话」，三块：日主、五行与十神、大运时间轴。只讲有什么、叫什么，不论好坏、不下断语；说「这一盘」，不说「你」。
+    - **句式**：全在 `bazi-baihua.json`（繁体 `-hant`，键不转），`bazi-baihua.ts` 只填空位（干支、五行、柱名、十神、个数、年份），不在代码里写句子。标题、导语、两条固定说明在构建时由 `Bazi.astro` 写进页面，其余由 Worker 拼好（M20-10），页面脚本只 `import type`、只画。改句式后跑 `bazi-baihua.test.ts`：每条句式至少用到一次，网格拼出的简繁白话逐句过红线（五行强弱、用神喜忌、六亲、财运事业、「缺」「补」、人称都禁；去掉十神全名后不许有财官杀伤劫印单字）。设计稿那张 7 万盘的网格用 `BAIHUA_GRID=full` 跑（约 5 分钟，CI 不跑）。
+    - **口径**：为 0 的只说「0 个」「没有」，再看藏干（M20-3）；五行按对日主的关系排，与十神合成一块（M20-4）；大运十步全列、不按岁数截（M20-6），每步写天干与地支本气的十神和与原局各柱的刑冲合会名目（同名合并，写法同盘面），今年那步默认展开，加今年流年一句（M20-5）。不提神煞名与十二长生步名。
+    - **日主的条件句**（M20-2）：时辰不详；晚子时（按日柱所用的时刻，含夏令时与真太阳时），写出另一种选项的日柱；海外出生、把出生时刻换成北京时间排会是另一个日柱时，写出那个日柱。另一种排法的日柱由日子差几天推出，测试拿 `bazi()` 真排一次核对。时辰不详的交运年份取 `qiYun.range` 两头的 `startYear`，不同才写「可能差一年」。
+    - **页面**：盘面顶部「存到这台设备」旁「看白话 ↓」（按钮，不进网址）。五行与十神是真 `<table>`，手机上每行排成一块；大运时间轴手机每步一行 `<details>`，桌面另画一份每步一行全写出（两份按宽度显示一份）。白话不进存盘、网址、分享（M20-9）。
 - **八字知识页（M19b 第一批，设计稿第十三行 30–34、D27、D28，待定 M19b-1 至 M19b-8 见 CHANGELOG 2026.10.01）：** 八字栏目里的纸面页，栏目表不加项：`Paper.astro` 传 `at="/bazi/"`，当前项 `aria-current="true"`（点它回 /bazi/）。纯计算，零 JS，页脚「干支、纳音、十二长生由 tyme4ts 推算（MIT）；释义为本站原创」「仅供传统文化参考与娱乐」。
   - **网址**（上线后不改，同节气页）：十天干目录 `/bazi/tiangan/` 与 `/bazi/tiangan/{jia…gui}/`，十二地支目录 `/bazi/dizhi/` 与 `/bazi/dizhi/{zi…hai}/`（戊、午都是 wu，分在两个目录），`/bazi/shishen/`、`/bazi/nayin/`、`/bazi/changsheng/`；繁体前加 `/zh-hant`。27 页的表是 `bazi-kb.ts` 的 `KB_PAGES`，路由（`[...kb].astro`）、sitemap 都从它取。
   - **数据**：全部在构建时由 `bazi-kb.ts` 算出（tyme4ts 与 bazi.ts），不手写一张表；测试核对十神表与排盘页的十神、长生表与星运自坐、纳音与排盘页一致。
