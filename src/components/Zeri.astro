@@ -74,7 +74,7 @@ const description = t(
             <span class="label" id="zr-month">月份</span>
             <div class="step" role="group" aria-labelledby="zr-month">
               <button type="button" data-f="prev" aria-label={t('上个月', '上個月')} disabled>‹ {(m + 10) % 12 + 1}月</button>
-              <output data-f="month">{y}年{m}月</output>
+              <span class="mo" data-f="month">{y}年{m}月</span>
               <button type="button" data-f="next" aria-label={t('下个月', '下個月')} disabled={month >= last}>{next.getUTCMonth() + 1}月 ›</button>
             </div>
           </div>
@@ -523,7 +523,7 @@ const description = t(
   .near button:disabled {
     visibility: hidden;
   }
-  output {
+  .mo {
     font-family: var(--font-display);
     font-size: 22px;
     line-height: 1.3;
