@@ -5,6 +5,8 @@
 // 盘面不写进 query、hash，没有分享链接。存盘只在用户点「存到这台设备」时写进 localStorage（M19-8、M19-14）。
 // 页面脚本只 import 零依赖的 bazi-time.ts，不 import tyme4ts、不用动态 import()：免得打包拆出与首页共用的分包。
 import { LunarYear, SolarTerm, Sound, Zodiac } from 'tyme4ts';
+import baihuaHant from '../data/bazi-baihua-hant.json';
+import baihua from '../data/bazi-baihua.json';
 import namesHant from '../data/bazi-names-hant.json';
 import baziHant from '../data/bazi-hant.json';
 import bazi from '../data/bazi.json';
@@ -58,6 +60,9 @@ const MORE: Record<string, [string, string]> = {
   '\u7eb3\u97f3': [t('三十组纳音', '三十組納音'), '/bazi/nayin/'],
 };
 const more = (k: number) => MORE[bazi.terms[k]!.term];
+// 白话（M20）的标题、导语、固定说明在构建时写进页面；其余由 Worker 按同一份句式拼好
+const bh = hant ? baihuaHant : baihua;
+const ganPaths = [...GAN].map((g) => ganPath(g, hant)).join(' ');
 ---
 
 <Paper title={title} description={description} path="/bazi/" at="/bazi/" home group="bazi" subset="index" hant={hant} ogType="website">
@@ -194,6 +199,29 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
           </div>
         </template>
 
+        {/* 白话（M20，设计稿 43、44、D31）：盘面之后单列一节，Worker 拼好、脚本只画（M20-10）。不进存盘、网址、分享（M20-9） */}
+        <section class="plain" aria-labelledby="bz-plain" data-f="plain" data-gan={ganPaths} hidden>
+          <div class="ph">
+            <h2 class="head" id="bz-plain" tabindex="-1">{bh.heads.title}</h2>
+            <p class="lead">{bh.lead}</p>
+          </div>
+          <div class="pb">
+            <h3 class="sh">{bh.heads.dm}</h3>
+            <div class="pdm" data-f="p-dm"></div>
+          </div>
+          <div class="pb">
+            <h3 class="sh">{bh.heads.wx}</h3>
+            <div class="pwx" data-f="p-wx"></div>
+            <p class="pnote">{bh.wx.close}</p>
+            <a class="plink" href={kbPath('/bazi/shishen/', hant)}>{bh.ui.shishen} ›</a>
+          </div>
+          <div class="pb">
+            <h3 class="sh">{bh.heads.dy}</h3>
+            <div class="pdy" data-f="p-dy"></div>
+            <p class="pnote">{bh.dy.foot}</p>
+          </div>
+        </section>
+
         <section class="terms" id="terms" aria-labelledby="bz-terms">
           <h2 class="head" id="bz-terms" tabindex="-1">{t('盘面上的词', '盤面上的詞')}</h2>
           <dl>
@@ -226,7 +254,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
   </main>
   <Invite hant={hant} />
   <Fragment slot="foot">
-    <p>{t('四柱、大运由', '四柱、大運由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('推算（MIT）；神煞、刑冲合会按《三命通会》的查法；城市经度取自 Natural Earth；词语说明为本站原创', '推算（MIT）；神煞、刑沖合會按《三命通會》的查法；城市經度取自 Natural Earth；詞語說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('四柱、大运由', '四柱、大運由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('推算（MIT）；神煞、刑冲合会按《三命通会》的查法；城市经度取自 Natural Earth；词语说明与白话为本站原创', '推算（MIT）；神煞、刑沖合會按《三命通會》的查法；城市經度取自 Natural Earth；詞語說明與白話為本站原創')}<span class="stop">。</span></p>
     <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
   </Fragment>
 </Paper>
@@ -234,6 +262,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
 <script>
   // 只 import 零依赖的 bazi-time.ts（页面独用）与类型；排盘在 Worker 里（见文件头）。
   import type { Bazi, Birth, Options, Pillar } from '../lib/bazi';
+  import type { Chip, Plain, Step } from '../lib/bazi-baihua';
   import { equationOfTime, localOffset } from '../lib/bazi-time';
 
   const root = document.querySelector<HTMLElement>('[data-bazi]')!;
@@ -627,12 +656,13 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
   // ---------- 排盘（Worker） ----------
   let worker: Worker | undefined;
   let seq = 0;
-  const pending = new Map<number, (c?: Bazi) => void>();
+  type Result = { chart?: Bazi; plain?: Plain };
+  const pending = new Map<number, (r?: Result) => void>();
   function warm() {
     if (worker) return worker;
     worker = new Worker(new URL('../scripts/bazi-worker.ts', import.meta.url), { type: 'module' });
-    worker.onmessage = (e: MessageEvent<{ id: number; chart?: Bazi }>) => {
-      pending.get(e.data.id)?.(e.data.chart);
+    worker.onmessage = (e: MessageEvent<{ id: number } & Result>) => {
+      pending.get(e.data.id)?.(e.data);
       pending.delete(e.data.id);
     };
     // 载入失败（断网）：手上的都答「没排出来」，下次再开一个
@@ -643,11 +673,12 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     };
     return worker;
   }
-  const compute = (birth: Birth, options: Options) =>
-    new Promise<Bazi | undefined>((done) => {
+  // 白话（M20）在 Worker 里一起拼：今年按北京时间，出生地写本语言的名字，繁体页带上名称表
+  const compute = (birth: Birth, options: Options, city?: string) =>
+    new Promise<Result | undefined>((done) => {
       const id = ++seq;
       pending.set(id, done);
-      warm().postMessage({ id, birth, options });
+      warm().postMessage({ id, birth, options, year: thisYear, city, hant, names: NAMES });
     });
 
   function request(r: Rec): { birth: Birth; options: Options; dst: number } {
@@ -695,15 +726,18 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     current = r;
     $('wait').hidden = true;
     chart.hidden = false;
+    $('plain').hidden = true;
     body.replaceChildren(($<HTMLTemplateElement>('skeleton').content.cloneNode(true) as DocumentFragment));
     const req = request(r);
-    const c = await compute(req.birth, req.options);
+    const res = await compute(req.birth, req.options, r.city?.[hant ? 1 : 0].split(' · ')[0]);
     if (my !== ticket) return;
+    const c = res?.chart;
     if (!c) {
       body.replaceChildren(h('p', { class: 'msg', role: 'status' }, worker ? t('没能排出这一盘，请检查日期后再试。', '沒能排出這一盤，請檢查日期後再試。') : t('排盘脚本没能载入，请检查网络后刷新再试。', '排盤腳本沒能載入，請檢查網路後重新整理再試。')));
       return;
     }
-    render(c, r, req.dst);
+    render(c, r, req.dst, res.plain);
+    if (res.plain) renderPlain(res.plain);
     collapse(r);
     const head = byId('bz-chart');
     const top = head.getBoundingClientRect().top;
@@ -730,7 +764,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     return `${r.city[hant ? 1 : 0].split(' · ')[0]}（${utc(o.offset)}${o.dst ? t('，夏令时', '，夏令時') : ''}）`;
   }
 
-  function render(c: Bazi, r: Rec, dst: number) {
+  function render(c: Bazi, r: Rec, dst: number, plain?: Plain) {
     const known = c.pillars.length === 4;
     const name = r.city?.[hant ? 1 : 0].split(' · ')[0];
     const lines = h(
@@ -760,7 +794,14 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
       syncSave();
     });
 
-    const parts: Kid[] = [h('div', { class: 'top' }, lines, save)];
+    // 「看白话 ↓」：按钮不是锚点，不进网址（同「盘面上的词是什么意思 ↓」）
+    const jump = plain && h('button', { type: 'button', class: 'tolink' }, plain.ui.jump);
+    jump?.addEventListener('click', () => {
+      const head = byId('bz-plain');
+      head.scrollIntoView({ block: 'start' });
+      head.focus({ preventScroll: true });
+    });
+    const parts: Kid[] = [h('div', { class: 'top' }, lines, h('div', { class: 'acts' }, save, jump))];
 
     // 农历年与年柱不同（设计稿 28 ④）。时辰不详又正好那天交节时，年柱要看时刻，下面另写一句，这句不出
     if (c.liChun && !c.jie) {
@@ -968,6 +1009,72 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     );
   }
 
+  // ---------- 白话（M20）：句子都由 Worker 拼好（bazi-baihua.ts），这里只画 ----------
+  const plainSec = $('plain');
+  const ganPaths = (plainSec.dataset.gan ?? '').split(' ');
+  function renderPlain(p: Plain) {
+    const para = (s: string) => h('p', null, s);
+    // 日主：大字与两行小字（桌面在左），几段与去天干页的链接
+    $('p-dm').replaceChildren(
+      h('div', { class: 'pcard' }, h('span', { class: 'pg' }, p.dm.gan), h('span', { class: 'pc' }, h('span', null, p.dm.card[0]), h('span', { class: 'pc2' }, p.dm.card[1]))),
+      h('div', { class: 'ptext' }, ...p.dm.paras.map(para), h('a', { class: 'plink', href: ganPaths['甲乙丙丁戊己庚辛壬癸'.indexOf(p.dm.gan)] }, `${p.ui.gan} ›`)),
+    );
+    // 五行与十神：真表格（caption、scope），手机上每行排成一块
+    const chip = (x: Chip) => h('span', { class: 'pch' }, h('span', { class: 'pz' }, x.ch), h('small', null, x.ss ? `${x.pos} · ${x.ss}` : x.pos));
+    $('p-wx').replaceChildren(
+      h('p', { class: 'psub' }, p.wx.sub),
+      h(
+        'table',
+        null,
+        h('caption', { class: 'sr' }, p.ui.caption),
+        h('thead', null, h('tr', null, ...p.ui.cols.map((s) => h('th', { scope: 'col' }, s)))),
+        h(
+          'tbody',
+          null,
+          ...p.wx.rows.map((x) =>
+            h(
+              'tr',
+              null,
+              h('th', { scope: 'row' }, x.el),
+              h('td', { class: 'pn' }, String(x.n)),
+              h('td', { class: 'pr' }, x.label),
+              h('td', { class: 'pcs' }, ...(x.chars.length ? x.chars.map(chip) : [h('span', { class: 'pnone' }, '—')])),
+              h('td', { class: x.hidden === p.ui.none ? 'phd pnone' : 'phd' }, h('span', { class: 'pcl' }, p.ui.cang), x.hidden),
+            ),
+          ),
+        ),
+      ),
+      ...p.wx.paras.map(para),
+    );
+    // 大运时间轴：手机每步一行 <details>，只展开今年那步；桌面每步一行全写出（D31）。两份按宽度显示一份
+    const pre = p.dy.pre;
+    const ages = (a: string, y: string) => h('span', { class: 'pa' }, h('span', null, a), h('span', { class: 'py' }, y));
+    const cells = (s: Step) => [ages(s.ages, s.years), h('span', { class: 'pz' }, s.ganZhi), h('span', { class: 'pt' }, s.ten, s.now && h('span', { class: 'pnow' }, p.ui.now))];
+    const preRow = () => pre && h('li', { class: 'p0' }, ages(pre.ages, pre.years), h('span', null, p.ui.pre));
+    $('p-dy').replaceChildren(
+      para(p.dy.lead),
+      h(
+        'ul',
+        { role: 'list', class: 'tl' },
+        preRow(),
+        ...p.dy.steps.map((s) =>
+          h(
+            'li',
+            { class: s.now ? 'now' : undefined },
+            h('details', { open: s.now ? '' : undefined }, h('summary', null, ...cells(s), h('span', { class: 'pm', 'aria-hidden': 'true' })), h('div', null, para(s.gz), para(s.rel), s.year && para(s.year))),
+          ),
+        ),
+      ),
+      h(
+        'ul',
+        { role: 'list', class: 'tld' },
+        preRow(),
+        ...p.dy.steps.map((s) => h('li', { class: s.now ? 'now' : undefined }, ...cells(s), h('span', { class: 'prel' }, s.rel), s.now && h('p', null, s.gz), s.year && h('p', null, s.year))),
+      ),
+    );
+    plainSec.hidden = false;
+  }
+
   // 「存到这台设备」与「已存 · 删除」
   function syncSave() {
     const save = root.querySelector<HTMLButtonElement>('[data-f="save"]');
@@ -1096,7 +1203,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     color: var(--ink-2);
   }
 
-  /* 手机：一栏，次序是表单 → 盘面 → 存过的盘 → 盘面上的词（设计稿 27 便签） */
+  /* 手机：一栏，次序是表单 → 盘面 → 白话 → 存过的盘 → 盘面上的词 → 八字知识（设计稿 27 便签、43） */
   .bazi .body {
     display: flex;
     flex-direction: column;
@@ -1112,14 +1219,17 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
   .bazi .chart {
     order: 2;
   }
-  .bazi .saved {
+  .bazi .plain {
     order: 3;
   }
-  .bazi .terms {
+  .bazi .saved {
     order: 4;
   }
-  .bazi .kb {
+  .bazi .terms {
     order: 5;
+  }
+  .bazi .kb {
+    order: 6;
   }
   .bazi .wait {
     display: none;
@@ -2187,6 +2297,398 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
     }
     .bazi .terms dd {
       font-size: 15px;
+    }
+  }
+
+  /* ---------- 白话（M20，设计稿 43、44、D31） ---------- */
+  .bazi .acts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+  .bazi .plain {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .bazi .ph,
+  .bazi .pb,
+  .bazi .pdm,
+  .bazi .ptext,
+  .bazi .pwx,
+  .bazi .pdy {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bazi .ph {
+    gap: 8px;
+  }
+  .bazi .lead {
+    font-size: 13px;
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .bazi .plain p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .bazi .plain .lead,
+  .bazi .plain .pnote {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .bazi .plain .psub {
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .bazi .plink {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    text-underline-offset: 3px;
+  }
+  .bazi .pcard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .bazi .pg {
+    flex-shrink: 0;
+    width: 48px;
+    font-family: var(--font-gz);
+    font-size: 40px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .bazi .pc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+  }
+  .bazi .pc2 {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .bazi .pnone {
+    color: var(--ink-2);
+  }
+
+  /* 五行与十神：手机上表格每行排成一块（左边五行与个数，右边十神、八个字里是哪几个、藏干） */
+  .bazi .pwx table {
+    display: block;
+    border-collapse: collapse;
+  }
+  .bazi .pwx thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .bazi .pwx tbody {
+    display: block;
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .pwx tbody tr {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-areas: 'el rel' 'n chars' '. hid';
+    gap: 4px 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .pwx th,
+  .bazi .pwx td {
+    padding: 0;
+    font-weight: 400;
+    text-align: left;
+    vertical-align: top;
+  }
+  .bazi .pwx tbody th {
+    grid-area: el;
+    font-size: 13px;
+    color: var(--ink-2);
+    text-align: center;
+  }
+  .bazi .pn {
+    grid-area: n;
+    font-family: var(--font-gz);
+    font-size: 24px;
+    line-height: 1.25;
+    text-align: center !important;
+  }
+  .bazi .pr {
+    grid-area: rel;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .bazi .pcs {
+    grid-area: chars;
+    line-height: 1.6;
+  }
+  .bazi .phd {
+    grid-area: hid;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .bazi .phd.pnone .pcl {
+    color: var(--ink);
+  }
+  .bazi .pch {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    margin-right: 12px;
+    white-space: nowrap;
+  }
+  .bazi .pch .pz {
+    font-family: var(--font-gz);
+    font-size: 17px;
+  }
+  .bazi .pch small {
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  /* 大运时间轴：手机每步一行 details（今年那步默认展开，墨色线框）；桌面另一份，每步一行全写出 */
+  .bazi .tl,
+  .bazi .tld {
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .tld {
+    display: none;
+  }
+  .bazi .tl > li,
+  .bazi .tld > li {
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .tl > li.now {
+    margin: 4px -10px;
+    padding: 0 10px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+  }
+  .bazi .tl summary {
+    display: grid;
+    grid-template-columns: 76px 52px minmax(0, 1fr) 16px;
+    gap: 8px;
+    min-height: 56px;
+  }
+  .bazi .p0 {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    min-height: 52px;
+    color: var(--ink-2);
+  }
+  .bazi .p0 > span:last-child {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+  .bazi .pa {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .bazi .py {
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .bazi .tl .pz,
+  .bazi .tld .pz {
+    position: relative;
+    justify-self: start;
+    padding-bottom: 6px;
+    font-family: var(--font-gz);
+    font-size: 21px;
+    line-height: 1.3;
+  }
+  .bazi .now .pz::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 12px;
+    height: 2px;
+    margin-left: -6px;
+    background: var(--seal);
+  }
+  .bazi .pt {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .bazi .pnow {
+    margin-left: 8px;
+    color: var(--ink);
+  }
+  .bazi .pm::before {
+    content: '+';
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .bazi .tl details[open] .pm::before {
+    content: '−';
+  }
+  .bazi .tl details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 14px;
+  }
+  .bazi .plain .tl details p,
+  .bazi .plain .tld p {
+    font-size: var(--fs-s);
+    line-height: 1.85;
+  }
+
+  @media (min-width: 1024px) {
+    .bazi .plain {
+      gap: 32px;
+    }
+    .bazi .plain p {
+      font-size: var(--fs-m);
+    }
+    .bazi .pg {
+      font-size: 44px;
+    }
+    .bazi .pc {
+      font-size: var(--fs-m);
+    }
+    /* 桌面：真的表格；列宽写定，字体换上时各列不挪 */
+    .bazi .pwx table {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-bottom: 1px solid var(--rule);
+    }
+    .bazi .pwx thead {
+      position: static;
+      display: table-header-group;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip-path: none;
+      white-space: normal;
+    }
+    .bazi .pwx thead th {
+      padding: 0 0 8px;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.12em;
+      color: var(--ink-2);
+    }
+    /* 按右栏的比例：712 宽时是 52、52、156、余下、200（D31）；1024 宽右栏只有四百多，「八个字里」那列仍放得下 */
+    .bazi .pwx thead th:nth-child(1),
+    .bazi .pwx thead th:nth-child(2) {
+      width: 7%;
+    }
+    .bazi .pwx thead th:nth-child(3) {
+      width: 22%;
+    }
+    .bazi .pwx thead th:nth-child(5) {
+      width: 28%;
+    }
+    .bazi .pwx tbody {
+      display: table-row-group;
+      border-top: 0;
+    }
+    .bazi .pwx tbody tr {
+      display: table-row;
+      border-top: 1px solid var(--rule);
+      border-bottom: 0;
+    }
+    .bazi .pwx tbody th,
+    .bazi .pwx tbody td {
+      padding: 12px 8px 12px 0;
+    }
+    .bazi .pwx tbody th {
+      font-size: 18px;
+      line-height: 1.4;
+      color: var(--ink);
+      text-align: left;
+    }
+    .bazi .pn {
+      font-size: 22px;
+      line-height: 1.2;
+      text-align: left !important;
+    }
+    .bazi .pr {
+      font-size: var(--fs-s);
+      line-height: 1.7;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+    }
+    .bazi .pcs {
+      line-height: 1.7;
+    }
+    .bazi .phd {
+      padding-right: 0 !important;
+    }
+    .bazi .pcl {
+      display: none;
+    }
+    .bazi .tl {
+      display: none;
+    }
+    .bazi .tld {
+      display: block;
+    }
+    .bazi .tld > li {
+      display: grid;
+      grid-template-columns: 84px 56px 118px minmax(0, 1fr);
+      gap: 4px 8px;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .bazi .tld > li.now {
+      margin: 4px -13px;
+      padding: 10px 12px;
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+    }
+    .bazi .tld > li.p0 {
+      grid-template-columns: 96px minmax(0, 1fr);
+      min-height: 0;
+    }
+    .bazi .tld .pz {
+      font-size: 22px;
+    }
+    .bazi .prel {
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .bazi .plain .tld p {
+      grid-column: 2 / -1;
+      font-size: var(--fs-s);
+    }
+  }
+  /* 右栏够宽（1200 起约 650 以上）才照 D31：日主左 280 放大字与小字，右边几段；大运每行 96、64、150、余下 */
+  @media (min-width: 1200px) {
+    .bazi .pdm {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+    .bazi .tld > li {
+      grid-template-columns: 96px 64px 150px minmax(0, 1fr);
     }
   }
 </style>
