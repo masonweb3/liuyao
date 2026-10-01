@@ -325,7 +325,8 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
   }
   .lines :global(svg) {
     display: block;
-    width: 140px;
+    /* 爻旁还有体用标签：320 宽时六爻、标签、竖排卦名放不下，爻跟着视口收短，卦名不被挤出屏 */
+    width: min(140px, 36vw);
     height: 14px;
     fill: var(--ink);
   }
