@@ -880,37 +880,6 @@ const description = t(
       border-left: 1px solid var(--rule);
       align-self: stretch;
     }
-    .rows :global(.row) {
-      grid-template-columns: 140px minmax(0, 1fr) 150px 16px;
-      gap: 16px;
-    }
-    .rows :global(.l) {
-      display: contents;
-    }
-    .rows :global(.d) {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-    }
-    .rows :global(.s) {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .rows :global(.a) {
-      font-size: 15px;
-      letter-spacing: 0.06em;
-      color: var(--ink);
-    }
-    .rows :global(.b::before) {
-      content: none;
-    }
-    .rows :global(.full) {
-      display: inline;
-    }
-    .rows :global(.hits) {
-      justify-content: flex-start;
-    }
     .cards {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -957,6 +926,41 @@ const description = t(
     }
     .cards .arrow {
       display: none;
+    }
+  }
+  /* 结果一行四栏（D22）：右栏要有 540 宽才放得下。1024–1199 右栏只有 370–530，中间一栏会挤成一字一行，
+     这段宽度沿用手机的两行排法 */
+  @media (min-width: 1200px) {
+    .rows :global(.row) {
+      grid-template-columns: 140px minmax(0, 1fr) 150px 16px;
+      gap: 16px;
+    }
+    .rows :global(.l) {
+      display: contents;
+    }
+    .rows :global(.d) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .rows :global(.s) {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .rows :global(.a) {
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+    }
+    .rows :global(.b::before) {
+      content: none;
+    }
+    .rows :global(.full) {
+      display: inline;
+    }
+    .rows :global(.hits) {
+      justify-content: flex-start;
     }
   }
 </style>
