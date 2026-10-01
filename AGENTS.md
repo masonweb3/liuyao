@@ -1,6 +1,6 @@
 # AGENTS.md
 
-中国风传统术数工具站，品牌仍叫「六爻 / sixyao」。首页是六爻起卦：用户先写下所问，再摇六次铜钱成卦，程序排盘并断出吉凶，然后给出白话解读。黄历、八字、取名、风水等栏目按路径陆续上线。TypeSafe **Jev** 负责语义判断：把问题分类到用神、做安全拦截。面向海外华人，繁体以台湾用语为准，免费、无广告、不登录。
+中国风传统术数工具站，品牌仍叫「六爻 / sixyao」。首页是六爻起卦：用户先写下所问，再摇六次铜钱成卦，程序排盘并断出吉凶，然后给出白话解读。黄历、八字、梅花、取名、风水等栏目按路径陆续上线。TypeSafe **Jev** 负责语义判断：把问题分类到用神、做安全拦截。面向海外华人，繁体以台湾用语为准，免费、无广告、不登录。
 
 立项调研和各项决策的依据见 `docs/research.md`，路线图见 `docs/roadmap.md`；`docs/` 只在本地，不进 git。上线后的变化和决定记在 `CHANGELOG.md`。本文件与它们冲突时，以本文件为准。
 
@@ -75,12 +75,17 @@ src/
   lib/bazi.ts       八字排盘引擎（零 DOM，引 tyme4ts）：四柱、十神藏干、十二长生、纳音空亡、神煞、刑冲合会、胎元命宫身宫、起运大运流年；只在 Worker 里跑（见 §6「八字」）
   lib/bazi-time.ts  八字的时刻换算（零依赖、不 import 任何模块：/bazi/ 页面脚本也用它）：均时差、按 IANA 时区算出生那一刻的 UTC 偏移与夏令时
   lib/bazi-kb.ts    八字知识页的数据（构建时，引 tyme4ts 与 bazi.ts）：十天干、十二地支、十神表、三十组纳音、十二长生表、网址与小节名（见 §6「八字知识页」）
+  lib/meihua.ts     梅花易数引擎（零 DOM，引 tyme4ts）：时间起卦、数字起卦、体用与生克、构建时写进页面的农历表；只在 Worker 里跑（见 §6「梅花」）
+  lib/meihua-duan.ts 梅花的吉凶（零依赖）：只看本卦六爻，三层体用生克规则；梅花页的 Worker 和首页往卦列表（view.ts）共用
+  lib/meihua-page.ts 梅花页脚本的全部逻辑（零依赖，只有 import type）：照抄的往卦与判重、分流、回访、磬声（测试与原件逐条比），报数校验，此刻的时辰与农历
+  lib/meihua-reading.ts 梅花成卦屏与解读页的全部文字（卦象、依据、断语建议、卦爻辞白话、算式）；只在 Worker 里跑
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是纸面页底部的起卦块；
                     HuangliToday、HuangliDay、Jieqi、JieqiList 是今日黄历、逐日页、节气页、节气目录的正文，TermGrid 是二十四节气总表；
                     Zeri、ZeriMonth 是择日首页、事项月页的正文；Bazi 是八字排盘页的正文（表单、盘面、存盘、盘面上的词、八字知识）；
                     BaziKb 是八字知识页的正文（27 种页一个组件，简繁共用）；
+                    Meihua.astro 是梅花页（/meihua/）的全部，各屏在 Meihua*.astro（首屏与说明区、所问、提示页、择类、选起法与报数、成卦、解读），不和首页共用组件；
                     Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
                     Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
@@ -91,6 +96,7 @@ src/
   scripts/sound.ts  音效：Web Audio 现场合成
   scripts/huangli-worker.ts 今日页在时间窗外的回退：Web Worker 里用 tyme4ts 现算当天
   scripts/bazi-worker.ts /bazi/ 的排盘：Web Worker 里跑 bazi.ts（生辰只在这里算）
+  scripts/meihua.ts 梅花页的状态机（只 import meihua-page.ts，不用动态 import）；scripts/meihua-worker.ts 在 Worker 里起卦、备好解读
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
@@ -115,15 +121,16 @@ src/
   pages/jieqi/      二十四节气目录 /jieqi/ 与 24 个节气页 /jieqi/{无调全拼}/；繁体同构在 pages/zh-hant/huangli/、pages/zh-hant/jieqi/
   pages/zeri/       择日首页 /zeri/ 与事项月页 /zeri/{事项}/{YYYY-MM}/（预渲染）；繁体同构在 pages/zh-hant/zeri/
   pages/bazi/       八字排盘 /bazi/（预渲染标题区、表单与盘面上的词，盘面在浏览器里算）；[...kb].astro 是 27 个知识页（预渲染、零 JS）；繁体 pages/zh-hant/bazi/
+  pages/meihua/     梅花易数 /meihua/（首屏、说明区与整套起卦流程在一页；先只有简体）
   pages/api/judge.ts 服务端路由：调用 Jev
   pages/api/remind.ics.ts 服务端路由：iPhone、iPad 的到时提醒 .ics（只按网址里的两个日期和卦名现生成，不存不记）
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
   pages/robots.txt.ts  由 site 生成
   styles/tokens.css 颜色、字体、间距、动效时长
-  styles/fonts.css  首屏字形子集的 @font-face（生成文件）
+  styles/fonts.css  首屏字形子集的 @font-face（生成文件）；meihua-fonts.css 是梅花页首屏的（只由梅花页引入）
   styles/webfonts.css fontsource 全部切片，异步加载；webfonts-hant.css 是繁体页的（Noto Serif TC）
   styles/paper-fonts.css 卦页、目录页的正文补字与语言切换用字的 @font-face（生成文件，Paper.astro 引入）
-  fonts/            首屏字形子集；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
+  fonts/            首屏字形子集（home-*，梅花页另有 meihua-*）；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
                     芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；fonts/bazi/、bazi-hant/ 是八字排盘页与知识页共用的；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
                     lang-400/600.woff2 是语言切换用字（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
@@ -254,7 +261,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 解读页上本卦、变卦的卦名链到卦页。
   - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
 - **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
-  - 现在四栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17；排盘页与知识页都算这一栏）。四项在 390、320 宽都一行放得下（末项右缘 268 px）。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
+  - 现在五栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17；排盘页与知识页都算这一栏）、梅花（`/meihua/`，M21-21；先只有简体，繁体页上也链简体页）。五项在 390 宽一行放得下；320 宽从第五项起要横滑（滚动宽 336），照下面「栏目多了」的零 JS 做法。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
   - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时传 `at`（本页属于哪一栏）、`home`（是不是这一栏的首页）、`group`（标题字体子集的目录），数据来源与许可写进 `slot="foot"`。梅花上线后第一栏仍叫「起卦」（M16-9）。
   - **位置**：手机和 768–1023 在页头下面单独一行，高 44，首项的字与品牌左缘对齐；≥1024 并进页头那一行，紧跟品牌（品牌到首项的字 48px）。首页只在首屏：写在 `Home.astro` 的首屏 section 里，跟着这一屏显隐，写下所问以后各屏都没有导航，仪式中不打断这一卦。纸面页头是品牌、栏目、工具区（往卦、简 | 繁），手机两行共 88 高；桌面不再有「起卦」线框按钮（M16-1），卦页左栏和页底的起卦块仍直达写下所问。页头只有这一个 nav 地标（`aria-label` 栏目／欄目），首页的往卦、音效和纸面页的工具区都是 div。DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序；手机上栏目行在工具区下面，Tab 先到栏目再回上行的往卦。
   - **样式**：正文宋体 400，14px，字距 0.24em，项与项之间只靠间距（手机每项左右 10px、桌面 14px，点击区高 44）。当前项主色加一道 12×2 短线（暗场金、纸面印章红），不加粗（M16-7：首页字形子集只有 400）；其余次要色，悬停变主色。首页、目录页这种栏目首页 `aria-current="page"`，栏目里的其他页（卦页）`"true"`，点它回栏目首页；当前项另带 `aria-label`「起卦，当前栏目」（繁体「六十四卦，目前欄目」），不用视觉隐藏的字（首页上看不见的字也会触发字体下载）。
@@ -304,6 +311,14 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **字体**：知识页与 `/bazi/` 共用一份标题字体子集 `fonts/bazi/index`（繁体 `bazi-hant/index`，M19b-3）：干支、「十神」「纳音」「十二长生」「十天干」「十二地支」。纳音名、十神名、步名一律宋体，不进小薇。
     - 简体的干支不用小薇：小薇的「己」画得和「巳」一样，按缺字处理（`fontOf`）。十神 10 格与 10×10 表、十二长生 12 格与 10×12 表头、六十甲子格、纳音表、目录、藏干格、`/bazi/` 的盘面与「八字知识」格子几乎都含「己」，照「整块换宋体」统一用宋体，表里不混排：两个组件各一个 `--font-gz`，简体指 `--font-body`，`:lang(zh-Hant)` 指 `--font-display`（芫荽分得清，繁体照旧）。只改样式，`/bazi/` 的脚本不动。
     - 天干、地支页的单字 h1 在构建时过 `fontOf`：只有己页用宋体。简体子集里的干支只供这些 h1，每字各算一块，不收「己」（`glyphs.test.ts` 核对）。正文补字算进知识页释义，`glyphs.test.ts` 也核对 `BaziKb.astro` 写在页面上的字。
+- **梅花易数（M21，设计稿第十四行 35–42、D29、D30，待定 M21-1 至 M21-23 见 CHANGELOG 2026.10.02）：** 栏目「梅花」的首页 `/meihua/`，占卜类：照六爻要所问、走 `/api/judge`、一事一占，结果页写「AI 辅助判断 · 仅供传统文化参考与娱乐」。先只有简体（M21-20）。
+  - **流程**（一页、一屏一事，同首页）：暗场首屏（栏目行在里面）→ 写下所问（落笔调 Jev 一次）→ 分流（自伤、赌博、紧急、不诚，次序与文案同六爻；Jev 没给类别时自选类别，梅花版不写用神、婚恋不问性别）→ 选起法 →［报数］→ 成卦 → 展卷 → 解读。没有静心、没有摇卦（M21-15）。首屏往下是纸面说明区（M21-13，给搜索看）。屏幕跳转表在 `meihua-page.ts` 的 `NEXT`：成卦之后只有解读。
+  - **为什么是独立页加 Worker**（M21-7）：首页入口包按字节不能变。起卦要 tyme4ts，解读要全部卦爻辞、白话与断语模板，页面脚本一 import（或动态 `import()`）就会和首页拆出共用分包。所以 `scripts/meihua.ts` 只 import 零依赖、只给它用的 `meihua-page.ts`（类型可 `import type`），引擎与文字在 `scripts/meihua-worker.ts`（单独打包，写所问时载入）。要用的那几行（往卦存取与判重、`afterJudge`、回访、磬声）照抄在 `meihua-page.ts`，`meihua-page.test.ts` 与 `history.ts`、`flow.ts`、`revisit.ts`、`sound.ts` 逐条比。梅花页的组件也不和首页共用（共用的组件样式会被拆成两页共用的文件，首页多一个请求）；`Columns.astro` 本来就在全站共用的样式里，可以用。
+  - **往卦与判重**（M21-6、M21-9、M21-11）：成卦那一刻（成卦动画之前）写进同一个 `liuyao:history`，记录与六爻同形，多一个 `meihua` 字段：`{ by: "time" }` 或 `{ by: "num", nums: [3, 5] }`；`params` 是引擎给的本卦（动爻 9 或 6），过得了 `history.ts` 的 `valid()`，所以首屏的 `history.ts` 一个字节不用改，它把 `meihua` 字段原样带着读写，判重也就共用了（梅花问过的事六爻也拦，反之亦然）。婚恋记录写占位的 `gender: "男"`，梅花不读它。往卦列表混排：`view.ts`（按需包）见 `meihua` 字段就在日期后标「梅花」、按梅花规则盖印、点开去 `/meihua/?at=<起卦时刻>`，梅花页从本机记录重排（排出的本卦和记录对不上就不认）。网址只带起卦时刻；刷新回首屏，卦不进网址。回访卡照六爻（从往卦点开、到了日子才出，写进同一条记录的 `review`）；到时提醒、分享卡第一版不做（M21-22、M21-19）。
+  - **起法**（引擎见 `docs/review-m21/engine.md`）：时间起卦是年支数（农历年）＋农历月数（闰月按本月）＋日数为上卦，再加时支数为下卦、也定动爻；数字起卦两个数（先上后下，动爻＝两数＋时）或一个数（上卦＝此数，下卦与动爻＝此数＋时）。都按北京时间（M21-12），晚子时不换日（M21-3），不用随机数：同一时辰、同一组数起出同一卦。报数只收 1–9999 的正整数，`type="text" inputmode="numeric"`，全角数字与前导零照收（M21-17），按「起卦」时校验；报数屏只写要加的时辰数，不预示卦名。访客那里的日子或时辰与北京不同时，选起法下面加一句（照黄历 M17-11）。
+  - **吉凶**（M21-5、M21-18，`meihua-duan.ts`，完全由代码判，Jev 不参与）：用卦定基调（生体、比和、体克用为吉，体生用为平，克体为凶）；变卦定结局（用吉变凶、用凶变吉为平，用平随变卦）；用卦、互卦下上、变卦四处克体两处以上又无生体为凶。原书 10 个有结局的卦例对上 6 例；384 种起法里吉 222、平 77、凶 85。不看卦气旺衰。印章、断语与建议同六爻（`templates.ts` 按类别 × 吉平凶），类别只换说法；解读页写明「按体用生克断」，同一时辰（同一组数）起出同一卦、同一个印，这是起法本身的性质。依据列体卦、用卦、互卦、变卦对体卦的生克与三句白话。乾、坤取变卦之互（M21-10），解读页与成卦屏加小注。
+  - **字体**：卦名、卦辞、爻辞凡用小薇都过 `fontOf`（在 Worker 里算好传回，夬、姤整块宋体）；体用、算式、互卦小注是宋体。首屏另一组字形子集 `meihua-display`、`meihua-body`（`tools/subset-fonts.py` 的 `MEIHUA`，预加载），「此刻」的农历由构建时写进页面的农历表算（`lunarTable`，覆盖黄历时间窗前后各一年，表外只写时辰），不等 Worker；`meihua-page.test.ts` 逐日核对它和引擎相同。首屏下面的说明区等首屏入场动画播完（或一滚动）才排版（`content-visibility`），不然它的正文一进页就拉下三四十个 fontsource 切片，首屏的 LCP 晚好几秒。
+  - **音效**：成卦磬声照用（M21-23），合成代码照抄在 `meihua-page.ts`，开关与六爻共用（`liuyao:sound`）；没有铜钱声。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
