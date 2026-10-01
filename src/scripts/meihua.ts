@@ -588,6 +588,11 @@ async function openPast(at: string) {
 	}
 }
 
+// 首屏下面的说明区等首屏入场动画播完（约 2 秒）或一滚动才排版、下字体，不和首屏的 LCP 抢网络（见 MeihuaHome.astro 的样式）
+const later = () => $("#how").removeAttribute("data-later");
+addEventListener("load", () => void settle(screen("home")).then(later));
+addEventListener("scroll", later, { once: true, passive: true });
+
 const entry = new URLSearchParams(location.search);
 const pastAt = entry.get("at");
 if (pastAt !== null) void openPast(pastAt);
