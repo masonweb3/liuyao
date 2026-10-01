@@ -128,6 +128,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
     text-decoration: none;
   }
   .acts {
+    /* 栏目行横跨两列、把 auto 列撑宽时，工具区仍贴右（设计稿 42、35） */
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 12px;

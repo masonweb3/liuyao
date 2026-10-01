@@ -177,6 +177,8 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
   }
   /* 手机上间距 12px：语言切换每个字左右各有 15px 的点击区，看上去和别的项仍是二十多像素（设计稿 14）。 */
   .tools {
+    /* 栏目行横跨两列、把 auto 列撑宽时，工具区仍贴右（设计稿 42） */
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 12px;
