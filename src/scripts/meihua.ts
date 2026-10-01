@@ -36,13 +36,12 @@ import {
 	showCard,
 	soundOn,
 	unlock,
+	untilNext,
 } from "../lib/meihua-page.js";
 
 const MAX_LENGTH = 200;
 /** judge.ts gives Jev 3s; leave room for the round trip. */
 const JUDGE_TIMEOUT_MS = 5000;
-/** 「此刻」多久刷新一次：时辰会变，卡片上写的要和按下去那一刻对得上。 */
-const TICK_MS = 30_000;
 
 const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [...root.querySelectorAll<T>(sel)];
@@ -150,9 +149,10 @@ function request(req?: Request): Promise<MeihuaView | undefined> {
 
 const nowLine = $("[data-now-line]");
 
-/** 首屏页脚、选起法卡片、报数提示里的「此刻」，与海外访客的那一句。 */
-function tick() {
-	const now = new Date();
+let ticker: ReturnType<typeof setTimeout> | undefined;
+
+/** 首屏页脚、选起法卡片、报数提示里的「此刻」，与海外访客的那一句；在下一个时辰交界（untilNext）再写一次。 */
+function tick(now = new Date()) {
 	nowLine.textContent = `此刻　${nowText(TABLE, now, "　")}（北京时间）`;
 	for (const el of $$("[data-now-card]")) el.textContent = nowText(TABLE, now);
 	const h = hourOf(now);
@@ -162,9 +162,10 @@ function tick() {
 	const local = $("[data-local]");
 	local.hidden = !note;
 	if (note) fill(local, note);
+	clearTimeout(ticker);
+	ticker = setTimeout(() => tick(), untilNext(now, note !== null));
 }
 tick();
-setInterval(tick, TICK_MS);
 
 /** Fills the {name} holes that Slots.astro left. */
 function fill(el: ParentNode, values: Record<string, string>) {
@@ -298,7 +299,10 @@ async function cast(by: By) {
 	err.textContent = "";
 	const busy = [...$$<HTMLButtonElement>("[data-cast-time]"), ...$$<HTMLButtonElement>("[data-num-form] [type=submit]")];
 	for (const b of busy) b.disabled = true;
-	const at = new Date().toISOString();
+	// 卡片与起卦用同一个时刻：计时器晚了（休眠、后台标签页）也不会卡片写申时、起出酉时卦
+	const now = new Date();
+	tick(now);
+	const at = now.toISOString();
 	try {
 		const view = await request({ by, at, topic: session.topic, lateZi: "day-stays" });
 		if (!view) throw new Error("no view");

@@ -247,6 +247,26 @@ describe("此刻：时辰与农历（北京时间）", () => {
 			process.env.TZ = "Asia/Tokyo";
 			expect(page.localNote(new Date("2026-10-01T11:10:00+08:00"))).toBeNull();
 		});
+
+		// 验收建议 1：16:59:50 进选起法、17:00:10 起卦，卡片不能还写申时。刷新排在交界那一刻，不轮询
+		it("「此刻」在下一个时辰交界刷新：北京整点；当地整点（半小时时区）；当地那一句显示时每分钟", () => {
+			const at = (s: string) => new Date(`2026-10-01T${s}+08:00`);
+			process.env.TZ = "Asia/Shanghai";
+			const before = at("16:59:50");
+			const next = new Date(before.getTime() + page.untilNext(before, false));
+			expect(next.toISOString()).toBe(at("17:00:00").toISOString());
+			expect(page.hourOf(next).name).not.toBe(page.hourOf(before).name);
+			expect(page.hourOf(new Date(next.getTime() - 1)).name).toBe(page.hourOf(before).name);
+			// 子夜换日也在整点；正在整点上就排到下一个整点，不空转
+			expect(page.untilNext(at("23:59:59.500"), false)).toBe(500);
+			expect(page.untilNext(at("17:00:00"), false)).toBe(3_600_000);
+			// 阿德莱德（UTC+9:30）：当地 17:00 是北京 15:30，当地时辰在这里变
+			process.env.TZ = "Australia/Adelaide";
+			expect(page.untilNext(at("15:20:00"), false)).toBe(600_000);
+			// 那一句写到分钟：每分钟
+			process.env.TZ = "America/Vancouver";
+			expect(page.untilNext(at("06:08:20"), true)).toBe(40_000);
+		});
 	});
 });
 

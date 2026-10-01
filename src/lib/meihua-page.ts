@@ -222,6 +222,18 @@ export function nowText(table: string, d: Date, gap = " "): string {
 	return l ? `${l.year}年${gap}${monthName(l.month, l.leap)}${dayName(l.day)}${gap}${h}` : h;
 }
 
+/**
+ * 「此刻」下一次要变是在几毫秒后：北京的时辰与子夜换日都在整点（UTC+8 是整时区），访客那里的时辰与日子在当地整点
+ * （有半小时、三刻钟的时区）；访客那一句写到分钟（minutes），显示时每分钟。按点刷新，不轮询：卡片在时辰交界那一刻就换。
+ */
+export function untilNext(now: Date, minutes: boolean): number {
+	const t = now.getTime();
+	if (minutes) return 60_000 - (t % 60_000);
+	const local = new Date(t);
+	local.setMinutes(60, 0, 0);
+	return Math.min(3_600_000 - (t % 3_600_000), local.getTime() - t);
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
