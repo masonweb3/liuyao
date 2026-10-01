@@ -115,7 +115,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
               <label class="label" for="bz-place">{t('出生地（可不选）', '出生地（可不選）')}</label>
               <input id="bz-place" type="text" list="bz-cities" autocomplete="off" aria-describedby="bz-place-hint" placeholder={t('城市名，如 成都、台北、温哥华', '城市名，如 成都、臺北、溫哥華')} />
               <datalist id="bz-cities"></datalist>
-              <p class="hint" id="bz-place-hint">{t('不选就按北京时间（UTC+8）。海外出生请选城市（名单里没有的选邻近的），时间填当地的钟表时间；当年实行夏令时的也会算进去。', '不選就按臺灣時間（UTC+8）。海外出生請選城市（名單裡沒有的選鄰近的），時間填當地的鐘錶時間；當年實行夏令時的也會算進去。')}</p>
+              <p class="hint" id="bz-place-hint">{t('不选就按北京时间（UTC+8）。海外出生请选城市（名单里没有的选邻近的），时间填当地的钟表时间；大陆 1986–1991 年夏天、台湾或香港实行夏令时的那些年夏天出生的，也请选城市。', '不選就按臺灣時間（UTC+8）。海外出生請選城市（名單裡沒有的選鄰近的），時間填當地的鐘錶時間；臺灣或香港實行夏令時的那些年夏天、大陸 1986–1991 年夏天出生的，也請選城市。')}</p>
             </div>
             <details class="opts">
               <summary><span class="ot">{t('选项', '選項')}</span><span class="os"><span data-f="opts">{t('晚子时算次日 · 起运到小时 · 真太阳时关', '晚子時算次日 · 起運到小時 · 真太陽時關')}</span> · <span class="open">{t('展开', '展開')}</span><span class="close">收起</span></span></summary>
@@ -737,7 +737,8 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
       const at = `${+c.liChun.slice(5, 7)}月${+c.liChun.slice(8, 10)}日 ${c.liChun.slice(11, 16)}`;
       const lunarText = tw(c.lunar);
       const z = tw(c.shengXiao);
-      const pre = r.city && r.city[3] !== 'Asia/Shanghai' ? t('北京时间', 'UTC+8 ') : '';
+      // 不在 UTC+8 出生的，交节时刻注明是哪个时区
+      const pre = c.beijing ? t('北京时间', '臺灣時間 ') : '';
       parts.push(
         h(
           'p',
@@ -755,8 +756,8 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
           'p',
           { class: 'notice' },
           t(
-            `出生那天 ${c.jie.time.slice(11, 16)}（北京时间）交${c.jie.name}，年柱、月柱与大运要看出生的时刻；时辰不详，这里按中午 12 点排。`,
-            `出生那天 ${c.jie.time.slice(11, 16)}（UTC+8）交${c.jie.name}，年柱、月柱與大運要看出生的時刻；時辰不詳，這裡按中午 12 點排。`,
+            `出生那天北京时间 ${c.jie.time.slice(11, 16)} 交${c.jie.name}，年柱、月柱与大运要看出生的时刻；时辰不详，这里按中午 12 点排。`,
+            `出生那天臺灣時間（UTC+8）${c.jie.time.slice(11, 16)} 交${c.jie.name}，年柱、月柱與大運要看出生的時刻；時辰不詳，這裡按中午 12 點排。`,
           ),
         ),
       );
@@ -919,7 +920,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     else
       main = t(
         `出生后 ${span(q)}起运，${ymdOf(q.at)} ${q.at.slice(11, 16)} 交运（北京时间）。`,
-        `出生後 ${span(q)}起運，${ymdOf(q.at)} ${q.at.slice(11, 16)} 交運（UTC+8）。`,
+        `出生後 ${span(q)}起運，臺灣時間（UTC+8）${ymdOf(q.at)} ${q.at.slice(11, 16)} 交運。`,
       );
     const yang = '甲丙戊庚壬'.includes(c.pillars[0]!.gan);
     return h(
