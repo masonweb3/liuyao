@@ -54,8 +54,8 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
 const MORE: Record<string, [string, string]> = {
   十神: [t('十神对照表', '十神對照表'), '/bazi/shishen/'],
   藏干: ['十二地支', '/bazi/dizhi/'],
-  '星运 · 自坐': [t('十二长生表', '十二長生表'), '/bazi/changsheng/'],
-  '纳音': [t('三十组纳音', '三十組納音'), '/bazi/nayin/'],
+  '星\u8fd0 · 自坐': [t('十二长生表', '十二長生表'), '/bazi/changsheng/'],
+  '\u7eb3\u97f3': [t('三十组纳音', '三十組納音'), '/bazi/nayin/'],
 };
 const more = (k: number) => MORE[bazi.terms[k]!.term];
 ---

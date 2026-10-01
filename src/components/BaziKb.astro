@@ -188,7 +188,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
               <dt>{t('节月', '節月')}</dt>
               <dd>
                 {t(`${zhi.month.from.name}交节起，到${zhi.month.to.name}交节为止`, `${tw(zhi.month.from.name)}交節起，到${tw(zhi.month.to.name)}交節為止`)}
-                <span class="sub">{t(`这一回（北京时间）：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止`, `這一回（臺灣時間，UTC+8）：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止`)}</span>
+                <span class="sub">{t(`这一回：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止（北京时间）`, `這一回：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止，臺灣時間（UTC+8）`)}</span>
               </dd>
             </div>
           </dl>
