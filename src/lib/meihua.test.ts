@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { guaPath } from "../data/gua-slugs.js";
 import { related } from "./gua.js";
+import { ganzhiFromDate } from "./liuyao/calendar.js";
 import { cast } from "./liuyao/najia.js";
 import { byNumbers, byTime, fromSums, type Meihua, moment } from "./meihua.js";
 
@@ -160,6 +161,15 @@ describe("时刻", () => {
 		// 春节当天换年
 		expect(moment(at("12:00", "2025-01-29")).year).toBe("巳");
 		expect(moment(at("12:00", "2025-01-28")).year).toBe("辰");
+	});
+
+	it("交节不换卦：立春 22:10 前后，六爻的年柱换了，梅花的年月日时不变（AGENTS.md §4.4 的两刻）", () => {
+		const before = at("22:00", "2025-02-03");
+		const after = at("22:20", "2025-02-03");
+		expect([ganzhiFromDate(before).year, ganzhiFromDate(after).year]).toEqual(["甲辰", "乙巳"]);
+		expect(moment(before)).toEqual({ year: "巳", month: 1, leap: false, day: 6, hour: "亥" });
+		expect(moment(after)).toEqual(moment(before));
+		expect(byTime(after)).toEqual(byTime(before));
 	});
 
 	it("闰月按本月数：2025 年闰六月", () => {
