@@ -131,6 +131,12 @@ describe("单一来源：构建时与浏览器逐日相同（2026-01-01 至 2027
 	});
 });
 
+describe("事项月页", () => {
+	it("窗内每个事项每个月都有吉日（最少 4 天；没有吉日的月份要另做版式）", () => {
+		for (const m of months()) for (const slug of SLUGS) expect(goodDays(...ym(m), slug).length, `${m} ${slug}`).toBeGreaterThan(0);
+	});
+});
+
 describe("吉日与逐日页一致", () => {
 	it("窗内每一天：逐日页上宜里有事项词、忌里没有、也没写「诸事不宜」，就是吉日；反之不是", () => {
 		const good = new Map(SLUGS.map((slug) => [slug, new Map(months().flatMap((m) => goodDays(...ym(m), slug).map((d) => [d.date, d.hits])))]));

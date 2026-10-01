@@ -27,7 +27,8 @@ const NONE = "诸事不宜";
  * - 一个词在宜、另一个在忌（宜移徙忌入宅、宜修造忌动土）不算：搬家、装修是一件事，忌里那一半做不了。
  * - 「诸事不宜」在宜在忌都不算：逐日页上这一天写着「诸事不宜」，列成吉日就自相矛盾（窗内只影响三天，见 zeri.test.ts）。
  * - 「馀事勿取」不影响：它说的是宜里没列的事。
- * 岁破、四离、四绝、杨公忌等不另加：宜忌已由神煞定好（tyme4ts 的表按月建 × 日干支），和逐日页同一份宜忌。
+ * 只看逐日页的同一份宜忌，不另加岁破、四离、四绝、杨公忌：tyme4ts 的宜忌表按月建 × 日干支查，不含这几项；
+ * 黄历网的吉日列表也照列（2026-11、2026-12、2027-05 对照，见 docs/review-m18/compare.md）。另加就是另一个流派。
  */
 export function hits(slug: Slug, yi: readonly string[], ji: readonly string[]): string[] {
 	const words: readonly string[] = ITEMS.find((i) => i.slug === slug)!.words;
