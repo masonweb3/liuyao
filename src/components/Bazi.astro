@@ -209,9 +209,11 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
   const hant = root.dataset.hant === '1';
   const t = (hans: string, tw: string) => (hant ? tw : hans);
   const NAMES: Record<string, string> = JSON.parse(root.dataset.names ?? '{}');
-  const CHARS: Record<string, string> = { 冲: '沖', 会: '會', 闰: '閏', 腊: '臘' };
-  // tyme4ts 给的名字都是简体：繁体页查名称表，刑冲合会、农历里的个别字逐字换
-  const tw = (s: string) => (hant ? (NAMES[s] ?? s.replace(/[冲会闰腊]/g, (c) => CHARS[c]!)) : s);
+  // tyme4ts 给的名字都是简体：繁体页查名称表；刑冲合会、农历里只有冲、会、闰、腊四个字要换（沖、會、閏、臘）。
+  // 写成转义：glyphs.test.ts 按组件里的字核对字形，代码里的字也算在页面上
+  const SIMP = '\u51b2\u4f1a\u95f0\u814a';
+  const TRAD = '\u6c96\u6703\u958f\u81d8';
+  const tw = (s: string) => (hant ? (NAMES[s] ?? [...s].map((c) => TRAD[SIMP.indexOf(c)] ?? c).join('')) : s);
   const $ = <T extends HTMLElement = HTMLElement>(k: string) => root.querySelector<T>(`[data-f="${k}"]`)!;
   const byId = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -439,16 +441,16 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     $('opts').textContent = optsText();
   }
 
-  const QIYUN: Record<string, [string, string]> = {
-    sect2: ['起运到小时', '起運到小時'],
-    default: ['起运到分钟', '起運到分鐘'],
-    china95: ['起运只到天', '起運只到天'],
-    sect1: ['起运只数日时', '起運只數日時'],
+  const QIYUN: Record<string, string> = {
+    sect2: t('起运到小时', '起運到小時'),
+    default: t('起运到分钟', '起運到分鐘'),
+    china95: t('起运只到天', '起運只到天'),
+    sect1: t('起运只数日时', '起運只數日時'),
   };
   const optsText = () =>
     [
       radio('bz-latezi') === 'day-stays' ? t('晚子时算当天', '晚子時算當天') : t('晚子时算次日', '晚子時算次日'),
-      QIYUN[radio('bz-qiyun') ?? 'sect2']![hant ? 1 : 0],
+      QIYUN[radio('bz-qiyun') ?? 'sect2'],
       zty.checked ? t('真太阳时开', '真太陽時開') : t('真太阳时关', '真太陽時關'),
     ].join(' · ');
 

@@ -22,6 +22,8 @@ import {
 	SolarTerm,
 	Sound,
 	Taboo,
+	TenStar,
+	Terrain,
 	TwelveStar,
 	Week,
 	Zodiac,
@@ -44,6 +46,13 @@ import yaoBaihua from "./yao-baihua.json" with { type: "json" };
 import { ITEMS } from "../lib/zeri-rule.js";
 import zeriHant from "./zeri-hant.json" with { type: "json" };
 import zeri from "./zeri.json" with { type: "json" };
+import { readFileSync } from "node:fs";
+import { shenSha } from "../lib/bazi.js";
+import { localOffset } from "../lib/bazi-time.js";
+import baziHant from "./bazi-hant.json" with { type: "json" };
+import baziNamesHant from "./bazi-names-hant.json" with { type: "json" };
+import bazi from "./bazi.json" with { type: "json" };
+import cities from "./cities.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -312,8 +321,70 @@ describe("择日的事项说明（M18）", () => {
 	});
 });
 
+describe("八字（M19a）", () => {
+	type Terms = { intro: string; terms: { term: string; text: string }[] };
+	const [hans, hant] = [bazi, baziHant] as Terms[];
+	// 页面上的文字：组件里写定的界面文字与脚本写进盘面的字，注释不算
+	const page = readFileSync(new URL("../components/Bazi.astro", import.meta.url), "utf8").replace(
+		/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm,
+		"",
+	);
+
+	it("盘面上的词：导语加 14 条，简繁逐条对应，每条是完整的话", () => {
+		for (const d of [hans!, hant!]) {
+			expect(Object.keys(d)).toEqual(["intro", "terms"]);
+			expect(d.terms).toHaveLength(14);
+			for (const x of d.terms) expect(Object.keys(x)).toEqual(["term", "text"]);
+			for (const s of [d.intro, ...d.terms.map((x) => x.text)]) expect(s).toMatch(/^[^\s].*。$/);
+		}
+	});
+
+	it("只排盘面，不下断语（§1.5）：词语说明和页面文字里没有寿元、疾病、灾厄、牢狱、克夫克妻、婚变、吉凶", () => {
+		for (const s of [...strings(bazi), ...strings(baziHant), page])
+			expect(s).not.toMatch(/寿元|壽元|疾病|灾厄|災厄|牢狱|牢獄|克夫|剋夫|克妻|剋妻|婚变|婚變|凶|兇|改运|改運/);
+	});
+
+	it("繁体：台湾用语（生克义用「剋」、注解义用「註」，臺灣時間），没有 s2twp 的常见误转", () => {
+		for (const s of strings(baziHant)) expect(s).not.toMatch(/[兇矇佔鹹衝]|北京|默認/);
+		expect(strings(baziHant).join("")).toMatch(/剋/);
+	});
+
+	it("繁体名称表：十神、十二长生、十三种神煞全有，逐字对应，干支字不变", () => {
+		const names = baziNamesHant as Record<string, string>;
+		const SHA = ["天乙贵人", "太极贵人", "文昌贵人", "天德贵人", "月德贵人", "禄神", "羊刃", "金舆", "驿马", "桃花", "华盖", "将星", "魁罡"];
+		expect(Object.keys(names).sort()).toEqual([...TenStar.NAMES, ...Terrain.NAMES, ...SHA].sort());
+		for (const [n, t] of Object.entries(names)) expect([...t].length, n).toBe([...n].length);
+		// 引擎能出的神煞正好是这十三种：随便排几盘，名字都在表里
+		const seen = new Set(["甲子 丙寅 戊辰 庚午", "庚辰 戊子 壬辰 丙午", "癸亥 乙丑 戊辰 丁巳"].flatMap((g) => g.split(" ").flatMap((_, k, gz) => shenSha(gz, k))));
+		for (const n of seen) expect(SHA).toContain(n);
+	});
+
+	it("出生地名单：显示的写法不重复，时区浏览器认得，大陆一律北京时间，经度与时区大致相符", () => {
+		const data = cities as { regions: [string, string][]; zones: string[]; cities: [string, string, number, number, number][] };
+		expect(data.cities.length).toBeGreaterThan(400);
+		for (const k of [0, 1]) {
+			const labels = data.cities.map((c) => (c[k] === data.regions[c[2]]![k] ? c[k] : `${c[k]} · ${data.regions[c[2]]![k]}`));
+			expect(new Set(labels).size, k ? "繁体" : "简体").toBe(labels.length);
+		}
+		for (const tz of data.zones) expect(() => new Intl.DateTimeFormat("en", { timeZone: tz }), tz).not.toThrow();
+		const province = new Set(data.regions.slice(0, data.regions.findIndex((r) => r[0] === "台湾")).map((r) => r[0]));
+		expect(province.size).toBe(31);
+		for (const [name, , r, lon, z] of data.cities) {
+			const tz = data.zones[z]!;
+			if (province.has(data.regions[r]![0])) expect(tz, name).toBe("Asia/Shanghai");
+			// 标准时比经度算出的地方时差不出 3.5 小时（新疆按北京时间差得最多）：抓经度或时区填错
+			const { offset, dst } = localOffset(tz, 2024, 1, 15, 12, 0);
+			expect(Math.abs((offset - dst) / 60 - lon / 15), name).toBeLessThan(3.5);
+		}
+		// 台湾的城市名、所属照台湾写法
+		expect(data.cities.filter((c) => data.regions[c[2]]![0] === "台湾").map((c) => c[1])).toEqual(expect.arrayContaining(["臺北", "臺中", "臺南", "臺東"]));
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
+		...strings(bazi),
+		...strings(baziHant),
 		...strings(zeri),
 		...strings(zeriHant),
 		...huangliTexts(HL),
