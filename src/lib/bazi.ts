@@ -164,9 +164,9 @@ export interface Bazi {
 	guanXi: GuanXi[];
 	/**
 	 * 起运：出生后几年几月几天几小时（算法不到的单位为 0），交运时刻（北京时间），大运顺排还是逆排。
-	 * 时辰不详时按当天中午 12 点估，range 是当天 0:00 与 23:59 出生的起运
+	 * 时辰不详时按当天中午 12 点估，range 是当天 0:00 与 23:59 出生的起运（带交运那年，白话写「起止年份可能差一年」用）
 	 */
-	qiYun: Span & { hours: number; at: string; forward: boolean; range?: [Span, Span] };
+	qiYun: Span & { hours: number; at: string; forward: boolean; range?: [Span & { startYear: number }, Span & { startYear: number }] };
 	/** 时辰不详、出生那天正好交节（年柱、月柱要看出生时刻）时：那个节与交节时刻（北京时间）。盘按中午 12 点排 */
 	jie?: { name: string; time: string };
 	/** 十步大运，从起运那步开始 */
@@ -455,7 +455,12 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 			hours: limit.getHourCount(),
 			at: fmt(limit.getEndTime()),
 			forward: limit.isForward(),
-			...(range && { range: [span(range[0]), span(range[1])] as [Span, Span] }),
+			...(range && {
+				range: range.map((l) => ({ ...span(l), startYear: l.getStartDecadeFortune().getStartSixtyCycleYear().getYear() })) as [
+					Span & { startYear: number },
+					Span & { startYear: number },
+				],
+			}),
 		},
 		...(jie && { jie }),
 		daYun,
