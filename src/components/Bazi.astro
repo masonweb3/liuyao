@@ -1,0 +1,2056 @@
+---
+// 八字排盘（M19a，设计稿 27、28、D24、D25）：栏目「八字」的首页 /bazi/，繁体 /zh-hant/bazi/。
+// 预渲染标题区、表单与「盘面上的词」；盘面在浏览器里算（Web Worker 里跑 tyme4ts，见 scripts/bazi-worker.ts），
+// 生辰、性别、出生地不上传、不进网址、不进日志（AGENTS.md §1.5）：表单没有提交按钮，脚本没载入时按「排盘」什么也不发生；
+// 盘面不写进 query、hash，没有分享链接。存盘只在用户点「存到这台设备」时写进 localStorage（M19-8、M19-14）。
+// 页面脚本只 import 零依赖的 bazi-time.ts，不 import tyme4ts、不用动态 import()：免得打包拆出与首页共用的分包。
+import { LunarYear, Sound, Zodiac } from 'tyme4ts';
+import namesHant from '../data/bazi-names-hant.json';
+import baziHant from '../data/bazi-hant.json';
+import bazi from '../data/bazi.json';
+import cities from '../data/cities.json?url';
+import huangliHant from '../data/huangli-hant.json';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+
+interface Props {
+  hant?: boolean;
+}
+
+const { hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const text = hant ? baziHant : bazi;
+
+// 年份从北京时间的今年往前列到 1901（M19-7）。多列一年，脚本按访问那天删去还没到的年份，免得跨年后部署前选不到今年。
+const thisYear = new Date(Date.now() + 288e5).getUTCFullYear();
+const years = Array.from({ length: thisYear + 2 - 1901 }, (_, i) => thisYear + 1 - i);
+// 农历每一年：闰几月、各月大小（1 是 30 天）、正月初一是公历那年的第几天（0 起）。脚本据此列月份与日子，
+// 并把农历换成公历日期去查出生地的时差；排盘本身在 Worker 里用 tyme4ts 换算。下标是年份减 1901。
+const lunar = years
+  .toReversed()
+  .map((y) => {
+    const ly = LunarYear.fromYear(y);
+    const first = ly.getMonths()[0]!.getFirstJulianDay().getSolarDay();
+    const day = Math.round((Date.UTC(y, first.getMonth() - 1, first.getDay()) - Date.UTC(y, 0, 1)) / 864e5);
+    return `${ly.getLeapMonth()}:${ly.getMonths().map((m) => (m.getDayCount() === 30 ? 1 : 0)).join('')}:${day}`;
+  })
+  .join(',');
+
+// 繁体页把 tyme4ts 的简体名字换成繁体：十神、十二长生、神煞查八字名称表，纳音、生肖查黄历的名称表（同一套校对）
+const hl = (huangliHant as unknown as { names: Record<string, string> }).names;
+const names = hant
+  ? JSON.stringify({ ...namesHant, ...Object.fromEntries([...Sound.NAMES, ...Zodiac.NAMES].map((n) => [n, hl[n] ?? n])) })
+  : undefined;
+
+const title = t('八字排盘 · 四柱、十神、大运流年 · 六爻', '八字排盤 · 四柱、十神、大運流年 · 六爻');
+const description = t(
+  '输入生辰，在浏览器里排出四柱、十神、藏干、纳音、神煞、大运与流年；生辰不上传。只排盘面，不下断语。',
+  '輸入生辰，在瀏覽器裡排出四柱、十神、藏干、納音、神煞、大運與流年；生辰不上傳。只排盤面，不下斷語。',
+);
+const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '自坐', t('纳音', '納音'), '空亡', '神煞'];
+---
+
+<Paper title={title} description={description} path="/bazi/" at="/bazi/" home group="bazi" subset="index" hant={hant} ogType="website">
+  <main class="bazi" data-bazi data-hant={hant ? '1' : undefined} data-lunar={lunar} data-names={names} data-cities={cities}>
+    <section class="intro">
+      <h1>八字</h1>
+      <p>{text.intro}</p>
+    </section>
+
+    <div class="body">
+      <div class="left">
+        <section class="tool" aria-labelledby="bz-tool">
+          <h2 class="head" id="bz-tool">{t('排盘', '排盤')}</h2>
+          {/* 没有脚本：排盘区换成一句说明（设计稿 27 ⑥）。noscript 里的样式只在关掉脚本时生效。 */}
+          <noscript>
+            <style is:inline>[data-form]{display:none!important}</style>
+            <div class="nojs">
+              <p>{t('排盘要用到浏览器脚本，现在没有载入。刷新一下再试。', '排盤要用到瀏覽器腳本，現在沒有載入。重新整理一下再試。')}</p>
+              <p class="hint">{t('表单不会把生辰发到任何地方。', '表單不會把生辰傳到任何地方。')}</p>
+            </div>
+          </noscript>
+          {/* 没有提交按钮（「排盘」是 type=button），控件也不写 name（单选按钮除外，同组要靠它）：脚本没载入时按回车、按「排盘」都不会提交，生辰进不了网址。 */}
+          <form class="form" data-form aria-labelledby="bz-tool">
+            <fieldset>
+              <legend>{t('历法', '曆法')}</legend>
+              <div class="chips">
+                <label class="chip"><input class="sr" type="radio" name="bz-cal" value="solar" checked />{t('公历', '公曆')}</label>
+                <label class="chip"><input class="sr" type="radio" name="bz-cal" value="lunar" />{t('农历', '農曆')}</label>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend id="bz-date">{t('出生日期', '出生日期')}<span data-f="lunar-note" hidden>{t('（农历）', '（農曆）')}</span></legend>
+              <div class="ymd">
+                <select id="bz-y" aria-label="年" aria-describedby="bz-status" required>
+                  <option value="">年</option>
+                  {years.map((y) => <option value={y}>{y}年</option>)}
+                </select>
+                <select id="bz-m" aria-label="月" aria-describedby="bz-status" required>
+                  <option value="">月</option>
+                  {Array.from({ length: 12 }, (_, i) => <option value={i + 1}>{i + 1}月</option>)}
+                </select>
+                <select id="bz-d" aria-label="日" aria-describedby="bz-status" required>
+                  <option value="">日</option>
+                  {Array.from({ length: 31 }, (_, i) => <option value={i + 1}>{i + 1}日</option>)}
+                </select>
+              </div>
+              <p class="status" id="bz-status" role="status"></p>
+            </fieldset>
+            <div>
+              <label class="label" for="bz-time">{t('出生时间', '出生時間')}</label>
+              <div class="when">
+                <input id="bz-time" type="time" required />
+                <label class="check"><input class="sr" type="checkbox" id="bz-unknown" /><span class="box" aria-hidden="true"></span>{t('不知道时辰', '不知道時辰')}</label>
+              </div>
+            </div>
+            <fieldset>
+              <legend>{t('性别', '性別')}</legend>
+              <div class="chips">
+                <label class="chip"><input class="sr" type="radio" name="bz-sex" value="男" required />男</label>
+                <label class="chip"><input class="sr" type="radio" name="bz-sex" value="女" />女</label>
+              </div>
+              <p class="hint">{t('只用来定大运顺排还是逆排。', '只用來定大運順排還是逆排。')}</p>
+            </fieldset>
+            <div>
+              <label class="label" for="bz-place">{t('出生地（可不选）', '出生地（可不選）')}</label>
+              <input id="bz-place" type="text" list="bz-cities" autocomplete="off" aria-describedby="bz-place-hint" placeholder={t('城市名，如 成都、台北、温哥华', '城市名，如 成都、臺北、溫哥華')} />
+              <datalist id="bz-cities"></datalist>
+              <p class="hint" id="bz-place-hint">{t('不选就按北京时间（UTC+8）。海外出生请选城市（名单里没有的选邻近的），时间填当地的钟表时间；当年实行夏令时的也会算进去。', '不選就按臺灣時間（UTC+8）。海外出生請選城市（名單裡沒有的選鄰近的），時間填當地的鐘錶時間；當年實行夏令時的也會算進去。')}</p>
+            </div>
+            <details class="opts">
+              <summary><span class="ot">{t('选项', '選項')}</span><span class="os"><span data-f="opts">{t('晚子时算次日 · 起运到小时 · 真太阳时关', '晚子時算次日 · 起運到小時 · 真太陽時關')}</span> · <span class="open">{t('展开', '展開')}</span><span class="close">收起</span></span></summary>
+              <div class="obody">
+                <fieldset>
+                  <legend>{t('晚子时（23 点到 0 点出生）', '晚子時（23 點到 0 點出生）')}</legend>
+                  <label class="row"><input class="sr" type="radio" name="bz-latezi" value="day-advances" checked /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('算次日', '算次日')}</span><span class="sub">{t('多数排盘网站这样排', '多數排盤網站這樣排')}</span></span></label>
+                  <label class="row"><input class="sr" type="radio" name="bz-latezi" value="day-stays" /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('仍算当天', '仍算當天')}</span></span></label>
+                  <p class="hint">{t('只差日柱；时柱两种都排子时。', '只差日柱；時柱兩種都排子時。')}</p>
+                </fieldset>
+                <fieldset>
+                  <legend>{t('起运算法', '起運算法')}</legend>
+                  <label class="row"><input class="sr" type="radio" name="bz-qiyun" value="sect2" checked /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('算到小时', '算到小時')}</span><span class="sub">{t('默认', '預設')}</span></span></label>
+                  <label class="row"><input class="sr" type="radio" name="bz-qiyun" value="default" /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('算到分钟', '算到分鐘')}</span></span></label>
+                  <label class="row"><input class="sr" type="radio" name="bz-qiyun" value="china95" /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('只算到天', '只算到天')}</span></span></label>
+                  <label class="row"><input class="sr" type="radio" name="bz-qiyun" value="sect1" /><span class="dot" aria-hidden="true"></span><span class="rt"><span>{t('只数日子和时辰', '只數日子和時辰')}</span></span></label>
+                  <p class="hint">{t('都是三天折一年，差在零头怎么折。', '都是三天折一年，差在零頭怎麼折。')}</p>
+                </fieldset>
+                <fieldset>
+                  <legend>{t('真太阳时', '真太陽時')}</legend>
+                  <label class="row check"><input class="sr" type="checkbox" id="bz-zty" disabled aria-describedby="bz-zty-hint" /><span class="box" aria-hidden="true"></span><span>{t('按出生地的太阳时排日柱、时柱', '按出生地的太陽時排日柱、時柱')}</span></label>
+                  <p class="hint" id="bz-zty-hint">{t('先在上面选出生地，才能打开。', '先在上面選出生地，才能打開。')}</p>
+                </fieldset>
+              </div>
+            </details>
+            <div class="go">
+              <p class="privacy">{t('生辰只在你的浏览器里计算，不上传，也不进网址。', '生辰只在你的瀏覽器裡計算，不上傳，也不進網址。')}</p>
+              <button type="button" class="submit" data-f="submit">{t('排盘', '排盤')}</button>
+            </div>
+          </form>
+          {/* 手机排盘后表单收成一行（设计稿 28）；桌面表单不收（左栏 sticky） */}
+          <div class="brief" data-f="brief" hidden>
+            <div class="bt"><span class="bm" data-f="brief-main"></span><span class="bs" data-f="brief-sub"></span></div>
+            <button type="button" data-f="edit" aria-expanded="false">{t('改', '改')}</button>
+          </div>
+        </section>
+
+        <section class="saved" aria-labelledby="bz-saved" data-f="saved" hidden>
+          <h2 class="head" id="bz-saved">{t('存在这台设备上的盘', '存在這台裝置上的盤')}</h2>
+          <ul role="list" data-f="saved-list"></ul>
+          <div class="sfoot">
+            <p>{t('只存生辰、性别和选项，不存名字，也不上传。四柱能推回出生的时段，只在自己的设备上存。', '只存生辰、性別和選項，不存名字，也不上傳。四柱能推回出生的時段，只在自己的裝置上存。')}</p>
+            <button type="button" data-f="clear">{t('全部清除', '全部清除')}</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="right">
+        {/* 桌面：没排之前右栏是一句提示（设计稿 D24） */}
+        <div class="wait" data-f="wait">
+          <p>{t('填好左边，点「排盘」，盘面出在这一栏。', '填好左邊，點「排盤」，盤面出在這一欄。')}</p>
+          <p class="hint">{t('四柱与十神、藏干、十二长生、纳音、空亡、神煞，胎元、命宫、身宫，五行个数，刑冲合会，起运，十步大运与每步的流年。', '四柱與十神、藏干、十二長生、納音、空亡、神煞，胎元、命宮、身宮，五行個數，刑沖合會，起運，十步大運與每步的流年。')}</p>
+        </div>
+        <section class="chart" aria-labelledby="bz-chart" data-f="chart" hidden>
+          <h2 class="head" id="bz-chart" tabindex="-1">{t('盘面', '盤面')}</h2>
+          <div data-f="chart-body"></div>
+        </section>
+        {/* 正在排盘的占位（设计稿 28 ①）：行名先画，按常见盘面的高度占位；脚本复制它插进盘面 */}
+        <template data-f="skeleton">
+          <div class="skel">
+            <p class="msg" role="status">{t('正在排盘……', '正在排盤……')}</p>
+            <div class="sk-head"><span></span><span>年柱</span><span>月柱</span><span>日柱</span><span>{t('时柱', '時柱')}</span></div>
+            {ROWS.map((r) => <div class="sk-row"><span>{r}</span></div>)}
+          </div>
+        </template>
+
+        <section class="terms" id="terms" aria-labelledby="bz-terms">
+          <h2 class="head" id="bz-terms" tabindex="-1">{t('盘面上的词', '盤面上的詞')}</h2>
+          <dl>
+            {text.terms.map((x) => (
+              <div><dt>{x.term}</dt><dd>{x.text}</dd></div>
+            ))}
+          </dl>
+        </section>
+      </div>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('四柱、大运由', '四柱、大運由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('推算（MIT）；神煞、刑冲合会按《三命通会》的查法；城市经度取自 Natural Earth；词语说明为本站原创', '推算（MIT）；神煞、刑沖合會按《三命通會》的查法；城市經度取自 Natural Earth；詞語說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<script>
+  // 只 import 零依赖的 bazi-time.ts（页面独用）与类型；排盘在 Worker 里（见文件头）。
+  import type { Bazi, Birth, Options, Pillar } from '../lib/bazi';
+  import { equationOfTime, localOffset } from '../lib/bazi-time';
+
+  const root = document.querySelector<HTMLElement>('[data-bazi]')!;
+  const hant = root.dataset.hant === '1';
+  const t = (hans: string, tw: string) => (hant ? tw : hans);
+  const NAMES: Record<string, string> = JSON.parse(root.dataset.names ?? '{}');
+  const CHARS: Record<string, string> = { 冲: '沖', 会: '會', 闰: '閏', 腊: '臘' };
+  // tyme4ts 给的名字都是简体：繁体页查名称表，刑冲合会、农历里的个别字逐字换
+  const tw = (s: string) => (hant ? (NAMES[s] ?? s.replace(/[冲会闰腊]/g, (c) => CHARS[c]!)) : s);
+  const $ = <T extends HTMLElement = HTMLElement>(k: string) => root.querySelector<T>(`[data-f="${k}"]`)!;
+  const byId = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const ZHU = t('年月日时', '年月日時');
+  const thisYear = new Date(Date.now() + 288e5).getUTCFullYear();
+
+  // ---------- 表单 ----------
+  const form = root.querySelector<HTMLFormElement>('[data-form]')!;
+  const ySel = byId<HTMLSelectElement>('bz-y');
+  const mSel = byId<HTMLSelectElement>('bz-m');
+  const dSel = byId<HTMLSelectElement>('bz-d');
+  const time = byId<HTMLInputElement>('bz-time');
+  const unknown = byId<HTMLInputElement>('bz-unknown');
+  const place = byId<HTMLInputElement>('bz-place');
+  const zty = byId<HTMLInputElement>('bz-zty');
+  const radio = (name: string) => form.querySelector<HTMLInputElement>(`[name="${name}"]:checked`)?.value;
+  const setRadio = (name: string, v: string) => {
+    const r = form.querySelector<HTMLInputElement>(`[name="${name}"][value="${v}"]`);
+    if (r) r.checked = true;
+  };
+  const isLunar = () => radio('bz-cal') === 'lunar';
+
+  for (const o of [...ySel.options]) if (+o.value > thisYear) o.remove();
+
+  const LUNAR = root.dataset.lunar!.split(',');
+  const NUM = '正二三四五六七八九十';
+  const monthName = (v: number) => {
+    const a = Math.abs(v);
+    return `${v < 0 ? t('闰', '閏') : ''}${a === 11 ? '冬' : a === 12 ? t('腊', '臘') : NUM[a - 1]}月`;
+  };
+  const dayName = (d: number) =>
+    d === 10 ? '初十' : d === 20 ? '二十' : d === 30 ? '三十' : `${'初十廿'[Math.floor(d / 10)]}${'十一二三四五六七八九'[d % 10]}`;
+  // 农历一年的月份（闰月是负数）与天数，和正月初一是公历那年的第几天
+  function lunarYear(y: number) {
+    const [leap, bits, first] = (LUNAR[y - 1901] ?? '0:000000000000:0').split(':') as [string, string, string];
+    const months: { v: number; days: number }[] = [];
+    let i = 0;
+    for (let m = 1; m <= 12; m++) {
+      months.push({ v: m, days: bits[i++] === '1' ? 30 : 29 });
+      if (m === +leap) months.push({ v: -m, days: bits[i++] === '1' ? 30 : 29 });
+    }
+    return { months, first: +first };
+  }
+  const solarDays = (y: number, m: number) => new Date(Date.UTC(y || 2000, m, 0)).getUTCDate();
+
+  const status = byId('bz-status');
+  const say = (s: string) => (status.textContent = s);
+
+  function option(value: string | number, label: string) {
+    const o = document.createElement('option');
+    o.value = String(value);
+    o.textContent = label;
+    return o;
+  }
+
+  // 换历法、换年份时重列月份；当年没有的闰月改成同名的月份，并说一声
+  function fillMonths() {
+    const y = +ySel.value;
+    const prev = mSel.value;
+    const list = isLunar()
+      ? (y ? lunarYear(y).months : Array.from({ length: 12 }, (_, i) => ({ v: i + 1 }))).map((m) => option(m.v, monthName(m.v)))
+      : Array.from({ length: 12 }, (_, i) => option(i + 1, `${i + 1}月`));
+    mSel.replaceChildren(option('', '月'), ...list);
+    if ([...mSel.options].some((o) => o.value === prev)) mSel.value = prev;
+    else if (+prev < 0) {
+      mSel.value = String(-prev);
+      say(t(`${y} 年没有${monthName(+prev)}，月份已改成${monthName(-prev)}。`, `${y} 年沒有${monthName(+prev)}，月份已改成${monthName(-prev)}。`));
+    }
+    fillDays();
+  }
+
+  // 日子按当月天数列，选不出不存在的日子；换月时超出的改成当月最后一天，并说一声（设计稿 27 ④）
+  function fillDays() {
+    const y = +ySel.value;
+    const m = +mSel.value;
+    const lunar = isLunar();
+    const n = lunar ? (y && m ? lunarYear(y).months.find((x) => x.v === m)!.days : 30) : m ? solarDays(y, m) : 31;
+    const prev = +dSel.value;
+    dSel.replaceChildren(option('', '日'), ...Array.from({ length: n }, (_, i) => option(i + 1, lunar ? dayName(i + 1) : `${i + 1}日`)));
+    if (prev > n) {
+      dSel.value = String(n);
+      say(
+        lunar
+          ? t(`${y} 年农历${monthName(m)}只有 ${n} 天，日子已改成${dayName(n)}。`, `${y} 年農曆${monthName(m)}只有 ${n} 天，日子已改成${dayName(n)}。`)
+          : t(`${y} 年 ${m} 月只有 ${n} 天，日子已改成 ${n} 日。`, `${y} 年 ${m} 月只有 ${n} 天，日子已改成 ${n} 日。`),
+      );
+    } else if (prev) dSel.value = String(prev);
+  }
+
+  // 换历法：月、日回到占位，免得把公历的月日当成农历排
+  function onCalendar() {
+    $('lunar-note').hidden = !isLunar();
+    mSel.value = '';
+    dSel.value = '';
+    say('');
+    fillMonths();
+  }
+
+  function syncUnknown() {
+    time.disabled = unknown.checked;
+    time.required = !unknown.checked;
+  }
+
+  // 出生那天的公历日期（农历按上面的表换算）；没填全返回 null
+  function solarDate(): [number, number, number] | null {
+    const y = +ySel.value;
+    const m = +mSel.value;
+    const d = +dSel.value;
+    if (!y || !m || !d) return null;
+    if (!isLunar()) return [y, m, d];
+    const { months, first } = lunarYear(y);
+    let offset = first + d - 1;
+    for (const x of months) {
+      if (x.v === m) break;
+      offset += x.days;
+    }
+    const s = new Date(Date.UTC(y, 0, 1 + offset));
+    return [s.getUTCFullYear(), s.getUTCMonth() + 1, s.getUTCDate()];
+  }
+  const clockOf = (): [number, number] | null => {
+    if (unknown.checked) return [12, 0];
+    const m = /^(\d\d):(\d\d)/.exec(time.value);
+    return m ? [+m[1]!, +m[2]!] : null;
+  };
+
+  // ---------- 出生地：点进来才下载名单（M19-4） ----------
+  type City = { labels: [string, string]; lon: number; tz: string };
+  let cityMap: Promise<Map<string, City>> | undefined;
+  let loaded: Map<string, City> | undefined;
+  // 从存过的盘填回来的城市：名单还没下载也认得
+  let pinned: City | undefined;
+  function loadCities() {
+    cityMap ??= fetch(root.dataset.cities!)
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json() as Promise<{ regions: [string, string][]; zones: string[]; cities: [string, string, number, number, number][] }>;
+      })
+      .then((data) => {
+        const map = new Map<string, City>();
+        const count = new Map<string, number>();
+        const list = data.cities.map(([hans, tw, r, lon, z]) => {
+          const region = data.regions[r]!;
+          const labels = [hans, tw].map((n, k) => (n === region[k] ? n : `${n} · ${region[k]}`)) as [string, string];
+          for (const n of new Set([hans, tw])) count.set(n, (count.get(n) ?? 0) + 1);
+          return { names: [hans, tw], city: { labels, lon, tz: data.zones[z]! } };
+        });
+        // 认整条（「成都 · 四川」）和简繁两种写法；只打了城市名的，同名只有一个时也认
+        for (const { names, city } of list) {
+          for (const l of city.labels) map.set(l, city);
+          for (const n of names) if (count.get(n) === 1) map.set(n, city);
+        }
+        byId('bz-cities').replaceChildren(...list.map(({ city }) => option(city.labels[hant ? 1 : 0], '')));
+        loaded = map;
+        refresh();
+        return map;
+      })
+      .catch((e) => {
+        cityMap = undefined;
+        throw e;
+      });
+    return cityMap;
+  }
+  const cityOf = (): City | undefined => {
+    const v = place.value.trim();
+    if (!v) return undefined;
+    if (pinned && pinned.labels.includes(v)) return pinned;
+    return loaded?.get(v);
+  };
+  const cityName = (c: City) => c.labels[hant ? 1 : 0].split(' · ')[0]!;
+
+  const utc = (minutes: number) => {
+    const a = Math.abs(minutes);
+    const hm = `${Math.floor(a / 60)}${a % 60 ? `:${pad(Math.round(a % 60))}` : ''}`;
+    return `UTC${minutes < 0 ? '−' : '+'}${hm}`;
+  };
+  const zoneName = (tz: string, at: number) =>
+    new Intl.DateTimeFormat(hant ? 'zh-TW' : 'zh-CN', { timeZone: tz, timeZoneName: 'long' }).formatToParts(at).find((p) => p.type === 'timeZoneName')?.value ?? '';
+  const md = (y: number, m: number, d: number) => `${y}年${m}月${d}日`;
+  const hmOf = (minutes: number) => `${pad(Math.floor((((minutes % 1440) + 1440) % 1440) / 60))}:${pad(Math.floor((((minutes % 1440) + 1440) % 1440) % 60))}`;
+  const lonText = (lon: number) => `${lon < 0 ? t('西经', '西經') : t('东经', '東經')} ${Math.abs(lon).toFixed(1)}°`;
+
+  const IDLE = byId('bz-place-hint').textContent;
+
+  // 出生地框下的时差、真太阳时那一项的校正：在表单里就写出来，不用等排盘（设计稿 27 ②⑤）
+  function refresh() {
+    const city = cityOf();
+    const s = solarDate();
+    const c = clockOf();
+    const hint = byId('bz-place-hint');
+    const ztyHint = byId('bz-zty-hint');
+    place.setCustomValidity('');
+    if (!place.value.trim()) hint.textContent = IDLE;
+    else if (!city) hint.textContent = t('从名单里选一个城市；没有的话选邻近的城市，或者空着。', '從名單裡選一個城市；沒有的話選鄰近的城市，或者空著。');
+    else if (!s || !c) hint.textContent = t(`${cityName(city)}在${lonText(city.lon)}。填好日期和时间，这里会写出那一天的时差。`, `${cityName(city)}在${lonText(city.lon)}。填好日期和時間，這裡會寫出那一天的時差。`);
+    else {
+      const { offset, dst } = localOffset(city.tz, ...s, ...c);
+      const at = Date.UTC(...s, ...c) - offset * 6e4;
+      const name = cityName(city);
+      if (offset === 480 && !dst) hint.textContent = t(`${md(...s)}这天${name}是 UTC+8，与北京时间相同，时间照填。`, `${md(...s)}這天${name}是 UTC+8，與臺灣時間相同，時間照填。`);
+      else {
+        const bj = new Date(at + 288e5);
+        const same = bj.getUTCDate() === s[2];
+        const when = unknown.checked ? '' : t(`，${pad(c[0])}:${pad(c[1])} 是北京时间${same ? '当天' : md(bj.getUTCFullYear(), bj.getUTCMonth() + 1, bj.getUTCDate())} ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}`, `，${pad(c[0])}:${pad(c[1])} 是臺灣時間（UTC+8）${same ? '當天' : md(bj.getUTCFullYear(), bj.getUTCMonth() + 1, bj.getUTCDate())} ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}`);
+        const local = dst ? t(`当地的标准时间（拨回夏令时的 ${dst / 60} 小时）`, `當地的標準時間（撥回夏令時的 ${dst / 60} 小時）`) : t('当地的时间', '當地的時間');
+        hint.textContent = t(`${md(...s)}这天${name}是 ${utc(offset)}（${zoneName(city.tz, at)}）${when}。年柱、月柱与起运按这一刻比节气，日柱、时柱按${name}${local}排。`, `${md(...s)}這天${name}是 ${utc(offset)}（${zoneName(city.tz, at)}）${when}。年柱、月柱與起運按這一刻比節氣，日柱、時柱按${name}${local}排。`);
+      }
+    }
+
+    zty.disabled = !city || unknown.checked;
+    if (zty.disabled) zty.checked = false;
+    if (unknown.checked) ztyHint.textContent = t('时辰不详时不能开。', '時辰不詳時不能開。');
+    else if (!city) ztyHint.textContent = t('先在上面选出生地，才能打开。', '先在上面選出生地，才能打開。');
+    else if (!s || !c) ztyHint.textContent = t(`${cityName(city)}在${lonText(city.lon)}。填好日期和时间，这里会写出校正多少。`, `${cityName(city)}在${lonText(city.lon)}。填好日期和時間，這裡會寫出校正多少。`);
+    else {
+      const { offset, dst } = localOffset(city.tz, ...s, ...c);
+      const minutes = city.lon * 4 - offset + equationOfTime(Date.UTC(...s, ...c) - offset * 6e4);
+      const n = Math.round(Math.abs(minutes));
+      const from = c[0] * 60 + c[1];
+      const word = offset === 480 && !dst ? t('北京时间', '臺灣時間') : t('当地钟表', '當地鐘錶');
+      ztyHint.textContent = t(
+        `${cityName(city)}在${lonText(city.lon)}。这一天${cityName(city)}的太阳时比${word}${minutes < 0 ? '早' : '晚'} ${n} 分，${hmOf(from)} 按 ${hmOf(from + minutes)} 排日柱、时柱；年柱、月柱与起运仍按 ${hmOf(from)} 比节气。`,
+        `${cityName(city)}在${lonText(city.lon)}。這一天${cityName(city)}的太陽時比${word}${minutes < 0 ? '早' : '晚'} ${n} 分，${hmOf(from)} 按 ${hmOf(from + minutes)} 排日柱、時柱；年柱、月柱與起運仍按 ${hmOf(from)} 比節氣。`,
+      );
+    }
+    $('opts').textContent = optsText();
+  }
+
+  const QIYUN: Record<string, [string, string]> = {
+    sect2: ['起运到小时', '起運到小時'],
+    default: ['起运到分钟', '起運到分鐘'],
+    china95: ['起运只到天', '起運只到天'],
+    sect1: ['起运只数日时', '起運只數日時'],
+  };
+  const optsText = () =>
+    [
+      radio('bz-latezi') === 'day-stays' ? t('晚子时算当天', '晚子時算當天') : t('晚子时算次日', '晚子時算次日'),
+      QIYUN[radio('bz-qiyun') ?? 'sect2']![hant ? 1 : 0],
+      zty.checked ? t('真太阳时开', '真太陽時開') : t('真太阳时关', '真太陽時關'),
+    ].join(' · ');
+
+  form.addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.name === 'bz-cal') onCalendar();
+    else if (el === ySel) {
+      say('');
+      fillMonths();
+    } else if (el === mSel) {
+      say('');
+      fillDays();
+    } else if (el === unknown) syncUnknown();
+    refresh();
+  });
+  form.addEventListener('input', (e) => {
+    if (e.target === place || e.target === time) refresh();
+  });
+  place.addEventListener('focus', () => loadCities().catch(() => {}));
+  // 表单第一次被操作就把排盘的 Worker 开起来（它要载入 tyme4ts），点「排盘」时多半已经好了
+  for (const type of ['pointerdown', 'focusin', 'keydown']) form.addEventListener(type, () => warm(), { once: true, passive: true });
+
+  // ---------- 存盘：只存输入（M19-8、M19-14） ----------
+  type Rec = {
+    cal: 'solar' | 'lunar';
+    y: number;
+    /** 农历闰月是负数 */
+    m: number;
+    d: number;
+    h?: number;
+    mi?: number;
+    sex: '男' | '女';
+    lateZi: 'day-advances' | 'day-stays';
+    qiYun: 'sect2' | 'default' | 'china95' | 'sect1';
+    zty: boolean;
+    /** 简体、繁体的显示名，经度，时区 */
+    city?: [string, string, number, string];
+  };
+  const KEY = 'liuyao:bazi';
+  const valid = (r: Rec) =>
+    r &&
+    (r.cal === 'solar' || r.cal === 'lunar') &&
+    [r.y, r.m, r.d].every(Number.isInteger) &&
+    (r.h === undefined || (Number.isInteger(r.h) && Number.isInteger(r.mi))) &&
+    (r.sex === '男' || r.sex === '女') &&
+    ['day-advances', 'day-stays'].includes(r.lateZi) &&
+    r.qiYun in QIYUN &&
+    typeof r.zty === 'boolean' &&
+    (r.city === undefined || (Array.isArray(r.city) && r.city.length === 4 && typeof r.city[2] === 'number'));
+  function loadSaved(): Rec[] {
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+      return Array.isArray(v) ? v.filter(valid) : [];
+    } catch {
+      return [];
+    }
+  }
+  function store(list: Rec[]) {
+    try {
+      if (list.length) localStorage.setItem(KEY, JSON.stringify(list));
+      else localStorage.removeItem(KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const same = (a: Rec, b: Rec) => JSON.stringify(a) === JSON.stringify(b);
+
+  function readForm(): Rec {
+    const c = clockOf();
+    const city = cityOf();
+    return {
+      cal: isLunar() ? 'lunar' : 'solar',
+      y: +ySel.value,
+      m: +mSel.value,
+      d: +dSel.value,
+      ...(!unknown.checked && c && { h: c[0], mi: c[1] }),
+      sex: radio('bz-sex') as Rec['sex'],
+      lateZi: radio('bz-latezi') as Rec['lateZi'],
+      qiYun: radio('bz-qiyun') as Rec['qiYun'],
+      zty: zty.checked,
+      ...(city && { city: [...city.labels, city.lon, city.tz] as Rec['city'] }),
+    };
+  }
+
+  function fill(r: Rec) {
+    setRadio('bz-cal', r.cal);
+    $('lunar-note').hidden = r.cal !== 'lunar';
+    ySel.value = String(r.y);
+    mSel.value = '';
+    fillMonths();
+    mSel.value = String(r.m);
+    fillDays();
+    dSel.value = String(r.d);
+    unknown.checked = r.h === undefined;
+    time.value = r.h === undefined ? '' : `${pad(r.h)}:${pad(r.mi!)}`;
+    syncUnknown();
+    setRadio('bz-sex', r.sex);
+    setRadio('bz-latezi', r.lateZi);
+    setRadio('bz-qiyun', r.qiYun);
+    pinned = r.city && { labels: [r.city[0], r.city[1]], lon: r.city[2], tz: r.city[3] };
+    place.value = r.city ? r.city[hant ? 1 : 0] : '';
+    say('');
+    refresh();
+    zty.checked = r.zty && !zty.disabled;
+    $('opts').textContent = optsText();
+  }
+
+  const recDate = (r: Rec) =>
+    r.cal === 'solar' ? md(r.y, r.m, r.d) : `${t('农历', '農曆')}${r.y}年${monthName(r.m)}${dayName(r.d)}`;
+  const recTime = (r: Rec) => (r.h === undefined ? t('时辰不详', '時辰不詳') : `${pad(r.h)}:${pad(r.mi!)}`);
+  const recCal = (r: Rec) => (r.cal === 'solar' ? t('公历', '公曆') : t('农历', '農曆'));
+
+  function renderSaved() {
+    const list = loadSaved();
+    $('saved').hidden = !list.length;
+    $('saved-list').replaceChildren(
+      ...list.map((r) => {
+        const main = `${recDate(r)} ${recTime(r)}`;
+        const open = h('button', { type: 'button', class: 'srow' }, h('span', { class: 'sm' }, main), h('span', { class: 'ss' }, [r.sex, recCal(r), ...(r.city ? [r.city[hant ? 1 : 0].split(' · ')[0]!] : [])].join(' · ')));
+        open.addEventListener('click', () => {
+          fill(r);
+          run(r);
+        });
+        const del = h('button', { type: 'button', class: 'del', 'aria-label': `${t('删除', '刪除')} ${main}` }, t('删除', '刪除'));
+        del.addEventListener('click', () => {
+          store(loadSaved().filter((x) => !same(x, r)));
+          renderSaved();
+          syncSave();
+        });
+        return h('li', null, open, del);
+      }),
+    );
+  }
+  $('clear').addEventListener('click', () => {
+    store([]);
+    renderSaved();
+    syncSave();
+  });
+
+  // ---------- 排盘（Worker） ----------
+  let worker: Worker | undefined;
+  let seq = 0;
+  const pending = new Map<number, (c?: Bazi) => void>();
+  function warm() {
+    if (worker) return worker;
+    worker = new Worker(new URL('../scripts/bazi-worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e: MessageEvent<{ id: number; chart?: Bazi }>) => {
+      pending.get(e.data.id)?.(e.data.chart);
+      pending.delete(e.data.id);
+    };
+    // 载入失败（断网）：手上的都答「没排出来」，下次再开一个
+    worker.onerror = () => {
+      for (const done of pending.values()) done(undefined);
+      pending.clear();
+      worker = undefined;
+    };
+    return worker;
+  }
+  const compute = (birth: Birth, options: Options) =>
+    new Promise<Bazi | undefined>((done) => {
+      const id = ++seq;
+      pending.set(id, done);
+      warm().postMessage({ id, birth, options });
+    });
+
+  function request(r: Rec): { birth: Birth; options: Options; dst: number } {
+    const birth: Birth = {
+      calendar: r.cal,
+      year: r.y,
+      month: Math.abs(r.m),
+      day: r.d,
+      gender: r.sex,
+      ...(r.m < 0 && { leap: true }),
+      ...(r.h !== undefined && { hour: r.h, minute: r.mi }),
+    };
+    const options: Options = { lateZi: r.lateZi, qiYun: r.qiYun };
+    let dst = 0;
+    if (r.city) {
+      const s = solarOf(r);
+      const o = localOffset(r.city[3], ...s, r.h ?? 12, r.mi ?? 0);
+      Object.assign(options, o);
+      dst = o.dst;
+      if (r.zty && r.h !== undefined) options.longitude = r.city[2];
+    }
+    return { birth, options, dst };
+  }
+  // 存过的盘的公历日期（填回表单后同 solarDate）
+  function solarOf(r: Rec): [number, number, number] {
+    if (r.cal === 'solar') return [r.y, r.m, r.d];
+    const { months, first } = lunarYear(r.y);
+    let offset = first + r.d - 1;
+    for (const x of months) {
+      if (x.v === r.m) break;
+      offset += x.days;
+    }
+    const s = new Date(Date.UTC(r.y, 0, 1 + offset));
+    return [s.getUTCFullYear(), s.getUTCMonth() + 1, s.getUTCDate()];
+  }
+
+  let current: Rec | undefined;
+  let ticket = 0;
+  const chart = $('chart');
+  const body = $('chart-body');
+  const desk = matchMedia('(min-width: 1024px)');
+
+  async function run(r: Rec) {
+    const my = ++ticket;
+    current = r;
+    $('wait').hidden = true;
+    chart.hidden = false;
+    body.replaceChildren(($<HTMLTemplateElement>('skeleton').content.cloneNode(true) as DocumentFragment));
+    const req = request(r);
+    const c = await compute(req.birth, req.options);
+    if (my !== ticket) return;
+    if (!c) {
+      body.replaceChildren(h('p', { class: 'msg', role: 'status' }, worker ? t('没能排出这一盘，请检查日期后再试。', '沒能排出這一盤，請檢查日期後再試。') : t('排盘脚本没能载入，请检查网络后刷新再试。', '排盤腳本沒能載入，請檢查網路後重新整理再試。')));
+      return;
+    }
+    render(c, r, req.dst);
+    collapse(r);
+    const head = byId('bz-chart');
+    const top = head.getBoundingClientRect().top;
+    if (!desk.matches || top < 0 || top > innerHeight - 80) head.scrollIntoView({ block: 'start' });
+    head.focus({ preventScroll: true });
+  }
+
+  // ---------- 盘面 ----------
+  type Kid = Node | string | null | undefined | false;
+  function h(tag: string, attrs: Record<string, string | undefined> | null, ...kids: Kid[]) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs ?? {})) if (v !== undefined) e.setAttribute(k, v);
+    for (const k of kids) if (k !== null && k !== undefined && k !== false) e.append(k);
+    return e;
+  }
+  const ymdOf = (s: string) => md(+s.slice(0, 4), +s.slice(5, 7), +s.slice(8, 10));
+  const sub = (title: string) => h('h3', { class: 'sh' }, title);
+  const note = (s: string) => h('p', { class: 'hint' }, s);
+
+  function zoneOf(r: Rec) {
+    if (!r.city) return t('北京时间', '臺灣時間（UTC+8）');
+    const s = solarOf(r);
+    const o = localOffset(r.city[3], ...s, r.h ?? 12, r.mi ?? 0);
+    return `${r.city[hant ? 1 : 0].split(' · ')[0]}（${utc(o.offset)}${o.dst ? t('，夏令时', '，夏令時') : ''}）`;
+  }
+
+  function render(c: Bazi, r: Rec, dst: number) {
+    const known = c.pillars.length === 4;
+    const name = r.city?.[hant ? 1 : 0].split(' · ')[0];
+    const lines = h(
+      'div',
+      { class: 'moment' },
+      h('p', { class: 'date' }, `${ymdOf(c.solar)} ${known ? c.solar.slice(11, 16) : t('时辰不详', '時辰不詳')}`),
+      h('p', { class: 'sub' }, `${t('农历', '農曆')}${tw(c.lunar)} · ${t('属', '屬')}${tw(c.shengXiao)} · ${zoneOf(r)}`),
+      c.beijing && h('p', { class: 'sub' }, `${t('同一刻北京时间', '同一刻臺灣時間（UTC+8）')} ${ymdOf(c.beijing)} ${c.beijing.slice(11, 16)}`),
+      dst > 0 && known && !c.zhenTaiYang && h('p', { class: 'line' }, t(`夏令时：日柱、时柱按标准时 ${hmOf(r.h! * 60 + r.mi! - dst)} 排`, `夏令時：日柱、時柱按標準時 ${hmOf(r.h! * 60 + r.mi! - dst)} 排`)),
+      c.zhenTaiYang &&
+        h(
+          'p',
+          { class: 'line' },
+          `${t('真太阳时', '真太陽時')} ${ymdOf(c.zhenTaiYang.time)} ${c.zhenTaiYang.time.slice(11, 16)}（${name}，${t('比钟表', '比鐘錶')}${c.zhenTaiYang.minutes < 0 ? '早' : '晚'} ${Math.round(Math.abs(c.zhenTaiYang.minutes))} 分）`,
+        ),
+    );
+    const save = h('button', { type: 'button', class: 'save', 'data-f': 'save' });
+    save.addEventListener('click', () => {
+      const list = loadSaved();
+      const had = list.some((x) => same(x, r));
+      if (!store(had ? list.filter((x) => !same(x, r)) : [r, ...list])) {
+        save.textContent = t('这个浏览器不让存', '這個瀏覽器不讓存');
+        save.setAttribute('disabled', '');
+        return;
+      }
+      renderSaved();
+      syncSave();
+    });
+
+    const parts: Kid[] = [h('div', { class: 'top' }, lines, save)];
+
+    // 农历年与年柱不同（设计稿 28 ④）
+    if (c.liChun) {
+      const before = (c.beijing ?? c.solar) < c.liChun;
+      const at = `${+c.liChun.slice(5, 7)}月${+c.liChun.slice(8, 10)}日 ${c.liChun.slice(11, 16)}`;
+      const lunarText = tw(c.lunar);
+      const z = tw(c.shengXiao);
+      const pre = r.city && r.city[3] !== 'Asia/Shanghai' ? t('北京时间', 'UTC+8 ') : '';
+      parts.push(
+        h(
+          'p',
+          { class: 'notice' },
+          before
+            ? t(`农历已是${lunarText}，但还没到立春（${pre}${at} 交节），八字仍算${c.pillars[0]!.ganZhi}年，生肖属${z}。八字以立春换年。`, `農曆已是${lunarText}，但還沒到立春（${pre}${at} 交節），八字仍算${c.pillars[0]!.ganZhi}年，生肖屬${z}。八字以立春換年。`)
+            : t(`农历还是${lunarText}，但已过立春（${pre}${at} 交节），八字已算${c.pillars[0]!.ganZhi}年，生肖属${z}。八字以立春换年。`, `農曆還是${lunarText}，但已過立春（${pre}${at} 交節），八字已算${c.pillars[0]!.ganZhi}年，生肖屬${z}。八字以立春換年。`),
+        ),
+      );
+    }
+    // 时辰不详、那天交节
+    if (c.jie) {
+      parts.push(
+        h(
+          'p',
+          { class: 'notice' },
+          t(
+            `出生那天 ${c.jie.time.slice(11, 16)}（北京时间）交${c.jie.name}，年柱、月柱与大运要看出生的时刻；时辰不详，这里按中午 12 点排。`,
+            `出生那天 ${c.jie.time.slice(11, 16)}（UTC+8）交${c.jie.name}，年柱、月柱與大運要看出生的時刻；時辰不詳，這裡按中午 12 點排。`,
+          ),
+        ),
+      );
+    }
+
+    parts.push(table(c, r), (() => {
+      const b = h('button', { type: 'button', class: 'tolink' }, t('盘面上的词是什么意思 ↓', '盤面上的詞是什麼意思 ↓'));
+      b.addEventListener('click', () => {
+        const head = byId('bz-terms');
+        head.scrollIntoView({ block: 'start' });
+        head.focus({ preventScroll: true });
+      });
+      return b;
+    })());
+
+    // 胎元 命宫 身宫 | 五行个数
+    const gongs: [string, { ganZhi: string; naYin: string }][] = [['胎元', c.taiYuan]];
+    if (c.mingGong && c.shenGong) gongs.push([t('命宫', '命宮'), c.mingGong], [t('身宫', '身宮'), c.shenGong]);
+    const gong = h(
+      'section',
+      { class: 'gong', 'aria-label': t('胎元、命宫、身宫', '胎元、命宮、身宮') },
+      h('div', { class: 'cells' }, ...gongs.map(([k, g]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'gz' }, g.ganZhi), h('span', { class: 'ny' }, tw(g.naYin))))),
+      !known
+        ? note(t('命宫、身宫要用生时推，时辰不详就不出。', '命宮、身宮要用生時推，時辰不詳就不出。'))
+        : c.mingGong!.ganZhi === c.shenGong!.ganZhi && note(t('命宫、身宫以卯酉为轴对称，落在卯或酉上时两宫相同。', '命宮、身宮以卯酉為軸對稱，落在卯或酉上時兩宮相同。')),
+    );
+    const wx = h(
+      'section',
+      { class: 'wx' },
+      sub(t('五行个数', '五行個數')),
+      h('div', { class: 'cells' }, ...Object.entries(c.wuXing).map(([k, v]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'n' }, String(v))))),
+      note(known ? t('八个字各算一个，地支按本身的五行，不算藏干。', '八個字各算一個，地支按本身的五行，不算藏干。') : t('三柱六个字各算一个，不算藏干。', '三柱六個字各算一個，不算藏干。')),
+    );
+    parts.push(h('div', { class: 'pair' }, gong, wx));
+
+    // 刑冲合会：同名合成一行，后面写哪几柱（M19-15）
+    const groups = new Map<string, string[]>();
+    for (const g of c.guanXi) groups.set(g.name, [...(groups.get(g.name) ?? []), g.zhu.map((k) => ZHU[k]).join('·')]);
+    const gx = h(
+      'section',
+      { class: 'gx' },
+      sub(t('刑冲合会', '刑沖合會')),
+      h(
+        'ul',
+        { role: 'list' },
+        ...(groups.size
+          ? [...groups].map(([n, zs]) => h('li', null, h('span', { class: 'n' }, tw(n)), h('span', { class: 'z' }, zs.join('　'))))
+          : [h('li', { class: 'none' }, known ? t('四柱之间没有这几类关系。', '四柱之間沒有這幾類關係。') : t('三柱之间没有这几类关系。', '三柱之間沒有這幾類關係。'))]),
+      ),
+    );
+    parts.push(h('div', { class: 'pair' }, gx, qiyun(c, known)));
+
+    // 大运、流年
+    const now = c.daYun.findIndex((d) => d.startYear <= thisYear && thisYear <= d.endYear);
+    let pick = now >= 0 ? now : thisYear < c.daYun[0]!.startYear ? 0 : 9;
+    const born = +c.solar.slice(0, 4);
+    const first = c.daYun[0]!;
+    const years = h('section', { class: 'ln' });
+    const strip = h(
+      'div',
+      { class: 'strip', role: 'group', 'aria-label': t('大运', '大運') },
+      first.startAge > 1 &&
+        h('div', { class: 'pre' }, h('span', null, t('起运前', '起運前')), h('span', null, `1–${first.startAge - 1}${t('岁', '歲')}`), h('span', null, `${born}–${first.startYear - 1}`)),
+      ...c.daYun.map((d, i) => {
+        const b = h(
+          'button',
+          { type: 'button', 'aria-pressed': String(i === pick) },
+          h('span', { class: 'a' }, `${d.startAge}${t('岁', '歲')}`),
+          h('span', { class: 'gz' }, d.ganZhi),
+          h('span', { class: 's' }, tw(d.shiShen)),
+          h('span', { class: 's' }, tw(d.zhiShiShen)),
+          h('span', { class: 'a' }, String(d.startYear)),
+        );
+        b.addEventListener('click', () => {
+          pick = i;
+          for (const x of strip.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+          liuNian();
+        });
+        return b;
+      }),
+    );
+    function liuNian() {
+      const d = c.daYun[pick]!;
+      years.replaceChildren(
+        sub(`${d.ganZhi}${t('运的流年', '運的流年')} · ${d.startYear}–${d.endYear}`),
+        h(
+          'ul',
+          { role: 'list' },
+          ...d.liuNian.map((n) =>
+            h(
+              'li',
+              { 'aria-current': n.year === thisYear ? 'date' : undefined },
+              h('span', { class: 'a' }, `${n.year}${n.year === thisYear ? t('　今年', '　今年') : ''}`),
+              h('span', { class: 'gz' }, n.ganZhi),
+              h('span', { class: 's' }, `${tw(n.shiShen)} · ${tw(n.zhiShiShen)}`),
+              h('span', { class: 'a' }, `${n.age}${t('岁', '歲')}`),
+            ),
+          ),
+        ),
+      );
+    }
+    liuNian();
+    parts.push(h('section', { class: 'dy' }, sub(t('大运 · 每格：起运岁数、干支、天干与地支的十神、起始年份', '大運 · 每格：起運歲數、干支、天干與地支的十神、起始年份')), strip), years);
+
+    body.replaceChildren(...(parts.filter(Boolean) as Node[]));
+    // 手机上大运横滑：选中的那步滚进视野
+    strip.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    window.scrollTo({ top: scrollY });
+    syncSave();
+  }
+
+  function table(c: Bazi, r: Rec) {
+    const cols: (Pillar | null)[] = [...c.pillars, ...(c.pillars.length === 3 ? [null] : [])];
+    const th = (s: string) => h('th', { scope: 'row' }, s);
+    const none = () => h('td', { class: 'none' }, '—');
+    const row = (title: string, cls: string | undefined, cell: (p: Pillar, k: number) => HTMLElement) =>
+      h('tr', { class: cls }, th(title), ...cols.map((p, k) => (p ? cell(p, k) : none())));
+    const big = (ch: string, wx: string) => h('td', null, h('span', { class: 'big' }, ch), h('span', { class: 'el' }, wx));
+    return h(
+      'table',
+      { class: 'pillars' },
+      h('caption', { class: 'sr' }, t('四柱', '四柱')),
+      h('colgroup', null, h('col', { class: 'lab' }), h('col', { span: '4' })),
+      h(
+        'thead',
+        null,
+        h(
+          'tr',
+          null,
+          h('th', { scope: 'col', class: 'zao' }, r.sex === '男' ? '乾造' : '坤造'),
+          ...[0, 1, 2, 3].map((k) => h('th', { scope: 'col', class: cols[k] ? undefined : 'off' }, `${ZHU[k]}柱`, !cols[k] && h('span', null, t('不详', '不詳')))),
+        ),
+      ),
+      h(
+        'tbody',
+        null,
+        row('十神', undefined, (p) => h('td', null, p.shiShen ? tw(p.shiShen) : '日主')),
+        row('天干', 'gz', (p) => big(p.gan, p.ganWuXing)),
+        row('地支', 'gz z', (p) => big(p.zhi, p.zhiWuXing)),
+        row('藏干', undefined, (p) => h('td', null, h('span', { class: 'list' }, ...p.cangGan.map((x) => h('span', { class: 'cg' }, x.gan, h('small', null, tw(x.shiShen))))))),
+        row(t('星运', '星運'), undefined, (p) => h('td', null, tw(p.xingYun))),
+        row('自坐', 'z', (p) => h('td', null, tw(p.ziZuo))),
+        row(t('纳音', '納音'), undefined, (p) => h('td', null, tw(p.naYin))),
+        row('空亡', 'z', (p) => h('td', null, p.kongWang)),
+        row('神煞', undefined, (p) => h('td', null, h('span', { class: 'list ss' }, ...(p.shenSha.length ? p.shenSha.map((s) => h('span', null, tw(s))) : [h('span', { class: 'none' }, '—')])))),
+      ),
+    );
+  }
+
+  function qiyun(c: Bazi, known: boolean) {
+    const q = c.qiYun;
+    const span = (s: { years: number; months: number; days: number }) => t(`${s.years} 年 ${s.months} 个月 ${s.days} 天`, `${s.years} 年 ${s.months} 個月 ${s.days} 天`);
+    let main: string;
+    if (c.jie) main = t('起运要看出生的时刻，时辰不详时不估。', '起運要看出生的時刻，時辰不詳時不估。');
+    else if (!known && q.range)
+      main = t(
+        `约 ${q.years} 年 ${q.months} 个月起运：按当天中午 12 点估。当天 0 点出生是 ${span(q.range[0])}，23:59 出生是 ${span(q.range[1])}。`,
+        `約 ${q.years} 年 ${q.months} 個月起運：按當天中午 12 點估。當天 0 點出生是 ${span(q.range[0])}，23:59 出生是 ${span(q.range[1])}。`,
+      );
+    else
+      main = t(
+        `出生后 ${span(q)}起运，${ymdOf(q.at)} ${q.at.slice(11, 16)} 交运（北京时间）。`,
+        `出生後 ${span(q)}起運，${ymdOf(q.at)} ${q.at.slice(11, 16)} 交運（UTC+8）。`,
+      );
+    const yang = '甲丙戊庚壬'.includes(c.pillars[0]!.gan);
+    return h(
+      'section',
+      { class: 'qy' },
+      sub(t('起运', '起運')),
+      h('p', { class: 'main' }, main),
+      note(
+        t(
+          `${c.pillars[0]!.ganZhi}年是${yang ? '阳' : '阴'}年，${c.gender}命大运${q.forward ? '顺' : '逆'}排。岁数是虚岁，出生那年算 1 岁。`,
+          `${c.pillars[0]!.ganZhi}年是${yang ? '陽' : '陰'}年，${c.gender}命大運${q.forward ? '順' : '逆'}排。歲數是虛歲，出生那年算 1 歲。`,
+        ),
+      ),
+    );
+  }
+
+  // 「存到这台设备」与「已存 · 删除」
+  function syncSave() {
+    const save = root.querySelector<HTMLButtonElement>('[data-f="save"]');
+    if (!save || !current || save.disabled) return;
+    const had = loadSaved().some((x) => same(x, current!));
+    save.textContent = had ? t('已存 · 删除', '已存 · 刪除') : t('存到这台设备', '存到這台裝置');
+    save.classList.toggle('on', had);
+  }
+
+  // 手机：排盘后表单收成一行（桌面不收，CSS 里 .brief 不显示）
+  function collapse(r: Rec) {
+    const tool = root.querySelector('.tool')!;
+    tool.classList.add('collapsed');
+    $('brief-main').textContent = `${recDate(r)} ${recTime(r)} · ${r.sex}`;
+    const defaults = r.lateZi === 'day-advances' && r.qiYun === 'sect2' && !r.zty;
+    $('brief-sub').textContent = [recCal(r), r.city ? r.city[hant ? 1 : 0].split(' · ')[0] : t('北京时间', '臺灣時間'), defaults ? t('选项默认', '選項預設') : optsText()].join(' · ');
+    $('brief').hidden = false;
+  }
+  $('edit').addEventListener('click', () => {
+    root.querySelector('.tool')!.classList.remove('collapsed');
+    $('brief').hidden = true;
+    ySel.focus();
+  });
+
+  $('submit').addEventListener('click', async () => {
+    place.setCustomValidity('');
+    if (place.value.trim() && !cityOf()) {
+      try {
+        await loadCities();
+      } catch {
+        place.setCustomValidity(t('城市名单没能载入，请稍后再试，或者先空着。', '城市名單沒能載入，請稍後再試，或者先空著。'));
+      }
+      if (!place.validationMessage && !cityOf()) place.setCustomValidity(t('请从名单里选城市；没有的话选邻近的城市，或者空着。', '請從名單裡選城市；沒有的話選鄰近的城市，或者空著。'));
+    }
+    if (!form.reportValidity()) return;
+    run(readForm());
+  });
+  // 回车也能排盘（没有提交按钮，浏览器不会自己提交）
+  form.addEventListener('keydown', (e) => {
+    const el = e.target as HTMLElement;
+    if (e.key === 'Enter' && (el === place || el === time)) {
+      e.preventDefault();
+      $('submit').click();
+    }
+  });
+
+  syncUnknown();
+  renderSaved();
+  refresh();
+</script>
+
+<style is:global>
+  .bazi p,
+  .bazi h1,
+  .bazi h2,
+  .bazi h3,
+  .bazi dl,
+  .bazi dd,
+  .bazi ul {
+    margin: 0;
+  }
+  .bazi ul {
+    padding: 0;
+    list-style: none;
+  }
+  .bazi [hidden] {
+    display: none !important;
+  }
+  .bazi .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    opacity: 0;
+  }
+  .bazi {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .bazi .intro {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .bazi h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.3;
+    letter-spacing: 0.24em;
+  }
+  .bazi .intro p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .bazi .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    outline-offset: 4px;
+  }
+  .bazi .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .bazi .hint {
+    margin-top: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+
+  /* 手机：一栏，次序是表单 → 盘面 → 存过的盘 → 盘面上的词（设计稿 27 便签） */
+  .bazi .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .bazi .left,
+  .bazi .right {
+    display: contents;
+  }
+  .bazi .tool {
+    order: 1;
+  }
+  .bazi .chart {
+    order: 2;
+  }
+  .bazi .saved {
+    order: 3;
+  }
+  .bazi .terms {
+    order: 4;
+  }
+  .bazi .wait {
+    display: none;
+  }
+
+  .bazi .tool,
+  .bazi .saved,
+  .bazi .terms {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .bazi .saved,
+  .bazi .terms {
+    gap: 12px;
+  }
+
+  /* ---------- 表单 ---------- */
+  .bazi .form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .bazi fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .bazi legend,
+  .bazi .label {
+    display: block;
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .bazi .chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .bazi .chip {
+    position: relative;
+    min-height: var(--tap);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: var(--fs-m);
+    letter-spacing: 0.3em;
+    padding-left: 0.3em;
+    cursor: pointer;
+    transition: border-color var(--t-hover);
+  }
+  .bazi .chip:hover {
+    border-color: var(--ink-2);
+  }
+  .bazi .chip:has(:checked) {
+    border-color: var(--ink);
+  }
+  .bazi .chip:has(:checked)::after,
+  .bazi .strip button[aria-pressed='true']::after,
+  .bazi .ln li[aria-current]::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 12px;
+    height: 2px;
+    margin-left: -6px;
+    background: var(--seal);
+  }
+  .bazi .chip:has(:focus-visible),
+  .bazi .check:has(:focus-visible),
+  .bazi .row:has(:focus-visible) {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .bazi select,
+  .bazi input[type='time'],
+  .bazi input[type='text'] {
+    height: var(--tap);
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background-color: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-m);
+    line-height: 1.5;
+  }
+  .bazi select {
+    appearance: none;
+    padding: 0 26px 0 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232d2e36' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .bazi select:invalid {
+    color: var(--ink-2);
+  }
+  .bazi select option {
+    color: var(--ink);
+  }
+  .bazi input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: flex;
+    align-items: center;
+  }
+  .bazi input:disabled {
+    color: var(--ink-2);
+    background-color: var(--paper-2);
+  }
+  .bazi select:focus-visible,
+  .bazi input:focus-visible,
+  .bazi button:focus-visible,
+  .bazi summary:focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .bazi .ymd {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 8px;
+  }
+  .bazi .status:empty {
+    display: none;
+  }
+  .bazi .status {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .bazi .when {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .bazi .when input {
+    flex: 1 1 auto;
+  }
+  .bazi .check {
+    flex-shrink: 0;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px;
+    font-size: var(--fs-s);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+  .bazi .box {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1;
+  }
+  .bazi .check:has(:checked) .box::after {
+    content: '✓';
+  }
+  .bazi .check:has(:disabled) {
+    color: var(--ink-2);
+    cursor: default;
+  }
+  .bazi .check:has(:disabled) .box {
+    border-color: var(--rule);
+  }
+
+  .bazi .opts {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi summary {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .bazi summary::-webkit-details-marker {
+    display: none;
+  }
+  .bazi .ot {
+    flex-shrink: 0;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+  }
+  .bazi .os {
+    font-size: var(--fs-xs);
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    text-align: right;
+  }
+  .bazi .close,
+  .bazi details[open] .open {
+    display: none;
+  }
+  .bazi details[open] .close {
+    display: inline;
+  }
+  .bazi .obody {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 0 18px;
+  }
+  .bazi .row {
+    position: relative;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .bazi .row > span:last-child,
+  .bazi .rt > span:first-child {
+    font-size: 15px;
+    letter-spacing: 0.06em;
+  }
+  .bazi .rt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bazi .rt .sub {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .bazi .dot {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--ink-2);
+    border-radius: 50%;
+  }
+  .bazi .row:has(:checked) .dot {
+    border-color: var(--ink);
+  }
+  .bazi .row:has(:checked) .dot::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+  .bazi .row.check {
+    padding: 0;
+    font-size: inherit;
+    letter-spacing: 0;
+  }
+  .bazi .go {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bazi .privacy {
+    font-size: 13px;
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .bazi .submit {
+    width: 100%;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 17px;
+    letter-spacing: 0.6em;
+    padding-left: 0.6em;
+    cursor: pointer;
+  }
+  .bazi .submit:hover,
+  .bazi .save:hover,
+  .bazi .brief button:hover {
+    background: var(--paper-2);
+  }
+  .bazi .nojs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .bazi .nojs p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .bazi .nojs .hint {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  /* 手机：排盘后表单收成一行 */
+  .bazi .tool.collapsed .form {
+    display: none;
+  }
+  .bazi .brief {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .bazi .bt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bazi .bm {
+    font-size: var(--fs-m);
+    letter-spacing: 0.04em;
+  }
+  .bazi .bs {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  .bazi .brief button,
+  .bazi .save {
+    flex-shrink: 0;
+    min-width: 56px;
+    height: var(--tap);
+    padding: 0 14px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+    cursor: pointer;
+  }
+
+  /* ---------- 存过的盘 ---------- */
+  .bazi .saved ul {
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .saved li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .srow {
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .bazi .sm {
+    font-size: var(--fs-m);
+    letter-spacing: 0.04em;
+  }
+  .bazi .ss {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .bazi .del,
+  .bazi .sfoot button {
+    flex-shrink: 0;
+    min-width: 52px;
+    height: var(--tap);
+    border: 0;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+  }
+  .bazi .sfoot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .bazi .sfoot p {
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .bazi .sfoot button {
+    min-width: 72px;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* ---------- 盘面 ---------- */
+  .bazi .chart {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .bazi .chart > div {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .bazi .msg {
+    font-size: var(--fs-s);
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  /* 正在排盘：按常见盘面的高度占位（设计稿 28 ①，样例手机 1,727 px、桌面右栏 1,376 px），换成盘面时下面的内容不跳 */
+  .bazi .skel {
+    min-height: 1680px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bazi .sk-head,
+  .bazi .sk-row {
+    display: grid;
+    grid-template-columns: 48px repeat(4, minmax(0, 1fr));
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+  }
+  .bazi .sk-head span {
+    text-align: center;
+  }
+  .bazi .sk-row {
+    min-height: 42px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-2);
+    letter-spacing: 0.12em;
+  }
+  .bazi .sk-row span {
+    padding-top: 8px;
+  }
+  .bazi .sk-row:nth-child(5),
+  .bazi .sk-row:nth-child(6) {
+    min-height: 50px;
+  }
+  .bazi .sk-row:nth-child(7) {
+    min-height: 80px;
+  }
+  .bazi .sk-row:last-child {
+    min-height: 70px;
+  }
+  .bazi .top {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .bazi .moment {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  .bazi .date {
+    font-size: var(--fs-m);
+    letter-spacing: 0.04em;
+  }
+  .bazi .chart .sub {
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .bazi .line {
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+  }
+  .bazi .save.on {
+    border-color: var(--rule);
+  }
+  .bazi .notice {
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: var(--fs-s);
+    line-height: 1.85;
+  }
+
+  .bazi .pillars {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .pillars col.lab {
+    width: 48px;
+  }
+  .bazi .pillars th,
+  .bazi .pillars td {
+    padding: 8px 2px;
+    text-align: center;
+    vertical-align: top;
+    font-weight: 400;
+  }
+  .bazi .pillars thead th {
+    padding: 0 0 8px;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+  }
+  .bazi .pillars thead th span {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .bazi .pillars thead .off {
+    color: var(--ink-2);
+  }
+  .bazi .pillars .zao {
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+  }
+  .bazi .pillars tbody th {
+    padding: 8px 0;
+    text-align: left;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+  }
+  .bazi .pillars tbody tr {
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .bazi .pillars tbody tr.z {
+    border-top: 0;
+  }
+  .bazi .pillars tr.gz td {
+    padding-top: 4px;
+    padding-bottom: 0;
+    white-space: nowrap;
+  }
+  .bazi .pillars tr.gz.z td {
+    padding-top: 0;
+    padding-bottom: 4px;
+  }
+  .bazi .pillars tr.gz th {
+    padding-top: 12px;
+  }
+  .bazi .big {
+    font-family: var(--font-display);
+    font-size: 30px;
+    line-height: 1.3;
+  }
+  .bazi .el {
+    margin-left: 2px;
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .bazi .pillars .list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .bazi .cg {
+    white-space: nowrap;
+    font-size: 14px;
+  }
+  .bazi .cg small {
+    margin-left: 3px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .bazi .pillars .ss {
+    gap: 3px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+  .bazi .pillars .none {
+    color: var(--ink-2);
+  }
+  .bazi .tolink {
+    align-self: flex-start;
+    min-height: var(--tap);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-s);
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+  .bazi .tolink:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .bazi .pair {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .bazi .sh {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .bazi .gong .cells {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .bazi .gong .cells div,
+  .bazi .wx .cells div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .gong .k,
+  .bazi .wx .k {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .bazi .gong .gz {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+  }
+  .bazi .gong .ny {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .bazi .gong .hint {
+    margin-top: 2px;
+  }
+  .bazi section.wx,
+  .bazi .gx,
+  .bazi .qy,
+  .bazi .dy,
+  .bazi .ln {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bazi .dy,
+  .bazi .ln {
+    gap: 10px;
+  }
+  .bazi .wx .cells {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .bazi .wx .cells div {
+    align-items: center;
+    padding: 10px 0;
+  }
+  .bazi .wx .k {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+  .bazi .wx .n {
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1.2;
+  }
+  .bazi section.wx .hint,
+  .bazi .qy .hint {
+    margin: 0;
+  }
+  .bazi .gx ul {
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .gx li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .gx .n {
+    font-size: var(--fs-m);
+    letter-spacing: 0.08em;
+  }
+  .bazi .gx .z {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+    text-align: right;
+  }
+  .bazi .gx .none {
+    font-size: var(--fs-s);
+    color: var(--ink-2);
+  }
+  .bazi .qy .main {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+
+  /* 大运：手机横滑，出血到屏幕边（写法同栏目行，左右与 Paper .page 的内边距逐字对应） */
+  .bazi .strip {
+    --edge-l: max(var(--gutter), env(safe-area-inset-left));
+    --edge-r: max(var(--gutter), env(safe-area-inset-right));
+    margin-inline: calc(-1 * var(--edge-l)) calc(-1 * var(--edge-r));
+    padding-left: var(--edge-l);
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .bazi .strip::-webkit-scrollbar {
+    display: none;
+  }
+  .bazi .strip::after {
+    content: '';
+    flex: 0 0 calc(var(--edge-r) - 6px);
+  }
+  .bazi .strip > *,
+  .bazi .ln li {
+    position: relative;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border-radius: var(--radius);
+  }
+  .bazi .strip > * {
+    width: 64px;
+    min-height: 124px;
+    padding: 8px 0 14px;
+  }
+  .bazi .strip button {
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .bazi .strip button:hover {
+    border-color: var(--ink-2);
+  }
+  .bazi .strip button[aria-pressed='true'],
+  .bazi .ln li[aria-current] {
+    border-color: var(--ink);
+  }
+  .bazi .pre {
+    justify-content: center;
+    gap: 4px;
+    color: var(--ink-2);
+    text-align: center;
+    font-size: 11px;
+  }
+  .bazi .pre span:first-child {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+  }
+  .bazi .strip .a,
+  .bazi .strip .s,
+  .bazi .ln .a,
+  .bazi .ln .s {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .bazi .strip .gz,
+  .bazi .ln .gz {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.3;
+  }
+  .bazi .ln ul {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .bazi .ln li {
+    gap: 1px;
+    padding: 8px 0 14px;
+    border: 1px solid var(--rule);
+  }
+  .bazi .ln .gz {
+    font-size: 20px;
+  }
+  .bazi .ln .s {
+    white-space: nowrap;
+  }
+
+  /* ---------- 盘面上的词 ---------- */
+  .bazi .terms dl {
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .terms dl div {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .terms dt {
+    font-size: 15px;
+    line-height: 1.85;
+    letter-spacing: 0.06em;
+  }
+  .bazi .terms dd {
+    font-size: var(--fs-s);
+    line-height: 1.85;
+  }
+
+  /* ---------- 桌面：左 360 表单（sticky），右栏盘面（设计稿 D24、D25） ---------- */
+  @media (min-width: 1024px) {
+    .bazi {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+    }
+    .bazi h1 {
+      font-size: 44px;
+    }
+    .bazi .intro p {
+      max-width: 640px;
+      font-size: var(--fs-m);
+    }
+    .bazi .head {
+      font-size: var(--fs-m);
+    }
+    .bazi .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .bazi .body {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 48px;
+      align-items: start;
+    }
+    .bazi .left {
+      position: sticky;
+      top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .bazi .right {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      min-width: 0;
+    }
+    .bazi .tool {
+      padding: 28px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+    }
+    .bazi .tool.collapsed .form {
+      display: flex;
+    }
+    .bazi .brief {
+      display: none !important;
+    }
+    .bazi .wait {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 28px;
+      border: 1px dashed var(--rule);
+      border-radius: var(--radius);
+    }
+    .bazi .wait p {
+      font-size: var(--fs-m);
+      line-height: 1.9;
+    }
+    .bazi .wait .hint {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .bazi .wait[hidden] {
+      display: none;
+    }
+    .bazi .chart > div {
+      gap: 28px;
+    }
+    .bazi .skel {
+      min-height: 1330px;
+    }
+    .bazi .sk-head,
+    .bazi .sk-row {
+      grid-template-columns: 72px repeat(4, minmax(0, 1fr));
+    }
+    .bazi .pillars col.lab {
+      width: 72px;
+    }
+    .bazi .pillars tbody tr {
+      font-size: var(--fs-s);
+    }
+    .bazi .big {
+      font-size: 34px;
+    }
+    .bazi .cg {
+      font-size: 15px;
+    }
+    .bazi .pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px;
+      align-items: start;
+    }
+    /* 桌面 11 格一行，不横滑 */
+    .bazi .strip {
+      margin: 0;
+      padding: 0;
+      justify-content: space-between;
+      overflow: visible;
+    }
+    .bazi .strip::after {
+      content: none;
+    }
+    /* 右栏 712：11 格加 10 个间距放不下 60 宽，均分 */
+    .bazi .strip > * {
+      flex: 1 1 0;
+      width: auto;
+      min-width: 0;
+    }
+    .bazi .ln ul {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+    }
+    .bazi .terms dl div {
+      grid-template-columns: 168px minmax(0, 1fr);
+    }
+    .bazi .terms dt {
+      font-size: var(--fs-m);
+    }
+    .bazi .terms dd {
+      font-size: 15px;
+    }
+  }
+</style>
