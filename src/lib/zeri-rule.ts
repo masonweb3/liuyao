@@ -7,17 +7,21 @@
 /**
  * 事项：slug 是网址（/zeri/banjia/2026-11/），上线后不改；words 是 tyme4ts 宜忌里的简体原词。
  * 置产、纳财不做（投资，AGENTS.md §1.5）；求医、治病、针灸、探病、求医疗病、词讼不做；开业只看开市，立券、交易不算。
+ * 繁体名用台湾说法（M18-7）：装修写「裝潢」，网址仍是 zhuangxiu；title 与说明里另带「裝修」，搬家另带「入厝」。
  */
 export const ITEMS = [
 	{ slug: "banjia", name: "搬家", hant: "搬家", words: ["移徙", "入宅"] },
 	{ slug: "jiehun", name: "结婚", hant: "結婚", words: ["嫁娶"] },
 	{ slug: "kaiye", name: "开业", hant: "開業", words: ["开市"] },
 	{ slug: "chuxing", name: "出行", hant: "出行", words: ["出行"] },
-	{ slug: "zhuangxiu", name: "装修", hant: "裝修", words: ["修造", "动土"] },
+	{ slug: "zhuangxiu", name: "装修", hant: "裝潢", words: ["修造", "动土"] },
 	{ slug: "dinghun", name: "订婚", hant: "訂婚", words: ["订盟", "纳采"] },
 ] as const;
 
 export type Slug = (typeof ITEMS)[number]["slug"];
+
+/** 事项月页的网址，带尾斜杠：/zeri/banjia/2026-11/，繁体 /zh-hant/zeri/banjia/2026-11/（前缀同 huangli-days.ts 的 HANT）。不带月份是择日首页。 */
+export const zeriPath = (slug?: Slug, month?: string, hant = false) => `${hant ? "/zh-hant" : ""}/zeri/${slug ? `${slug}/${month}/` : ""}`;
 
 const NONE = "诸事不宜";
 
