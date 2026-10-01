@@ -485,7 +485,8 @@ const table = kind === 'shishen' ? shishenTable() : [];
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 3px;
-    text-decoration-color: var(--rule);
+    /* --rule 在纸色上只有 1.2:1，几乎看不出是链接 */
+    text-decoration-color: var(--ink-2);
   }
   .kicker a:hover {
     color: var(--ink);
