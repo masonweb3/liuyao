@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { GUA, guaPath, HANT } from '../data/gua-slugs';
+import { KB_PAGES, kbPath } from '../lib/bazi-kb';
 import { months } from '../lib/huangli-card';
 import { dayPath, days, JIEQI, jieqiPath } from '../lib/huangli-days';
 import { ITEMS, zeriPath } from '../lib/zeri-rule';
@@ -23,6 +24,8 @@ const PATHS = [
 		...months().flatMap((m) => ITEMS.map((i) => zeriPath(i.slug, m, hant))),
 		// 八字排盘（M19a）：只有栏目首页，盘面在浏览器里算、不进网址
 		`${hant ? HANT : ''}/bazi/`,
+		// 八字知识页（M19b）：十天干、十二地支（各带目录）、十神、纳音、十二长生，27 页
+		...KB_PAGES.map((p) => kbPath(p.path, hant)),
 	]),
 ];
 

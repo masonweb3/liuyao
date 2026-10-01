@@ -1,0 +1,8 @@
+---
+import BaziKb from '../../../components/BaziKb.astro';
+import { KB_PAGES } from '../../../lib/bazi-kb';
+
+export const getStaticPaths = () => KB_PAGES.map((p) => ({ params: { kb: p.path.slice('/bazi/'.length, -1) }, props: p }));
+---
+
+<BaziKb kind={Astro.props.kind} name={Astro.props.name} hant />

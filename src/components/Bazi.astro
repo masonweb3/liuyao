@@ -11,6 +11,7 @@ import bazi from '../data/bazi.json';
 import cities from '../data/cities.json?url';
 import huangliHant from '../data/huangli-hant.json';
 import Paper from '../layouts/Paper.astro';
+import { GAN, ganPath, kbPath, ZHI, zhiPath } from '../lib/bazi-kb';
 import Invite from './Invite.astro';
 
 interface Props {
@@ -48,6 +49,15 @@ const description = t(
   '輸入生辰，在瀏覽器裡排出四柱、十神、藏干、納音、神煞、大運與流年；生辰不上傳。只排盤面，不下斷語。',
 );
 const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '自坐', t('纳音', '納音'), '空亡', '神煞'];
+// 「盘面上的词」里有知识页的四条，末尾各加一个链接（M19b-2）；按简体词条名找，繁体同一位置。
+// 键不显示，简体字写成转义（星运、纳音），免得繁体页的补字核对把它们算进去
+const MORE: Record<string, [string, string]> = {
+  十神: [t('十神对照表', '十神對照表'), '/bazi/shishen/'],
+  藏干: ['十二地支', '/bazi/dizhi/'],
+  '星\u8fd0 · 自坐': [t('十二长生表', '十二長生表'), '/bazi/changsheng/'],
+  '\u7eb3\u97f3': [t('三十组纳音', '三十組納音'), '/bazi/nayin/'],
+};
+const more = (k: number) => MORE[bazi.terms[k]!.term];
 ---
 
 <Paper title={title} description={description} path="/bazi/" at="/bazi/" home group="bazi" subset="index" hant={hant} ogType="website">
@@ -187,10 +197,29 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
         <section class="terms" id="terms" aria-labelledby="bz-terms">
           <h2 class="head" id="bz-terms" tabindex="-1">{t('盘面上的词', '盤面上的詞')}</h2>
           <dl>
-            {text.terms.map((x) => (
-              <div><dt>{x.term}</dt><dd>{x.text}</dd></div>
-            ))}
+            {text.terms.map((x, k) => {
+              const m = more(k);
+              return <div><dt>{x.term}</dt><dd>{x.text}{m && <a class="kb-more" href={kbPath(m[1], hant)}>{m[0]} ›</a>}</dd></div>;
+            })}
           </dl>
+        </section>
+
+        {/* 八字知识（M19b-2，设计稿 32 ①）：十天干、十二地支逐字可点，再列十神、纳音、十二长生。预渲染，盘面里不加链接 */}
+        <section class="kb" aria-labelledby="bz-kb">
+          <h2 class="head" id="bz-kb">{t('八字知识', '八字知識')}</h2>
+          <div class="kb-group">
+            <a class="kb-title" href={kbPath('/bazi/tiangan/', hant)}>十天干<span aria-hidden="true">›</span></a>
+            <nav class="kb-grid g10" aria-label="十天干">{[...GAN].map((g) => <a href={ganPath(g, hant)}>{g}</a>)}</nav>
+          </div>
+          <div class="kb-group">
+            <a class="kb-title" href={kbPath('/bazi/dizhi/', hant)}>十二地支<span aria-hidden="true">›</span></a>
+            <nav class="kb-grid g6" aria-label="十二地支">{[...ZHI].map((z) => <a href={zhiPath(z, hant)}>{z}</a>)}</nav>
+          </div>
+          <ul role="list" class="kb-list">
+            <li><a href={kbPath('/bazi/shishen/', hant)}><span><span class="kt">十神</span><span class="ks">{t('十个名目与 10×10 对照表', '十個名目與 10×10 對照表')}</span></span><span aria-hidden="true">›</span></a></li>
+            <li><a href={kbPath('/bazi/nayin/', hant)}><span><span class="kt">{t('纳音', '納音')}</span><span class="ks">{t('三十组，一张表', '三十組，一張表')}</span></span><span aria-hidden="true">›</span></a></li>
+            <li><a href={kbPath('/bazi/changsheng/', hant)}><span><span class="kt">{t('十二长生', '十二長生')}</span><span class="ks">{t('十个天干的十二步', '十個天干的十二步')}</span></span><span aria-hidden="true">›</span></a></li>
+          </ul>
         </section>
       </div>
     </div>
@@ -1020,6 +1049,12 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     display: flex;
     flex-direction: column;
     gap: var(--gap);
+    /* 干支（四柱、胎元命宫身宫、大运流年、八字知识的格子）：简体用宋体。站酷小薇的「己」画得和「巳」一样，
+       按缺字处理（gua.ts 的 fontOf）；这些块几乎都含「己」，照「整块换宋体」统一用宋体，不混排。繁体的芫荽分得清 */
+    --font-gz: var(--font-body);
+  }
+  .bazi:lang(zh-Hant) {
+    --font-gz: var(--font-display);
   }
   .bazi .intro {
     display: flex;
@@ -1082,6 +1117,9 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
   }
   .bazi .terms {
     order: 4;
+  }
+  .bazi .kb {
+    order: 5;
   }
   .bazi .wait {
     display: none;
@@ -1665,7 +1703,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     padding-top: 12px;
   }
   .bazi .big {
-    font-family: var(--font-display);
+    font-family: var(--font-gz);
     font-size: 30px;
     line-height: 1.3;
   }
@@ -1745,7 +1783,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
     color: var(--ink-2);
   }
   .bazi .gong .gz {
-    font-family: var(--font-display);
+    font-family: var(--font-gz);
     font-size: 22px;
     line-height: 1.3;
     letter-spacing: 0.06em;
@@ -1891,7 +1929,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
   }
   .bazi .strip .gz,
   .bazi .ln .gz {
-    font-family: var(--font-display);
+    font-family: var(--font-gz);
     font-size: 22px;
     line-height: 1.3;
   }
@@ -1931,6 +1969,97 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
   .bazi .terms dd {
     font-size: var(--fs-s);
     line-height: 1.85;
+  }
+  /* 词条末尾去知识页的链接：点击区 44 高，负外边距让行高不变 */
+  .bazi .kb-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    margin: -11px 0 -11px 6px;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    text-underline-offset: 3px;
+  }
+
+  /* ---------- 八字知识 ---------- */
+  .bazi .kb {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bazi .kb a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .bazi .kb-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bazi .kb-title,
+  .bazi .kb-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .bazi .kb-title {
+    min-height: var(--tap);
+    font-size: var(--fs-m);
+    letter-spacing: 0.06em;
+  }
+  .bazi .kb-title span,
+  .bazi .kb-list a > span:last-child,
+  .bazi .kb-list .ks {
+    color: var(--ink-2);
+  }
+  .bazi .kb-grid {
+    display: grid;
+    border-block: 1px solid var(--rule);
+  }
+  .bazi .g10 {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+  .bazi .g6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .bazi .kb-grid a {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-gz);
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  .bazi .kb-list {
+    border-top: 1px solid var(--rule);
+  }
+  .bazi .kb-list a {
+    min-height: 52px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .bazi .kb-list a > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bazi .kt {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+  .bazi .ks {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+  .bazi .kb-title:hover,
+  .bazi .kb-grid a:hover,
+  .bazi .kb-list a:hover .kt {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
   }
 
   /* ---------- 桌面：左 360 表单（sticky），右栏盘面（设计稿 D24、D25） ---------- */
