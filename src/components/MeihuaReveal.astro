@@ -148,6 +148,7 @@ import MeihuaBar from "./MeihuaBar.astro";
   .bian .name {
     font-size: 20px;
     letter-spacing: 0.12em;
+    white-space: nowrap;
   }
   .tag {
     padding-left: 0.4em;
@@ -301,6 +302,13 @@ import MeihuaBar from "./MeihuaBar.astro";
   @media (max-width: 359px) {
     .pair {
       zoom: 0.8;
+    }
+  }
+  /* 变卦一列只有爻宽（72）：四个字的卦名（雷山小过、风天小畜）在 414 以下会折成「雷山小 / 过」。窄屏小一号、不加字距，一行放得下 */
+  @media (max-width: 413px) {
+    .bian .name {
+      font-size: 17px;
+      letter-spacing: 0;
     }
   }
 
