@@ -149,6 +149,12 @@ describe("fontOf", () => {
 		expect(fontOf("遯：亨。小利贞。")).toBe("--font-body");
 	});
 
+	it("「己」字形与「巳」相同，按缺字处理；「巳」照用小薇", () => {
+		expect(fontOf("己")).toBe("--font-body");
+		expect(fontOf("己巳")).toBe("--font-body");
+		expect(fontOf("巳")).toBe("--font-display");
+	});
+
 	it("全部爻辞算一块：一行缺字，整组宋体", () => {
 		const yao = parseGua(TEXT["天风姤"] as string).yao.map((y) => y.text);
 		expect(fontOf(yao[1] as string)).toBe("--font-display"); // 九二：包有鱼…

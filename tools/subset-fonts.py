@@ -29,6 +29,11 @@
 
 八字（src/fonts/bazi/、bazi-hant/）：排盘页 /bazi/（M19a）与全部知识页（M19b-3）共用一份 index，用标题字体的字是固定的一组：
 「八字」、十天干、十二地支、0–9、乾造、坤造，知识页的「十神」「纳音」「十二长生」「十天干」「十二地支」，加纸面页都有的标题字。
+简体的干支只剩天干、地支页 h1 的那一个字（盘面、表格、格子里的干支用宋体，见 BaziKb.astro），每个字各算一块：
+「己」按小薇缺字处理，只有己页的 h1 用宋体，子集里不收它。
+
+站酷小薇按缺字处理的字（gua_hans 整块不收）从 src/lib/gua.ts 的 NO_XIAOWEI 读，规则只写在那里；
+它比 cmap 缺的字多一个「己」：小薇有这个码位，字形却和「巳」一样。
 
 纸面页（卦页、目录、黄历与节气）的正文（宋体）另有补字，写进 src/styles/paper-fonts.css（Paper.astro 引入，排在 fontsource 之后）：
 - src/fonts/body-hans.woff2、body-hant.woff2：fontsource 的 Noto Serif SC / TC 400 切片里没有、正文数据
@@ -111,6 +116,9 @@ BODY = {
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
 
+# 站酷小薇按缺字处理的字：src/lib/gua.ts 的 fontOf 用的那张表（含 cmap 里有、字形画错的「己」）
+NO_XIAOWEI = set(re.search(r"const NO_XIAOWEI = /\[(.+?)\]/", open("src/lib/gua.ts", encoding="utf-8").read()).group(1))
+
 _raw: dict[str, bytes] = {}
 
 
@@ -188,10 +196,12 @@ def huangli_blocks(lang: str) -> dict[str, list[str]]:
 
 
 def bazi_blocks(lang: str) -> dict[str, list[str]]:
-    """八字排盘页（M19a）与知识页（M19b-3，共用一份）用标题字体的字：h1、四柱与大运流年的干支、五行个数、乾造坤造，
-    知识页的 h1（十神、纳音、十二长生、十天干、十二地支；天干、地支页的 h1 是一个干支字）与表格里的干支。"""
+    """八字排盘页（M19a）与知识页（M19b-3，共用一份）用标题字体的字：h1、五行个数、乾造坤造，
+    知识页的 h1（十神、纳音、十二长生、十天干、十二地支；天干、地支页的 h1 是一个干支字）。
+    繁体的盘面与表格里的干支也用标题字体；简体那些干支用宋体，只有 h1 的单字要小薇。干支每个字各算一块
+    （同 fontOf：己页的 h1 用宋体，别的字照收）。"""
     kb = ["十神", "納音", "十二長生"] if lang == "hant" else ["十神", "纳音", "十二长生"]
-    return {"index": [CHROME[lang], "八字", GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支"]}
+    return {"index": [CHROME[lang], "八字", *GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支"]}
 
 
 def city_chars(lang: str) -> str:
@@ -220,7 +230,7 @@ def gua_hans(pages: dict[str, list[str]], dir: str) -> None:
     table, sizes = {}, []
     for slug, blocks in pages.items():
         # 空格：浏览器按含空格的第一个字体定行高与基线，子集里没有空格，段落会随别的字体加载而上下微移。
-        text = " " + "".join(b for b in blocks if all(ord(c) in has for c in b))
+        text = " " + "".join(b for b in blocks if all(ord(c) in has and c not in NO_XIAOWEI for c in b))
         table[slug], size = save(make_subset(load("xiaowei"), text), f"{dir}/{slug}.woff2")
         sizes.append(size)
     write_ranges(table, f"{dir}/ranges.json")

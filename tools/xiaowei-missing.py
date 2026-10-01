@@ -7,6 +7,7 @@
 
 读的是 node_modules 里 @fontsource/zcool-xiaowei 的全部切片，也就是页面实际加载的字；
 文字取 guaci.json 的卦名、卦辞、爻辞（彖传、象传用宋体，不算），加 huangli.json 的节气名与三候名（节气页用小薇）。
+另有 WRONG：小薇有这个码位、字形却画错了的字，不管出没出现都按缺字输出。
 换字体版本或改了 guaci.json 就重跑（在测试服务器上，不在本机；先要装好依赖）：
   ssh $STAGE 'cd ~/liuyao && docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v ~/liuyao:/app -w /app \
     python:3.12-slim sh -c "pip install -q --user fonttools==4.* brotli && python tools/xiaowei-missing.py"'
@@ -17,6 +18,9 @@ import json
 import re
 
 from fontTools.ttLib import TTFont
+
+# 字形有误、按缺字处理：「己」画得和「巳」一模一样（左竖顶到横上、封口），八字页的「己巳」看成「巳巳」。
+WRONG = "己"
 
 has = set()
 for path in glob.glob("node_modules/@fontsource/zcool-xiaowei/files/*-400-normal.woff2"):
@@ -31,4 +35,4 @@ for name, body in json.load(open("src/data/guaci.json", encoding="utf-8")).items
 for name, term in json.load(open("src/data/huangli.json", encoding="utf-8"))["jieqi"].items():
     text += name + "".join(h["name"] for h in term["hou"])
 
-print("".join(sorted({c for c in text if ord(c) not in has and not c.isspace()})))
+print("".join(sorted({c for c in text if ord(c) not in has and not c.isspace()} | set(WRONG))))

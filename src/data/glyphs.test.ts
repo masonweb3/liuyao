@@ -201,9 +201,14 @@ it.each([
 	expect([...text].filter((ch) => !have.has(ch.codePointAt(0) as number)).join(""), "改了事项名要重跑 tools/subset-fonts.py").toBe("");
 });
 
-// 八字排盘与知识页的标题字体（M19a、M19b-3 共用一份）：h1、干支、五行个数、乾造坤造，知识页的十神、纳音、十二长生、十天干、十二地支
+// 八字排盘与知识页的标题字体（M19a、M19b-3 共用一份）：h1、干支、五行个数、乾造坤造，知识页的十神、纳音、十二长生、十天干、十二地支。
+// 简体不收「己」：小薇的「己」画得和「巳」一样，按缺字处理（gua.ts 的 fontOf），己页的 h1 用宋体。
+it("简体八字标题子集不收「己」", () => {
+	const have = woff2Chars(readFileSync(new URL("../fonts/bazi/index.woff2", import.meta.url)));
+	expect(have.has("己".codePointAt(0) as number)).toBe(false);
+});
 it.each([
-	["bazi", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造十神纳音十二长生十天干十二地支"],
+	["bazi", "八字甲乙丙丁戊庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造十神纳音十二长生十天干十二地支"],
 	["bazi-hant", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造十神納音十二長生十天干十二地支"],
 ])("八字标题子集 %s/index 有干支、数字、乾造坤造与知识页标题", (dir, text) => {
 	const have = new Set<number>();
