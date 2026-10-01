@@ -297,6 +297,13 @@ import MeihuaBar from "./MeihuaBar.astro";
     }
   }
 
+  /* 本卦、体用标签、之、变卦一行约 330 宽：320 宽的屏只剩 272，动爻的 ○× 与变卦名会出屏。窄屏整组按比例缩小 */
+  @media (max-width: 359px) {
+    .pair {
+      zoom: 0.8;
+    }
+  }
+
   @media (min-width: 1024px) {
     .reveal {
       background: radial-gradient(ellipse 60% 55% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
