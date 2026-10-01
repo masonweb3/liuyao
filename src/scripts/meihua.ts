@@ -356,6 +356,8 @@ function setText(el: HTMLElement, text: string, font: string) {
 const byLine = (v: MeihuaView, full = false) =>
 	v.by === "time" ? `时间起卦 · ${v.when}` : `数字起卦 · ${full ? "报数 " : ""}${v.nums} · ${v.hour}时`;
 const formula = (v: MeihuaView) => v.formula.map((p) => `<p>${p}</p>`).join("");
+/** 「乾坤无互，取变卦之互」短注：乾、坤动在初爻、上爻时变卦之互仍是自身，看着像没取，不出（解读页互卦一段另有整句） */
+const huNote = (v: MeihuaView) => v.hu.fromBian && v.hu.name !== v.ben.name;
 
 function reveal(view: MeihuaView, at: string) {
 	shown = { view, at };
@@ -366,7 +368,7 @@ function reveal(view: MeihuaView, at: string) {
 	setText($("[data-bian-name]", revealEl), view.bian.name, view.bian.font);
 	setText($("[data-hu-name]", revealEl), view.hu.name, view.hu.font);
 	$("[data-hu-el]", revealEl).textContent = `${view.hu.lower} · ${view.hu.upper}`;
-	$("[data-hu-note]", revealEl).hidden = !view.hu.fromBian;
+	$("[data-hu-note]", revealEl).hidden = !huNote(view);
 	$("[data-formula]", revealEl).innerHTML = formula(view);
 	$("[data-reveal-when]", revealEl).textContent =
 		view.by === "time" ? `${view.when} · 时间起卦` : `报数 ${view.nums} · ${view.hour}时 · 数字起卦`;
@@ -406,7 +408,7 @@ function read(v: MeihuaView, question: string, at: string, past: Past | undefine
 	zhi.href = v.bian.href;
 	set("[data-by]", byLine(v));
 	setText($("[data-hu-n]", r), v.hu.name, v.hu.font);
-	for (const el of $$("[data-hu-qk]", r)) el.hidden = !v.hu.fromBian;
+	$("[data-hu-qk]", r).hidden = !huNote(v);
 
 	const duan = $("[data-duan]", r);
 	duan.textContent = v.verdict;
@@ -443,8 +445,7 @@ function read(v: MeihuaView, question: string, at: string, past: Past | undefine
 	set("[data-hu-short]", v.hu.short);
 	setText($("[data-hu-name]", r), v.hu.name, v.hu.font);
 	$("[data-hu-lines]", r).innerHTML = v.hu.lines;
-	set("[data-hu-lower]", v.hu.lower);
-	set("[data-hu-upper]", v.hu.upper);
+	set("[data-hu-say]", v.hu.say);
 	set("[data-origin]", byLine(v, true));
 	$("[data-formula]", r).innerHTML = formula(v);
 

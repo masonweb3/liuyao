@@ -36,6 +36,7 @@ import baziPages from "./bazi-pages.json" with { type: "json" };
 import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
 import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
+import { compose } from "../lib/meihua-reading.js";
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -185,6 +186,28 @@ it.each(["home", "meihua"])("首屏子集 %s-body 有栏目导航的每个字", 
 	const have = woff2Chars(readFileSync(new URL(`../fonts/${name}-body.woff2`, import.meta.url)));
 	const missing = [...COLUMNS.map((c) => c.hans).join("")].filter((ch) => !have.has(ch.codePointAt(0) as number));
 	expect(missing.join(""), "加了栏目要重跑 tools/subset-fonts.py").toBe("");
+});
+
+// 梅花页（M21）不引 paper-fonts.css：页面上的字（组件、页面脚本写进去的、Worker 拼的依据与算式）只能靠 fontsource 切片，不算补字。
+// 卦爻辞原文另算（六爻解读页同样没有补字，见 AGENTS.md「正文补字」）。
+it("梅花页的说明、界面与依据、算式的每个字都在 Noto Serif SC 切片里", () => {
+	const files = ["Meihua", "MeihuaAsk", "MeihuaBar", "MeihuaHome", "MeihuaMethod", "MeihuaNotice", "MeihuaReading", "MeihuaReveal", "MeihuaTopic"]
+		.map((f) => `../components/${f}.astro`)
+		.concat("../scripts/meihua.ts", "../lib/meihua-page.ts", "../lib/meihua-reading.ts");
+	const source = files.map((f) =>
+		readFileSync(new URL(f, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->|\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""),
+	);
+	const views: unknown[] = [];
+	for (let a = 1; a <= 8; a++)
+		for (let b = 1; b <= 8; b++)
+			for (let h = 0; h < 12; h += 2) {
+				const v = compose({ by: { by: "num", nums: [a, b] }, at: `2026-10-01T${String(h).padStart(2, "0")}:30:00+08:00`, topic: "自身", lateZi: "day-stays" });
+				views.push(v.reasons, v.rows, v.formula, v.hu.say, v.when);
+			}
+	const t = compose({ by: { by: "time" }, at: "2025-08-01T12:00:00+08:00", topic: "自身", lateZi: "day-stays" });
+	const have = fontsourceChars("noto-serif-sc");
+	const missing = chars(source, views, t.formula, t.when).filter((ch) => (ch.codePointAt(0) as number) > 0x7f && !have.has(ch.codePointAt(0) as number));
+	expect(missing.join(""), "梅花页不带补字：换个说法，或给梅花页加补字").toBe("");
 });
 
 // 梅花页首屏（M21）：此刻的农历与时辰（北京时间）由脚本填，干支、月日、时辰的字也要在预加载的子集里。

@@ -20,7 +20,7 @@ const cats = [
     <div class="title">
       <h1 tabindex="-1" data-autofocus>此事关乎</h1>
       <p>{ERRORS.topicFallback}</p>
-      <p class="why">梅花按体用生克断，类别只用来选建议的说法。</p>
+      <p class="why">梅花按体用生克断吉凶，类别只决定断语和建议的说法。</p>
     </div>
     <div class="grid" role="group" aria-label="问题类别">
       {cats.map((c) => (
@@ -31,7 +31,7 @@ const cats = [
       ))}
       <button type="button" class="cat wide" data-topic="自身" aria-pressed="false">
         <span class="head">自身</span>
-        <span class="sub">自己的近况与打算</span>
+        <span class="sub">自己的运势</span>
       </button>
     </div>
     <button class="btn solid done dock" data-topic-done disabled>定</button>

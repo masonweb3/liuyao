@@ -17,13 +17,13 @@ const fields = (p: string) => [
   <div class="col">
     <div class="title">
       <h1 tabindex="-1" data-autofocus>以何起卦</h1>
-      <p>梅花不摇铜钱，以时或以数成卦。<br class="m" />选定即起，同一件事只起这一次。</p>
+      <p>梅花不摇铜钱，以时或以数成卦。<br class="m" />卦一起就定下，同一件事只起这一次。</p>
     </div>
     <div class="cards" role="group" aria-label="起卦方法">
       <button type="button" class="card now" data-cast-time>
         <span class="t">以此刻起卦</span>
         <span class="when"><span data-now-card></span>（北京时间）</span>
-        <span class="s">年、月、日、时之数相加成卦<span class="d">。同一时辰起出同一卦，这是梅花的本意：卦随时，事随问。</span></span>
+        <span class="s">年、月、日、时之数相加成卦<span class="d">。同一天的同一个时辰里起卦，得的都是同一卦。</span></span>
         <span class="go" aria-hidden="true">以此刻起卦</span>
       </button>
       <div class="card num">
@@ -34,7 +34,7 @@ const fields = (p: string) => [
         </button>
         <form class="desk" novalidate data-num-form aria-labelledby="num-desk">
           <h2 class="t" id="num-desk">报数起卦</h2>
-          <p class="s">报两个数，或一个数。心里浮现的，或眼前所见的；动爻再加此刻的时辰（<span data-hour-name></span>，<span data-hour-num></span>）。</p>
+          <p class="s">报两个数，或一个数，心里浮现的、眼前所见的都可以。起卦还要加上此刻的时辰数（<span data-hour-name></span>，<span data-hour-num></span>）。</p>
           <div class="pair">
             {fields("d").map((f) => (
               <div class="field">
@@ -50,7 +50,7 @@ const fields = (p: string) => [
       </div>
     </div>
     <p class="local" role="note" hidden data-local>
-      <Slots text="你那里是 {local}，约在{localHour}时；梅花按北京时间起卦，此刻是 {beijing} {beijingHour}时。" />
+      <Slots text="你那里是 {local}，{localHour}时；梅花按北京时间起卦，此刻是 {beijing} {beijingHour}时。" />
     </p>
     <p class="fail" role="alert" data-cast-error></p>
     <p class="foot">时辰按北京时间 · 同一件事，一卦为定</p>
@@ -75,7 +75,7 @@ const fields = (p: string) => [
         <p class="err" id={`${f.id}-e`} role="alert" data-err></p>
       </div>
     ))}
-    <p class="s">只收正整数，最多四位。动爻还要加上此刻的时辰：<span data-hour-name></span>，<span data-hour-num></span>。</p>
+    <p class="s">只收正整数，最多四位。起卦还要加上此刻的时辰数：<span data-hour-name></span>，<span data-hour-num></span>。</p>
     <p class="fail" role="alert" data-cast-error></p>
     <footer class="dock">
       <button class="btn solid" type="submit">起卦</button>

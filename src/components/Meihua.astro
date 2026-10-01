@@ -21,9 +21,9 @@ import MeihuaReading from './MeihuaReading.astro';
 import MeihuaReveal from './MeihuaReveal.astro';
 import MeihuaTopic from './MeihuaTopic.astro';
 
-const title = '梅花易数 · 在线时间起卦、报数起卦与体用生克 · 六爻';
+const title = '梅花易数在线起卦 · 时间起卦、数字起卦与体用生克 · 六爻';
 const description =
-  '写下所问，以此刻的年月日时或心中浮现的数起卦，按《梅花易数》起例成卦，列出本卦、互卦、变卦与体用生克，附卦爻辞原文与白话。免费，无广告，不用登录。';
+  '写下所问，以此刻的年月日时或心中浮现的数起卦，照《梅花易数》起例得本卦、互卦、变卦，按体用生克断吉凶，附卦爻辞原文与白话。免费，无广告，不用登录。';
 // 首屏「此刻」的农历：表覆盖黄历时间窗前后各一年（每年第四季度随 YEARS 往后加），表外只写时辰。
 const lunar = lunarTable(YEARS[0]! - 1, YEARS[YEARS.length - 1]! + 1);
 // 页面脚本要说的话（错误、报数校验）：构建时写进页面，脚本不 import copy.ts

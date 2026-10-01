@@ -98,9 +98,9 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
         <span class="duan" role="img" data-duan></span>
         <div class="said">
           <p class="conclusion" data-conclusion></p>
-          {/* 发现第 4 条：同一时辰（同一组数）起出同一卦，吉凶也就相同，这是起法本身的性质，类别只换建议的说法 */}
+          {/* 发现第 4 条：同一时辰（同一组数）起出同一卦，吉凶也就相同，这是起法本身的性质，类别只换断语和建议的说法 */}
           <p class="basis">
-            <span data-basis="time">按体用生克断。同一时辰起卦，卦与吉凶都相同，这是梅花起法本来的性质；</span><span data-basis="num" hidden>按体用生克断。同一时辰报同样的数，卦与吉凶都相同，这是梅花起法本来的性质；</span>所问属「<span data-topic-label></span>」，只用来选建议的说法。
+            <span data-basis="time">按体用生克断。同一天同一时辰起卦，卦与吉凶都相同，这是起法本身的性质；</span><span data-basis="num" hidden>按体用生克断。同一时辰报同样的数，卦与吉凶都相同，这是起法本身的性质；</span>所问属「<span data-topic-label></span>」，只决定断语和建议的说法。
           </p>
         </div>
       </section>
@@ -119,7 +119,7 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
           </tbody>
         </table>
         <ol class="list" data-reasons></ol>
-        <p class="tail">体卦是问事的人，用卦是所问之事；互卦看经过，变卦看结局。生体、比和、体克用为顺，克体为阻，体生用为耗。不看卦气旺衰，也不兼看卦辞、外应。</p>
+        <p class="tail">体卦代表问事的人，用卦代表所问的事；互卦看经过，变卦看结局。本站分三步判：先看用卦，生体、比和、为体所克为吉，为体所生为平，克体为凶；再看变卦，与用卦一吉一凶断平，用卦为平就随变卦；最后四处合看，两处以上克体、又没有一处生体，断凶。不看卦气旺衰（体卦在当季是旺是衰），也不兼看卦辞、爻辞与外应（起卦时身边的见闻）。</p>
       </section>
       <section class="block">
         <h2 class="head">建议</h2>
@@ -147,7 +147,8 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
         <section class="block text hu">
           <h2 class="kicker">互卦 · <span data-hu-short></span></h2>
           <div class="hu-row"><span class="hu-name" data-hu-name></span><div class="mini" data-hu-lines aria-hidden="true"></div></div>
-          <p class="hu-say">互卦只看两个经卦对体卦的生克，不读卦辞。<span data-hu-lower></span>在下，<span data-hu-upper></span>在上。<span data-hu-qk hidden>本卦是乾或坤，照原书「乾坤无互，互其变卦」取变卦的互卦；卦页上写的互卦是一般的取法，两处不同。</span></p>
+          {/* 这一段随卦而变（上下同一经卦、乾坤取变卦之互），由 Worker 整句拼好（meihua-reading.ts 的 huSay） */}
+          <p class="hu-say" data-hu-say></p>
         </section>
       </div>
 
@@ -158,7 +159,7 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
         </summary>
         <p class="o-head"><span data-origin></span>（北京时间）</p>
         <div class="formula" data-formula></div>
-        <p class="xian">先天数：乾一 兑二 离三 震四 巽五 坎六 艮七 坤八。上卦、下卦除以八，动爻除以六，取余数；除尽时卦作坤、爻作上爻。</p>
+        <p class="xian">先天数：乾一 兑二 离三 震四 巽五 坎六 艮七 坤八。上卦、下卦除以八，动爻除以六，取余数；余数为零时，卦作坤，爻作上爻。</p>
       </details>
     </div>
   </div>

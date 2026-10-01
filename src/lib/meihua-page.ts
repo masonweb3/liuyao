@@ -226,7 +226,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
  * 访客那里的日子或时辰与北京时间不同（海外、跨日）时，选起法下面加一句（照黄历 M17-11）：
- * 你那里是 9月30日 15:08，约在申时；梅花按北京时间起卦，此刻是 10月1日 卯时。相同时 null。
+ * 你那里是 9月30日 15:08，申时；梅花按北京时间起卦，此刻是 10月1日 卯时。相同时 null。
  */
 export function localNote(now: Date): { local: string; localHour: string; beijing: string; beijingHour: string } | null {
 	const bj = new Date(now.getTime() + BEIJING);

@@ -57,11 +57,13 @@ export interface MeihuaView {
 		/** 本卦是乾或坤，取变卦之互（M21-10） */
 		fromBian: boolean;
 		lines: string;
+		/** 解读页互卦一段的整句 */
+		say: string;
 	};
 	dong: { title: string; text: string; font: string; baihua: string };
 	/** 依据表四行：体卦、用卦、互卦、变卦 → [说明, 对体卦] */
 	rows: [string, string][];
-	/** 依据三句：用定基调、互看经过、变看结局 */
+	/** 依据：用定基调、互看经过、变看结局三句，印由第三步或「一吉一凶」定下时多一句 */
 	reasons: string[];
 	/** 起卦算式三行 */
 	formula: string[];
@@ -108,18 +110,15 @@ function gua(h: Hexagram, dong: number, tags?: { upper: string; lower: string })
 	};
 }
 
-/** 依据表右列的叫法：体生、体克写全成「体生用」「体克用」，免得和「生体」「克体」看混。 */
-const PLAIN: Record<Rel, string> = { 比和: "比和", 生体: "生体", 克体: "克体", 体生: "体生用", 体克: "体克用" };
-// 依据三句的后半：事情本身、经过之中、结局（样稿措辞，待内容审定）。凶也只陈述，不写恐吓式的话。
-const SELF: Record<Rel, string> = {
-	比和: "与你相合，顺",
-	生体: "对你有助益",
-	克体: "对你有阻力",
-	体生: "要你多付出，有所耗费",
-	体克: "在你掌握之中",
-};
-const WAY: Record<Rel, string> = { 比和: "顺当", 生体: "有助力", 克体: "有阻力", 体生: "有耗费", 体克: "可以把握" };
+/** 依据表右列：用卦、互卦、变卦对体卦的五种关系，叫法同说明区（「为体所生」「为体所克」，不写「体生用」：互卦、变卦的经卦不是用卦）。 */
+const PLAIN: Record<Rel, string> = { 比和: "比和", 生体: "生体", 克体: "克体", 体生: "为体所生", 体克: "为体所克" };
+// 依据各句的白话：这件事（用卦）、经过之中（互卦）、结局（变卦）。克体一侧只说「有些阻力」，不写恐吓式的话。
+const SAY: Record<Rel, string> = { 比和: "与体卦比和", 生体: "生体卦", 克体: "克体卦", 体生: "为体所生", 体克: "为体所克" };
+const SELF: Record<Rel, string> = { 比和: "与你相合", 生体: "对你有所助益", 克体: "对你有些阻力", 体生: "要你多花些心力", 体克: "你能应对" };
+const GOT: Record<Rel, string> = { 比和: "相合处", 生体: "助力", 克体: "阻力", 体生: "耗费", 体克: "把握" };
+const END: Record<Rel, string> = { 比和: "顺当", 生体: "有所进益", 克体: "有些阻力", 体生: "要多费些心力", 体克: "可以把握" };
 
+/** 依据：用卦、互卦、变卦各一句；印由第三步或「一吉一凶」定下时，再补一句它是怎么来的（duan() 的次序）。 */
 function reasons(m: Meihua): string[] {
 	const { ti, yong, hu, bian, rel } = m;
 	const t = el(ti);
@@ -132,22 +131,53 @@ function reasons(m: Meihua): string[] {
 		体克: `体卦${t}克用卦${y}`,
 	}[rel.yong];
 	const [h0, h1] = rel.hu;
-	const huSay =
-		h0 === h1
-			? `互卦${hu.name}，${el(hu.lower)}、${el(hu.upper)}都${PLAIN[h0]}：经过之中${WAY[h0]}`
-			: `互卦${hu.name}，${el(hu.lower)}${PLAIN[h0]}，${el(hu.upper)}${PLAIN[h1]}：经过之中${WAY[h0]}，又${WAY[h1]}`;
-	const to = inner(m) ? m.bian.lower : m.bian.upper;
+	const l = el(hu.lower);
+	const u = el(hu.upper);
+	// 互卦是乾为天、坤为地时上下同一经卦，不写「乾金、乾金」
+	const mid =
+		hu.lower.name === hu.upper.name
+			? `互卦${hu.name}，上下两个经卦都是${l}，${SAY[h0]}，经过之中多有${GOT[h0]}`
+			: h0 === h1
+				? `互卦${hu.name}，${l}、${u}都${SAY[h0]}，经过之中多有${GOT[h0]}`
+				: `互卦${hu.name}，${l}${SAY[h0]}，${u}${SAY[h1]}，经过之中有${GOT[h0]}，也有${GOT[h1]}`;
+	const to = inner(m) ? bian.lower : bian.upper;
+	// 第三步（审查 R2）：duan() 最先判它。成立时补一句，不然依据说「结局顺当」、印却是凶
+	const four = [rel.yong, ...rel.hu, rel.bian];
+	const ke = four.filter((r) => r === "克体").length;
+	// 「体生」是唯一判平的用卦；其余用卦判出平，只能是用卦与变卦一吉一凶（第三步只判凶）。审查 S1
+	const why =
+		ke === 4
+			? ["用卦、互卦两个经卦、变卦四处都克体，所以断为凶。"]
+			: ke >= 2 && !four.includes("生体")
+				? [`用卦、互卦两个经卦、变卦四处合看，${ke === 2 ? "两" : "三"}处克体，没有一处生体，所以断为凶。`]
+				: rel.yong !== "体生" && duan(rel) === "平"
+					? ["用卦与变卦一吉一凶，所以断为平。"]
+					: [];
 	return [
-		`${first}：事情本身${SELF[rel.yong]}。`,
-		`${huSay}。`,
-		`变卦${bian.name}，${yong.name}变${el(to)}，${PLAIN[rel.bian]}：结局${WAY[rel.bian]}。`,
+		`${first}，这件事${SELF[rel.yong]}。`,
+		`${mid}。`,
+		`变卦${bian.name}，${y}变为${el(to)}，${SAY[rel.bian]}，结局${END[rel.bian]}。`,
+		...why,
 	];
+}
+
+/** 解读页互卦一段：只看两个经卦；乾、坤取变卦之互，动在初爻、上爻时变卦之互仍是自身（审查 R1）。 */
+function huSay(m: Meihua, fromBian: boolean): string {
+	const say =
+		m.hu.lower.name === m.hu.upper.name
+			? `互卦只看它的两个经卦对体卦的生克，不读卦辞：上下都是${el(m.hu.lower)}。`
+			: `互卦只看它的两个经卦对体卦的生克，不读卦辞：${el(m.hu.lower)}在下，${el(m.hu.upper)}在上。`;
+	if (!fromBian) return say;
+	const qk = "乾、坤的互卦仍是自身，原书说「乾坤无互，互其变卦」，这里取变卦的互卦；";
+	return m.hu.name === m.ben.name
+		? `${say}${qk}动在初爻、上爻时，变卦的互卦仍是${m.hu.name}，与卦页相同。`
+		: `${say}${qk}卦页上列的是一般的取法，所以两处不同。`;
 }
 
 const inner = (m: Meihua) => m.dong <= 3;
 
-/** 「÷8 余 4」；整除时余数作八、作六，写「整除」。 */
-const rest = (n: number, by: number) => (n % by ? `余 ${n % by}` : "整除");
+/** 「÷8 余 4」；余数为零时作八、作六（坤、上爻），写出来免得看不懂。 */
+const rest = (n: number, by: number) => (n % by ? `余 ${n % by}` : `余 0，作 ${by}`);
 
 /** 起卦算式三行：上卦、下卦、动爻各怎么来。 */
 function formula(m: Meihua, by: By, date: Date, mo: Moment | null): string[] {
@@ -200,6 +230,7 @@ export function compose({ by, at, topic, lateZi }: Request): MeihuaView {
 		: `${hour}时`;
 	const yaoLine = (GUACI[m.ben.name] as string).split("\n").find((l) => l.startsWith(`${dongTitle}：`)) ?? "";
 	const yaoText = yaoLine.slice(dongTitle.length + 1);
+	const fromBian = m.ben.name === "乾为天" || m.ben.name === "坤为地";
 	return {
 		params: m.params,
 		verdict,
@@ -214,15 +245,16 @@ export function compose({ by, at, topic, lateZi }: Request): MeihuaView {
 			font: fontOf(m.hu.name),
 			lower: el(m.hu.lower),
 			upper: el(m.hu.upper),
-			fromBian: m.ben.name === "乾为天" || m.ben.name === "坤为地",
+			fromBian,
 			lines: lines(m.hu, 0),
+			say: huSay(m, fromBian),
 		},
 		dong: { title: dongTitle, text: yaoText, font: fontOf(yaoText), baihua: YAO_BAIHUA[m.ben.name]?.[dongTitle] ?? "" },
 		rows: [
 			[`${el(m.ti)} · ${ty}卦，不动`, "—"],
 			[`${el(m.yong)} · ${yo}卦，${dongTitle}动`, PLAIN[m.rel.yong]],
 			[`${m.hu.name} · ${el(m.hu.lower)}、${el(m.hu.upper)}`, `${PLAIN[m.rel.hu[0]]}、${PLAIN[m.rel.hu[1]]}`],
-			[`${m.bian.name} · ${m.yong.name}变${el(inner(m) ? m.bian.lower : m.bian.upper)}`, PLAIN[m.rel.bian]],
+			[`${m.bian.name} · ${el(m.yong)}变${el(inner(m) ? m.bian.lower : m.bian.upper)}`, PLAIN[m.rel.bian]],
 		],
 		reasons: reasons(m),
 		formula: formula(m, by, date, mo),
