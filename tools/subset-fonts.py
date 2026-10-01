@@ -31,7 +31,8 @@
 起卦各屏、解读页的卦名卦辞随所起的卦而变，照首页走 fontsource 切片。
 
 八字（src/fonts/bazi/、bazi-hant/）：排盘页 /bazi/（M19a）与全部知识页（M19b-3）共用一份 index，用标题字体的字是固定的一组：
-「八字」、十天干、十二地支、0–9、乾造、坤造，知识页的「十神」「纳音」「十二长生」「十天干」「十二地支」，加纸面页都有的标题字。
+「八字」、十天干、十二地支、0–9、乾造、坤造，知识页的「十神」「纳音」「十二长生」「十天干」「十二地支」，
+第二批的「日柱」「六十日柱」，加纸面页都有的标题字。
 简体的干支只剩天干、地支页 h1 的那一个字（盘面、表格、格子里的干支用宋体，见 BaziKb.astro），每个字各算一块：
 「己」按小薇缺字处理，只有己页的 h1 用宋体，子集里不收它。
 
@@ -125,6 +126,9 @@ BODY = {
     "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json"]),
     "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json"]),
 }
+# 八字知识页第二批：六十日柱的释义
+BODY["hans"][3].append("bazi-rizhu.json")
+BODY["hant"][3].append("bazi-rizhu-hant.json")
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
@@ -220,7 +224,8 @@ def bazi_blocks(lang: str) -> dict[str, list[str]]:
     繁体的盘面与表格里的干支也用标题字体；简体那些干支用宋体，只有 h1 的单字要小薇。干支每个字各算一块
     （同 fontOf：己页的 h1 用宋体，别的字照收）。"""
     kb = ["十神", "納音", "十二長生"] if lang == "hant" else ["十神", "纳音", "十二长生"]
-    return {"index": [CHROME[lang], "八字", *GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支"]}
+    # 第二批：日柱页的 h1「甲子日柱」（干支各字已收，补「日柱」一块；己的几页过 fontOf 用宋体）、目录页的「六十日柱」
+    return {"index": [CHROME[lang], "八字", *GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支", "日柱", "六十日柱"]}
 
 
 def city_chars(lang: str) -> str:

@@ -1,5 +1,6 @@
 ---
-// 八字知识页（M19b，设计稿 30–34、D27、D28）：十天干、十二地支（各有目录）、十神、纳音、十二长生，简繁共用。
+// 八字知识页（M19b，设计稿 29–34、D26–D28）：十天干、十二地支（各有目录）、十神、纳音、十二长生，
+// 第二批的六十日柱（目录与 60 个日柱页），简繁共用。
 // 纯计算的纸面页：数据在构建时由 tyme4ts 与 bazi.ts 算出（lib/bazi-kb.ts），写进 HTML，零 JS；
 // 释义是本站原创、经独立审查的 bazi-*.json，逐字照用。不带所问、不断吉凶，页脚只写数据来源与「仅供传统文化参考与娱乐」。
 // 版式：手机一栏；桌面左 380（标签、h1、导语、构成或来历、去排盘，够高时 sticky），右栏正文（同节气页的两栏）。
@@ -9,6 +10,8 @@ import dizhiHant from '../data/bazi-dizhi-hant.json';
 import dizhi from '../data/bazi-dizhi.json';
 import pagesHant from '../data/bazi-pages-hant.json';
 import pages from '../data/bazi-pages.json';
+import rizhuHant from '../data/bazi-rizhu-hant.json';
+import rizhu from '../data/bazi-rizhu.json';
 import namesHant from '../data/bazi-names-hant.json';
 import huangliHant from '../data/huangli-hant.json';
 import Paper from '../layouts/Paper.astro';
@@ -23,9 +26,15 @@ import {
   type Kind,
   kbPath,
   nayinGroups,
+  nextHead,
   REL_TYPES,
+  RIZHU_SLUG,
+  rizhuFacts,
+  rizhuPath,
+  sameHead,
   shishenLogic,
   shishenTable,
+  SIXTY,
   STEPS,
   tenHead,
   ZHI,
@@ -39,7 +48,7 @@ import Invite from './Invite.astro';
 
 interface Props {
   kind: Kind;
-  /** 天干页、地支页：哪一个字 */
+  /** 天干页、地支页：哪一个字；日柱页：哪一柱（两个字） */
   name?: string;
   hant?: boolean;
 }
@@ -62,14 +71,24 @@ type Item = { intro: string; read: string[] };
 const tg = hant ? tianganHant : tiangan;
 const dz = hant ? dizhiHant : dizhi;
 const pg = hant ? pagesHant : pages;
+const rz = hant ? rizhuHant : rizhu;
 
 const gi = GAN.indexOf(name);
 const zj = ZHI.indexOf(name);
 const gan = kind === 'gan' ? ganFacts(name) : undefined;
 // 节月取构建那一刻还没过完的那一回，该日从构建那天起（北京时间），每次部署重算
 const zhi = kind === 'zhi' ? zhiFacts(name, beijingNow()) : undefined;
+const zhu = kind === 'zhu' ? rizhuFacts(name, beijingNow().slice(0, 10)) : undefined;
+// 接下来的该日：地支页 6 个，日柱页列出黄历时间窗里剩下的全部（每 60 天一次）
+const days = zhi?.days ?? zhu?.days ?? [];
 const item: Item | undefined =
-  kind === 'gan' ? (tg.items as Record<string, Item>)[GAN_SLUG[gi]!] : kind === 'zhi' ? (dz.items as Record<string, Item>)[ZHI_SLUG[zj]!] : undefined;
+  kind === 'gan'
+    ? (tg.items as Record<string, Item>)[GAN_SLUG[gi]!]
+    : kind === 'zhi'
+      ? (dz.items as Record<string, Item>)[ZHI_SLUG[zj]!]
+      : kind === 'zhu'
+        ? (rz.items as Record<string, Item>)[RIZHU_SLUG[zhu!.index]!]
+        : undefined;
 
 const yang = (gan?.yinYang ?? zhi?.yinYang) === '阳';
 const order = yang ? t('阳干顺数', '陽干順數') : t('阴干逆数', '陰干逆數');
@@ -128,6 +147,19 @@ switch (kind) {
     path = '/bazi/changsheng/';
     title = t('十二长生 · 十天干长生表 · 六爻', '十二長生 · 十天干長生表 · 六爻');
     break;
+  case 'rizhu':
+    h1 = '六十日柱';
+    lead = rz.index;
+    path = '/bazi/rizhu/';
+    title = t('六十日柱 · 六十甲子日柱一览 · 六爻', '六十日柱 · 六十甲子日柱一覽 · 六爻');
+    break;
+  case 'zhu':
+    h1 = `${name}日柱`;
+    lead = item!.intro;
+    read = item!.read;
+    path = rizhuPath(name);
+    title = `${name}日柱 · ${zhu!.gan}${zhu!.ganWuXing}${zhu!.zhi}${zhu!.zhiWuXing} · ${tw(zhu!.naYin)} · ${t('藏干、十神与十二长生', '藏干、十神與十二長生')} · 六爻`;
+    break;
 }
 const glyph = kind === 'gan' || kind === 'zhi';
 // h1 是一块小薇文字，过 fontOf：只有己页（小薇的「己」画成「巳」）用宋体。繁体不走这条规则（见 fontOf 的注释）
@@ -140,14 +172,17 @@ const cta = {
   shishen: t('看自己盘面上的十神：输入生辰，在浏览器里排盘，不上传。', '看自己盤面上的十神：輸入生辰，在瀏覽器裡排盤，不上傳。'),
   nayin: t('看自己四柱的纳音：输入生辰，在浏览器里排盘，不上传。', '看自己四柱的納音：輸入生辰，在瀏覽器裡排盤，不上傳。'),
   changsheng: t('看自己盘面上的星运与自坐：输入生辰，在浏览器里排盘，不上传。', '看自己盤面上的星運與自坐：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  rizhu: t('看自己生在哪一个日柱：输入生辰，在浏览器里排盘，不上传。', '看自己生在哪一個日柱：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  zhu: t('看自己生在哪一个日柱：输入生辰，在浏览器里排盘，不上传。', '看自己生在哪一個日柱：輸入生辰，在瀏覽器裡排盤，不上傳。'),
 }[kind];
 
-// 前后：天干、地支首尾相接
-const ring = kind === 'gan' ? GAN : ZHI;
-const at = kind === 'gan' ? gi : zj;
+// 前后：天干、地支、日柱都首尾相接
+const ring = kind === 'gan' ? [...GAN] : kind === 'zhu' ? SIXTY : [...ZHI];
+const at = ring.indexOf(name);
 const prev = ring[(at + ring.length - 1) % ring.length]!;
 const next = ring[(at + 1) % ring.length]!;
-const ringPath = (x: string) => (kind === 'gan' ? ganPath(x, hant) : zhiPath(x, hant));
+const ringPath = (x: string) => (kind === 'gan' ? ganPath(x, hant) : kind === 'zhu' ? rizhuPath(x, hant) : zhiPath(x, hant));
+const ringLabel = { gan: t('前后天干', '前後天干'), zhi: t('前后地支', '前後地支'), zhu: t('前后日柱', '前後日柱') }[kind as 'gan' | 'zhi' | 'zhu'];
 
 // 地支关系一行一类，同类多条用全角空格隔开
 const rels = zhi ? REL_TYPES.map(([type, label]) => [label, zhi.rels.filter((r) => r.type === type).map((r) => r.name)] as const).filter(([, ns]) => ns.length) : [];
@@ -160,7 +195,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
       <section class="hero">
         <p class="kicker">
           八字 ·{' '}
-          {kind === 'gan' ? <><a href={pre('/bazi/tiangan/')}>十天干</a> · 第 {gi + 1}</> : kind === 'zhi' ? <><a href={pre('/bazi/dizhi/')}>十二地支</a> · 第 {zj + 1}</> : h1}
+          {kind === 'gan' ? <><a href={pre('/bazi/tiangan/')}>十天干</a> · 第 {gi + 1}</> : kind === 'zhi' ? <><a href={pre('/bazi/dizhi/')}>十二地支</a> · 第 {zj + 1}</> : kind === 'zhu' ? <><a href={pre('/bazi/rizhu/')}>六十日柱</a> · 第 {zhu!.index + 1}</> : h1}
         </p>
         <h1 class:list={{ glyph }} style={h1Font}>{h1}</h1>
         <p class="lead">{lead}</p>
@@ -196,6 +231,27 @@ const table = kind === 'shishen' ? shishenTable() : [];
             </div>
           </dl>
           {name === '子' && <p class="hint">{t('子时跨两天：23 点以后出生的，本站排盘默认把日柱算到次日，可在排盘页的选项里改。', '子時跨兩天：23 點以後出生的，本站排盤預設把日柱算到次日，可在排盤頁的選項裡改。')}</p>}
+        </section>
+      )}
+
+      {zhu && (
+        <section class="blk">
+          <h2 class="head">{t('构成', '構成')}</h2>
+          <dl class="facts">
+            <div><dt>天干</dt><dd><a class="lk" href={ganPath(zhu.gan, hant)}>{zhu.gan}　{yy(zhu.ganYinYang)}{zhu.ganWuXing}</a></dd></div>
+            <div><dt>地支</dt><dd><a class="lk" href={zhiPath(zhu.zhi, hant)}>{zhu.zhi}　{yy(zhu.zhiYinYang)}{zhu.zhiWuXing} · {t('属', '屬')}{tw(zhu.zodiac)}</a></dd></div>
+            <div>
+              <dt>藏干</dt>
+              <dd>{zhu.cang.map((c) => <span class="ln">{c.gan}（{qi(c.type)}），{t('对', '對')}{zhu.gan}是{tw(c.star)}</span>)}</dd>
+            </div>
+            {/* 步名取 Terrain.NAMES（STEPS），源码里不写；日柱的天干就是日主，星运、自坐同一步 */}
+            <div>
+              <dt>{t('十二长生', '十二長生')}</dt>
+              <dd>{zhu.gan}到{zhu.zhi}：{tw(zhu.stepName)}（第 {zhu.step + 1} 步）<span class="sub">{t('日柱的星运、自坐都是这一步', '日柱的星運、自坐都是這一步')}</span></dd>
+            </div>
+            <div><dt>{t('纳音', '納音')}</dt><dd><a class="lk" href={`${pre('/bazi/nayin/')}#${zhu.id}`}>{tw(zhu.naYin)}</a></dd></div>
+            <div><dt>所在旬</dt><dd>{zhu.xun}旬，空亡{zhu.kong}</dd></div>
+          </dl>
         </section>
       )}
 
@@ -236,7 +292,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
     <div class="body">
       {read.length > 0 && (
         <section class="blk read">
-          <h2 class="head">{t('怎么读', '怎麼讀')}</h2>
+          <h2 class="head">{zhu ? t('怎么读这一柱', '怎麼讀這一柱') : t('怎么读', '怎麼讀')}</h2>
           {read.map((p) => <p class="prose">{p}</p>)}
         </section>
       )}
@@ -261,9 +317,9 @@ const table = kind === 'shishen' ? shishenTable() : [];
           </section>
           <section class="blk">
             <h2 class="head">{t(`六十甲子里的${name}`, `六十甲子裡的${name}`)}</h2>
-            <p class="prose">{t(`${name}在六十甲子里配六个地支，每一柱都有纳音；点开是纳音表里它所在的那一组：`, `${name}在六十甲子裡配六個地支，每一柱都有納音；點開是納音表裡它所在的那一組：`)}</p>
+            <p class="prose">{t(`${name}在六十甲子里配六个地支，每一柱都有纳音；点开是这一柱的日柱页：`, `${name}在六十甲子裡配六個地支，每一柱都有納音；點開是這一柱的日柱頁：`)}</p>
             <ul class="cells n3 d6">
-              {gan.pillars.map((p) => <li><a href={`${pre('/bazi/nayin/')}#${p.id}`}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
+              {gan.pillars.map((p) => <li><a href={rizhuPath(p.ganZhi, hant)}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
             </ul>
           </section>
         </>
@@ -286,27 +342,46 @@ const table = kind === 'shishen' ? shishenTable() : [];
           </section>
           <section class="blk">
             <h2 class="head">{t(`六十甲子里的${name}`, `六十甲子裡的${name}`)}</h2>
-            <p class="prose">{t(`${name}在六十甲子里配五个天干，每一柱都有纳音；点开是纳音表里它所在的那一组：`, `${name}在六十甲子裡配五個天干，每一柱都有納音；點開是納音表裡它所在的那一組：`)}</p>
+            <p class="prose">{t(`${name}在六十甲子里配五个天干，每一柱都有纳音；点开是这一柱的日柱页：`, `${name}在六十甲子裡配五個天干，每一柱都有納音；點開是這一柱的日柱頁：`)}</p>
             <ul class="cells n5">
-              {zhi.pillars.map((p) => <li><a href={`${pre('/bazi/nayin/')}#${p.id}`}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
+              {zhi.pillars.map((p) => <li><a href={rizhuPath(p.ganZhi, hant)}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
             </ul>
           </section>
-          {zhi.days.length > 0 && (
-            <section class="blk">
-              <h2 class="head">{t(`接下来的${name}日`, `接下來的${name}日`)}</h2>
-              <p class="prose">{t(`日子的地支每 12 天轮到一次${name}。接下来的 ${zhi.days.length} 个${name}日（北京时间），点开是当天的黄历：`, `日子的地支每 12 天輪到一次${name}。接下來的 ${zhi.days.length} 個${name}日（臺灣時間），點開是當天的農民曆：`)}</p>
-              <ul class="days">
-                {zhi.days.map((d) => (
-                  <li><a href={dayPath(d, hant)}><span class="d">{cnDate(d)} 星期{WEEK[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span><span class="s">{t('当天黄历', '當天農民曆')} ›</span></a></li>
-                ))}
-              </ul>
-            </section>
-          )}
         </>
       )}
 
-      {(kind === 'gan' || kind === 'zhi') && (
-        <nav class="pager" aria-label={kind === 'gan' ? t('前后天干', '前後天干') : t('前后地支', '前後地支')}>
+      {zhu && (
+        <>
+          <section class="blk">
+            <h2 class="head">{tenHead(zhu.gan)}</h2>
+            <p class="prose">{t(`日主是${zhu.gan}时，盘面上遇到各个天干，十神这样称呼：`, `日主是${zhu.gan}時，盤面上遇到各個天干，十神這樣稱呼：`)}</p>
+            <ul class="cells n5 d10">
+              {ganFacts(zhu.gan).ten.map((x) => <li><span class="g">{x.gan}</span><span class="s">{tw(x.star)}</span></li>)}
+            </ul>
+          </section>
+          <section class="blk">
+            <h2 class="head">{sameHead(zhu.gan, hant)}</h2>
+            <nav class="same" aria-label={`${zhu.gan}日的日柱`}>
+              {zhu.same.map((gz) => <a href={rizhuPath(gz, hant)} aria-current={gz === name ? 'page' : undefined}>{gz}</a>)}
+            </nav>
+          </section>
+        </>
+      )}
+
+      {days.length > 0 && (
+        <section class="blk">
+          <h2 class="head">{nextHead(name, hant)}</h2>
+          <p class="prose">{t(`${zhu ? '日柱每 60 天' : '日子的地支每 12 天'}轮到一次${name}。接下来的 ${days.length} 个${name}日（北京时间），点开是当天的黄历：`, `${zhu ? '日柱每 60 天' : '日子的地支每 12 天'}輪到一次${name}。接下來的 ${days.length} 個${name}日（臺灣時間），點開是當天的農民曆：`)}</p>
+          <ul class="days">
+            {days.map((d) => (
+              <li><a href={dayPath(d, hant)}><span class="d">{cnDate(d)} 星期{WEEK[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span><span class="s">{t('当天黄历', '當天農民曆')} ›</span></a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {(kind === 'gan' || kind === 'zhi' || kind === 'zhu') && (
+        <nav class="pager" aria-label={ringLabel}>
           <a href={ringPath(prev)}><span class="k">{t('上一个', '上一個')} · 第 {ring.indexOf(prev) + 1}</span><span class="n">‹ {prev}</span></a>
           <a class="next" href={ringPath(next)}><span class="k">{t('下一个', '下一個')} · 第 {ring.indexOf(next) + 1}</span><span class="n">{next} ›</span></a>
         </nav>
@@ -332,6 +407,13 @@ const table = kind === 'shishen' ? shishenTable() : [];
             );
           })}
         </ul>
+      )}
+
+      {/* 六十日柱目录：按六十甲子次序 6 列 10 行（设计稿 29 ①） */}
+      {kind === 'rizhu' && (
+        <nav class="sixty" aria-label="六十日柱">
+          {SIXTY.map((gz) => <a href={rizhuPath(gz, hant)}>{gz}</a>)}
+        </nav>
       )}
 
       {kind === 'shishen' && (
@@ -804,6 +886,63 @@ const table = kind === 'shishen' ? shishenTable() : [];
     line-height: 1.3;
   }
   .gans a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  /* 日柱页构成：天干、地支、纳音链到各自的页；点击区撑到 44 高，负外边距让行高不变（同标签里的链接） */
+  .lk {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    margin-block: -9px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--ink-2);
+  }
+  .lk:hover {
+    text-decoration-color: var(--ink);
+  }
+  .facts .ln {
+    display: block;
+  }
+
+  /* 同干的六个日柱、六十日柱目录：格子里的干支（--font-gz） */
+  .same,
+  .sixty {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    border-block: 1px solid var(--rule);
+  }
+  .same a,
+  .sixty a {
+    position: relative;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-gz);
+    font-size: 20px;
+    line-height: 1.3;
+  }
+  .sixty a {
+    min-height: var(--tap);
+    font-size: 18px;
+  }
+  /* 本页：印章红 12×2 短线（同栏目行的当前项） */
+  .same a[aria-current]::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 12px;
+    height: 2px;
+    margin-left: -6px;
+    background: var(--seal);
+  }
+  .same a:not([aria-current]):hover,
+  .sixty a:hover {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 4px;
