@@ -1,7 +1,11 @@
-import { EarthBranch, HeavenStem, SixtyCycle, SolarTime } from "tyme4ts";
+import { EarthBranch, HeavenStem, SixtyCycle, SolarTime, TenStar } from "tyme4ts";
 import { describe, expect, it } from "vitest";
+import namesHant from "../data/bazi-names-hant.json" with { type: "json" };
+import rizhuHant from "../data/bazi-rizhu-hant.json" with { type: "json" };
+import rizhu from "../data/bazi-rizhu.json" with { type: "json" };
 import tianganHant from "../data/bazi-tiangan-hant.json" with { type: "json" };
 import tiangan from "../data/bazi-tiangan.json" with { type: "json" };
+import huangliHant from "../data/huangli-hant.json" with { type: "json" };
 import { type Birth, bazi, guanXi } from "./bazi.js";
 import {
 	changsheng,
@@ -15,15 +19,23 @@ import {
 	nayinGroups,
 	nayinId,
 	nextDays,
+	nextHead,
 	relations,
+	RIZHU_SLUG,
+	rizhuFacts,
+	rizhuPath,
+	sameHead,
 	shishenLogic,
 	shishenTable,
+	SIXTY,
 	STEPS,
 	tenHead,
 	ZHI,
+	ZHI_SLUG,
 	zhiFacts,
 } from "./bazi-kb.js";
 import { huangliOf, termIn } from "./huangli.js";
+import { FIRST, inWindow, LAST } from "./huangli-days.js";
 
 // 随便几个盘：知识页的表要和排盘页（bazi.ts）查出来的一样
 const CHARTS: Birth[] = [
@@ -35,13 +47,23 @@ const CHARTS: Birth[] = [
 ];
 
 describe("网址", () => {
-	it("27 页，无调全拼带尾斜杠，不重复", () => {
-		expect(KB_PAGES).toHaveLength(27);
+	it("88 页（第一批 27、第二批六十日柱 61），无调全拼带尾斜杠，不重复", () => {
+		expect(KB_PAGES).toHaveLength(88);
 		const paths = KB_PAGES.map((p) => p.path);
-		expect(new Set(paths).size).toBe(27);
+		expect(new Set(paths).size).toBe(88);
 		for (const p of paths) expect(p).toMatch(/^\/bazi\/([a-z]+\/)+$/);
 		expect(paths).toContain("/bazi/tiangan/wu/");
 		expect(paths).toContain("/bazi/dizhi/wu/");
+		expect(paths).toContain("/bazi/rizhu/");
+	});
+
+	it("日柱 slug：干的全拼加支的全拼，六十甲子次序，不重复", () => {
+		expect(SIXTY).toEqual(SixtyCycle.NAMES);
+		expect(new Set(RIZHU_SLUG).size).toBe(60);
+		expect([0, 4, 5, 54, 59].map((k) => RIZHU_SLUG[k])).toEqual(["jiazi", "wuchen", "jisi", "wuwu", "guihai"]);
+		for (const [k, gz] of SIXTY.entries()) expect(RIZHU_SLUG[k]).toBe(GAN_SLUG[GAN.indexOf(gz[0]!)]! + ZHI_SLUG[ZHI.indexOf(gz[1]!)]!);
+		expect(rizhuPath("己巳", true)).toBe("/zh-hant/bazi/rizhu/jisi/");
+		expect(KB_PAGES.filter((p) => p.kind === "zhu").map((p) => p.path)).toEqual(SIXTY.map((gz) => rizhuPath(gz)));
 	});
 });
 
@@ -239,5 +261,69 @@ describe("地支", () => {
 		for (const z of ZHI) for (const d of nextDays(z, "2026-10-01")) expect(huangliOf(d).ganzhi.day[1]).toBe(z);
 		expect(nextDays("子", "2027-12-20").length).toBeLessThan(6);
 		expect(nextDays("子", "2028-01-01")).toEqual([]);
+	});
+});
+
+describe("日柱（第二批）", () => {
+	const TODAY = "2026-10-01";
+	const plus = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+	it("构成与排盘页一致：60 个日柱的藏干与十神、星运与自坐、纳音、旬空（2026 年起连续 60 天中午各排一盘）", () => {
+		const seen = new Set<string>();
+		for (let n = 0; n < 60; n++) {
+			const [year, month, day] = plus(FIRST, n).split("-").map(Number) as [number, number, number];
+			const p = bazi({ calendar: "solar", year, month, day, hour: 12, minute: 0, gender: "男" }).pillars[2]!;
+			const f = rizhuFacts(p.ganZhi, TODAY);
+			seen.add(p.ganZhi);
+			expect([f.gan, f.zhi, f.ganWuXing, f.zhiWuXing]).toEqual([p.gan, p.zhi, p.ganWuXing, p.zhiWuXing]);
+			expect(f.cang.map((c) => ({ gan: c.gan, shiShen: c.star })), p.ganZhi).toEqual(p.cangGan);
+			expect(f.cang[0]!.type).toBe("本气");
+			// 日柱的天干就是日主：星运、自坐是同一步
+			expect(p.xingYun).toBe(p.ziZuo);
+			expect(f.stepName).toBe(p.xingYun);
+			expect(STEPS[f.step]).toBe(p.xingYun);
+			expect(f.naYin).toBe(p.naYin);
+			expect(f.id).toBe(nayinId(p.ganZhi));
+			expect(f.kong).toBe(p.kongWang);
+			// 旬首：tyme4ts 的 getTen 与按次序数到的旬首一致
+			expect(f.xun).toBe(SIXTY[f.index - (f.index % 10)]);
+			expect(f.same).toHaveLength(6);
+			expect(f.same).toContain(p.ganZhi);
+			for (const x of f.same) expect(x[0]).toBe(p.gan);
+		}
+		expect(seen.size).toBe(60);
+		const jiazi = rizhuFacts("甲子", TODAY);
+		expect([jiazi.stepName, jiazi.step, jiazi.naYin, jiazi.xun, jiazi.kong]).toEqual(["沐浴", 1, "海中金", "甲子", "戌亥"]);
+		expect(rizhuFacts("乙丑", TODAY).cang.map((c) => c.gan + c.type + c.star).join(" ")).toBe("己本气偏财 癸中气偏印 辛余气七杀");
+	});
+
+	it("接下来的该日：今天起、黄历时间窗内、每 60 天一次，一天不漏，日柱与逐日页一致", () => {
+		expect(rizhuFacts("甲子", TODAY).days).toEqual(["2026-10-17", "2026-12-16", "2027-02-14", "2027-04-15", "2027-06-14", "2027-08-13", "2027-10-12", "2027-12-11"]);
+		for (const gz of SIXTY) {
+			const { days } = rizhuFacts(gz, TODAY);
+			expect(days.length, gz).toBeGreaterThan(0);
+			expect(plus(days[0]!, -60) < TODAY, gz).toBe(true);
+			expect(plus(days.at(-1)!, 60) > LAST, gz).toBe(true);
+			for (const [i, d] of days.entries()) {
+				expect(inWindow(d) && d >= TODAY, d).toBe(true);
+				expect(huangliOf(d).ganzhi.day, d).toBe(gz);
+				if (i) expect(plus(days[i - 1]!, 60)).toBe(d);
+			}
+		}
+		// 窗末尾：一天都没有时整节不出
+		expect(nextDays("甲子", "2027-12-12", Number.POSITIVE_INFINITY)).toEqual([]);
+	});
+
+	it("正文引用的「」只有十神名、纳音名、十二长生步名和本页的小节名（小节名与页面逐字一致）", () => {
+		const NAMES: Record<string, string> = { ...(huangliHant as unknown as { names: Record<string, string> }).names, ...namesHant };
+		const sounds = nayinGroups().map((g) => g.name);
+		for (const [data, hant] of [[rizhu, false], [rizhuHant, true]] as const) {
+			const tw = (s: string) => (hant ? (NAMES[s] ?? s) : s);
+			for (const [slug, item] of Object.entries(data.items)) {
+				const gz = SIXTY[RIZHU_SLUG.indexOf(slug)]!;
+				const ok = [...TenStar.NAMES, ...sounds, ...STEPS].map(tw).concat(tenHead(gz[0]!), sameHead(gz[0]!, hant), nextHead(gz, hant));
+				for (const q of [item.intro, ...item.read].join("").matchAll(/「(.+?)」/g)) expect(ok, `${slug}：${q[1]}`).toContain(q[1]);
+			}
+		}
 	});
 });

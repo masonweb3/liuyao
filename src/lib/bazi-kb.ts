@@ -16,9 +16,13 @@ export const ZHI = "子丑寅卯辰巳午未申酉戌亥";
 export const GAN_SLUG = ["jia", "yi", "bing", "ding", "wu", "ji", "geng", "xin", "ren", "gui"] as const;
 export const ZHI_SLUG = ["zi", "chou", "yin", "mao", "chen", "si", "wu", "wei", "shen", "you", "xu", "hai"] as const;
 
-export type Kind = "tiangan" | "gan" | "dizhi" | "zhi" | "shishen" | "nayin" | "changsheng";
+export type Kind = "tiangan" | "gan" | "dizhi" | "zhi" | "shishen" | "nayin" | "changsheng" | "rizhu" | "zhu";
 
-/** 全部 27 页（简体网址，繁体加 /zh-hant）：路由、sitemap 都从这里取 */
+/** 六十甲子的次序「甲子」…「癸亥」，与日柱页的 slug：干的全拼加支的全拼（jiazi、yichou、wuwu……），上线后不改 */
+export const SIXTY = Array.from({ length: 60 }, (_, k) => SixtyCycle.fromIndex(k).getName());
+export const RIZHU_SLUG = SIXTY.map((gz) => GAN_SLUG[GAN.indexOf(gz[0]!)]! + ZHI_SLUG[ZHI.indexOf(gz[1]!)]!);
+
+/** 全部 88 页（简体网址，繁体加 /zh-hant）：路由、sitemap 都从这里取 */
 export const KB_PAGES: { kind: Kind; name?: string; path: string }[] = [
 	{ kind: "tiangan", path: "/bazi/tiangan/" },
 	...[...GAN].map((name, i) => ({ kind: "gan" as const, name, path: `/bazi/tiangan/${GAN_SLUG[i]}/` })),
@@ -27,15 +31,22 @@ export const KB_PAGES: { kind: Kind; name?: string; path: string }[] = [
 	{ kind: "shishen", path: "/bazi/shishen/" },
 	{ kind: "nayin", path: "/bazi/nayin/" },
 	{ kind: "changsheng", path: "/bazi/changsheng/" },
+	// 第二批：六十日柱目录与 60 个日柱页
+	{ kind: "rizhu", path: "/bazi/rizhu/" },
+	...SIXTY.map((name, k) => ({ kind: "zhu" as const, name, path: `/bazi/rizhu/${RIZHU_SLUG[k]}/` })),
 ];
 
 export const kbPath = (path: string, hant = false) => `${hant ? HANT : ""}${path}`;
 export const ganPath = (g: string, hant = false) => kbPath(`/bazi/tiangan/${GAN_SLUG[GAN.indexOf(g)]}/`, hant);
 export const zhiPath = (z: string, hant = false) => kbPath(`/bazi/dizhi/${ZHI_SLUG[ZHI.indexOf(z)]}/`, hant);
+export const rizhuPath = (gz: string, hant = false) => kbPath(`/bazi/rizhu/${RIZHU_SLUG[SIXTY.indexOf(gz)]}/`, hant);
 
 /** 天干页正文引用的两个小节名（「甲日主看十天干」「癸的十二长生」）：页面与测试都从这里取，逐字一致 */
 export const tenHead = (g: string) => `${g}日主看十天干`;
 export const csHead = (g: string, hant = false) => `${g}的${hant ? "十二長生" : "十二长生"}`;
+/** 日柱页正文可引用的另两个小节名（「同是甲日的六个日柱」「接下来的甲子日」），同上 */
+export const sameHead = (g: string, hant = false) => `同是${g}日的${hant ? "六個日柱" : "六个日柱"}`;
+export const nextHead = (gz: string, hant = false) => `${hant ? "接下來的" : "接下来的"}${gz}日`;
 
 /** 十二长生的十二步：长生、沐浴……养 */
 export const STEPS = Terrain.NAMES;
@@ -176,14 +187,16 @@ export function jieMonth(z: string, now: string) {
 }
 
 /**
- * 从 today（含）起接下来 n 个这一支的日子，只取黄历时间窗内的：逐日页只在窗内（设计发现 7：窗末尾会少列，一天都没有时整节不出）。
+ * 从 today（含）起接下来 n 个这一支（或这一柱，传两个字）的日子，只取黄历时间窗内的：逐日页只在窗内
+ * （设计发现 7：窗末尾会少列，一天都没有时整节不出）。
  */
 export function nextDays(z: string, today: string, n = 6): string[] {
 	const out: string[] = [];
 	const start = today < FIRST ? FIRST : today;
 	let d = SolarDay.fromYmd(...(start.split("-").map(Number) as [number, number, number]));
 	for (let s = start; out.length < n && inWindow(s); d = d.next(1), s = ymd(d.getYear(), d.getMonth(), d.getDay())) {
-		if (d.getSixtyCycleDay().getSixtyCycle().getEarthBranch().getName() === z) out.push(s);
+		const c = d.getSixtyCycleDay().getSixtyCycle();
+		if ((z.length === 2 ? c.getName() : c.getEarthBranch().getName()) === z) out.push(s);
 	}
 	return out;
 }
@@ -216,3 +229,39 @@ export function zhiFacts(z: string, now: string) {
 
 /** 十天干的十二长生表：每个天干（注阴阳）的十二步 */
 export const changshengTable = () => [...GAN].map((g, i) => ({ gan: g, yinYang: yy(i), byStep: changsheng(g) }));
+
+/**
+ * 一个日柱（第二批）：天干地支的阴阳五行、藏干与各自的十神（以本柱天干为日主，同排盘页）、十二长生
+ * （日主落在本柱地支：日柱的星运、自坐是同一步）、纳音、所在旬与旬空、同干的六柱、接下来的这一日。
+ */
+export function rizhuFacts(gz: string, today: string) {
+	const k = SIXTY.indexOf(gz);
+	if (k < 0) throw new Error(`不认识的干支：${gz}`);
+	const c = SixtyCycle.fromIndex(k);
+	const g = c.getHeavenStem();
+	const z = c.getEarthBranch();
+	const step = g.getTerrain(z).getIndex();
+	return {
+		index: k,
+		gan: g.getName(),
+		zhi: z.getName(),
+		ganYinYang: yy(g.getIndex()),
+		ganWuXing: g.getElement().getName(),
+		zhiYinYang: yy(z.getIndex()),
+		zhiWuXing: z.getElement().getName(),
+		zodiac: z.getZodiac().getName(),
+		/** 藏干：本气、中气、余气，十神按本柱天干查 */
+		cang: z.getHideHeavenStems().map((h) => ({ gan: h.getName(), type: QI[h.getType()]!, star: g.getTenStar(h.getHeavenStem()).getName() })),
+		/** 十二长生：第几步（0 起）与步名 */
+		step,
+		stepName: STEPS[step]!,
+		...pillar(k),
+		/** 所在旬「甲子」（旬首）与旬空「戌亥」：tyme4ts 的 getTen、getExtraEarthBranches，同排盘页 */
+		xun: c.getTen().getName(),
+		kong: c.getExtraEarthBranches().map((b) => b.getName()).join(""),
+		/** 同干的六柱，按甲子起的次序 */
+		same: ganFacts(g.getName()).pillars.map((p) => p.ganZhi),
+		/** 黄历时间窗里接下来的这一日（每 60 天一次），全列 */
+		days: nextDays(gz, today, Number.POSITIVE_INFINITY),
+	};
+}

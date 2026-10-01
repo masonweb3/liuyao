@@ -60,6 +60,9 @@ import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
 import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
 import { compose } from "../lib/meihua-reading.js";
+import { RIZHU_SLUG } from "../lib/bazi-kb.js";
+import baziRizhuHant from "./bazi-rizhu-hant.json" with { type: "json" };
+import baziRizhu from "./bazi-rizhu.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -389,8 +392,8 @@ describe("八字（M19a）", () => {
 });
 
 describe("八字知识页（M19b）", () => {
-	const kb = [baziTiangan, baziDizhi, baziPages];
-	const kbHant = [baziTianganHant, baziDizhiHant, baziPagesHant];
+	const kb = [baziTiangan, baziDizhi, baziPages, baziRizhu];
+	const kbHant = [baziTianganHant, baziDizhiHant, baziPagesHant, baziRizhuHant];
 	// 字段路径（键保持简体，繁体只转值）
 	const paths = (v: unknown, p = ""): string[] =>
 		typeof v === "string" ? [p] : v && typeof v === "object" ? Object.entries(v).flatMap(([k, x]) => paths(x, `${p}/${k}`)) : [];
@@ -424,6 +427,26 @@ describe("八字知识页（M19b）", () => {
 		for (const s of hant) expect(s).not.toMatch(/[兇矇佔鹹衝克]|北京|默認|藏幹/);
 		expect(hant.join("")).toMatch(/剋/);
 	});
+
+	it("六十日柱（第二批）：60 个键按六十甲子次序（键即网址 slug），导语一句、「怎么读这一柱」三段，目录导语一句；繁体逐项对应", () => {
+		for (const d of [baziRizhu, baziRizhuHant]) {
+			expect(Object.keys(d)).toEqual(["index", "items"]);
+			expect(d.index).toMatch(/^[^。]+。$/);
+			expect(Object.keys(d.items)).toEqual(RIZHU_SLUG);
+			for (const [slug, x] of Object.entries(d.items)) {
+				expect(Object.keys(x), slug).toEqual(["intro", "read"]);
+				expect(x.intro, slug).toMatch(/^[^。]+。$/);
+				expect(x.read, slug).toHaveLength(3);
+			}
+		}
+		// 描述（meta description）用导语：60 条互不相同
+		expect(new Set(Object.values(baziRizhu.items).map((x) => x.intro)).size).toBe(60);
+	});
+
+	it("六十日柱只讲构成与名目：不写「某日生的人」、日坐，不用合化、通根、得令、身强身弱、格局、用神、喜忌这类评断用语", () => {
+		for (const s of [...strings(baziRizhu), ...strings(baziRizhuHant)])
+			expect(s).not.toMatch(/日生的人|日坐|合化|通根|得令|身强|身強|身弱|格局|用神|喜忌|六亲|六親|配偶|父母|子女|财运|財運|事业|事業/);
+	});
 });
 
 describe("红线（简繁都查）", () => {
@@ -431,6 +454,7 @@ describe("红线（简繁都查）", () => {
 		...strings(bazi),
 		...strings(baziHant),
 		...[baziTiangan, baziDizhi, baziPages, baziTianganHant, baziDizhiHant, baziPagesHant].flatMap(strings),
+		...[baziRizhu, baziRizhuHant].flatMap(strings),
 		...strings(zeri),
 		...strings(zeriHant),
 		...huangliTexts(HL),
