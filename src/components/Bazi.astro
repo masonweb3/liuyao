@@ -1,7 +1,7 @@
 ---
 // 八字排盘（M19a，设计稿 27、28、D24、D25）：栏目「八字」的首页 /bazi/，繁体 /zh-hant/bazi/。
 // 预渲染标题区、表单与「盘面上的词」；盘面在浏览器里算（Web Worker 里跑 tyme4ts，见 scripts/bazi-worker.ts），
-// 生辰、性别、出生地不上传、不进网址、不进日志（AGENTS.md §1.5）：表单没有提交按钮，脚本没载入时按「排盘」什么也不发生；
+// 生辰、性别、出生地不上传、不进网址、不进日志（AGENTS.md §1.5）：表单没有提交按钮、method="dialog"，脚本没载入时按「排盘」、按回车什么也不发生；
 // 盘面不写进 query、hash，没有分享链接。存盘只在用户点「存到这台设备」时写进 localStorage（M19-8、M19-14）。
 // 页面脚本只 import 零依赖的 bazi-time.ts，不 import tyme4ts、不用动态 import()：免得打包拆出与首页共用的分包。
 import { LunarYear, Sound, Zodiac } from 'tyme4ts';
@@ -69,8 +69,10 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
               <p class="hint">{t('表单不会把生辰发到任何地方。', '表單不會把生辰傳到任何地方。')}</p>
             </div>
           </noscript>
-          {/* 没有提交按钮（「排盘」是 type=button），控件也不写 name（单选按钮除外，同组要靠它）：脚本没载入时按回车、按「排盘」都不会提交，生辰进不了网址。 */}
-          <form class="form" data-form aria-labelledby="bz-tool">
+          {/* 没有提交按钮（「排盘」是 type=button），控件也不写 name（单选按钮除外，同组要靠它），生辰进不了网址。
+              method="dialog"：脚本没载入时在出生地框里按回车，Chromium、WebKit 会隐式提交（时间框不算文字框），
+              GET 会把单选按钮的性别、选项拼进网址；不在 dialog 里的 dialog 表单提交时什么也不做。 */}
+          <form class="form" method="dialog" data-form aria-labelledby="bz-tool">
             <fieldset>
               <legend>{t('历法', '曆法')}</legend>
               <div class="chips">
