@@ -340,7 +340,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
             <h2 class="head">{t('十神对照表', '十神對照表')}</h2>
             <p class="prose">{t('行是日主，列是盘面上遇到的天干。从日主那一行横着找过去：', '行是日主，列是盤面上遇到的天干。從日主那一行橫著找過去：')}</p>
             {/* 320 宽放不下（338 > 320）：外包可横滑的出血容器，不缩字（设计发现 4）。键盘可聚焦滚动 */}
-            <div class="scroll" role="region" tabindex="0" aria-label={t('十神对照表，可横向滑动', '十神對照表，可橫向滑動')}>
+            <div class="scroll" role="region" tabindex="0" aria-label={t('十神对照表', '十神對照表')}>
               <table class="ten">
                 <caption class="sr">{t('十神对照表：行是日主，列是遇到的天干', '十神對照表：行是日主，列是遇到的天干')}</caption>
                 <colgroup><col class="lab" /><col span="10" /></colgroup>
@@ -387,7 +387,8 @@ const table = kind === 'shishen' ? shishenTable() : [];
         <section class="blk">
           <h2 class="head">{t('十天干的十二长生', '十天干的十二長生')}</h2>
           <p class="prose">{t('行是步名，列是天干，格里是落在的地支。从日主那一列往下看，就是它走过的十二个地支：', '行是步名，列是天干，格裡是落在的地支。從日主那一列往下看，就是它走過的十二個地支：')}</p>
-          <div class="scroll" role="region" tabindex="0" aria-label={t('十天干的十二长生，可横向滑动', '十天干的十二長生，可橫向滑動')}>
+          {/* 320 宽也放得下，不做 Tab 停点；只留 overflow-x，字体回退变宽时不撑破页面 */}
+          <div class="scroll">
             <table class="cs">
               <caption class="sr">{t('十天干的十二长生：行是步名，列是天干，格里是地支', '十天干的十二長生：行是步名，列是天干，格裡是地支')}</caption>
               <colgroup><col class="lab" /><col span="10" /></colgroup>
