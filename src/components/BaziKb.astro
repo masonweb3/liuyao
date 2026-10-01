@@ -79,6 +79,8 @@ const gan = kind === 'gan' ? ganFacts(name) : undefined;
 // 节月取构建那一刻还没过完的那一回，该日从构建那天起（北京时间），每次部署重算
 const zhi = kind === 'zhi' ? zhiFacts(name, beijingNow()) : undefined;
 const zhu = kind === 'zhu' ? rizhuFacts(name, beijingNow().slice(0, 10)) : undefined;
+// 晚子时提示：子页（设计稿 31）与每个日柱页（主会话裁定，设计稿未画）构成之后同一句
+const lateZi = t('子时跨两天：23 点以后出生的，本站排盘默认把日柱算到次日，可在排盘页的选项里改。', '子時跨兩天：23 點以後出生的，本站排盤預設把日柱算到次日，可在排盤頁的選項裡改。');
 // 接下来的该日：地支页 6 个，日柱页列出黄历时间窗里剩下的全部（每 60 天一次）
 const days = zhi?.days ?? zhu?.days ?? [];
 const item: Item | undefined =
@@ -230,7 +232,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
               </dd>
             </div>
           </dl>
-          {name === '子' && <p class="hint">{t('子时跨两天：23 点以后出生的，本站排盘默认把日柱算到次日，可在排盘页的选项里改。', '子時跨兩天：23 點以後出生的，本站排盤預設把日柱算到次日，可在排盤頁的選項裡改。')}</p>}
+          {name === '子' && <p class="hint">{lateZi}</p>}
         </section>
       )}
 
@@ -252,6 +254,7 @@ const table = kind === 'shishen' ? shishenTable() : [];
             <div><dt>{t('纳音', '納音')}</dt><dd><a class="lk" href={`${pre('/bazi/nayin/')}#${zhu.id}`}>{tw(zhu.naYin)}</a></dd></div>
             <div><dt>所在旬</dt><dd>{zhu.xun}旬，空亡{zhu.kong}</dd></div>
           </dl>
+          <p class="hint">{lateZi}</p>
         </section>
       )}
 
