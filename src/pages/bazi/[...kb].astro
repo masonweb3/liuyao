@@ -1,0 +1,9 @@
+---
+// 八字知识页（M19b）：/bazi/tiangan/、/bazi/tiangan/{slug}/、/bazi/dizhi/…、/bazi/shishen/、/bazi/nayin/、/bazi/changsheng/，共 27 页
+import BaziKb from '../../components/BaziKb.astro';
+import { KB_PAGES } from '../../lib/bazi-kb';
+
+export const getStaticPaths = () => KB_PAGES.map((p) => ({ params: { kb: p.path.slice('/bazi/'.length, -1) }, props: p }));
+---
+
+<BaziKb kind={Astro.props.kind} name={Astro.props.name} />

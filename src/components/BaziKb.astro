@@ -1,0 +1,1123 @@
+---
+// 八字知识页（M19b，设计稿 30–34、D27、D28）：十天干、十二地支（各有目录）、十神、纳音、十二长生，简繁共用。
+// 纯计算的纸面页：数据在构建时由 tyme4ts 与 bazi.ts 算出（lib/bazi-kb.ts），写进 HTML，零 JS；
+// 释义是本站原创、经独立审查的 bazi-*.json，逐字照用。不带所问、不断吉凶，页脚只写数据来源与「仅供传统文化参考与娱乐」。
+// 版式：手机一栏；桌面左 380（标签、h1、导语、构成或来历、去排盘，够高时 sticky），右栏正文（同节气页的两栏）。
+import tianganHant from '../data/bazi-tiangan-hant.json';
+import tiangan from '../data/bazi-tiangan.json';
+import dizhiHant from '../data/bazi-dizhi-hant.json';
+import dizhi from '../data/bazi-dizhi.json';
+import pagesHant from '../data/bazi-pages-hant.json';
+import pages from '../data/bazi-pages.json';
+import namesHant from '../data/bazi-names-hant.json';
+import huangliHant from '../data/huangli-hant.json';
+import Paper from '../layouts/Paper.astro';
+import {
+  beijingNow,
+  changshengTable,
+  csHead,
+  GAN,
+  GAN_SLUG,
+  ganFacts,
+  ganPath,
+  type Kind,
+  kbPath,
+  nayinGroups,
+  REL_TYPES,
+  shishenLogic,
+  shishenTable,
+  STEPS,
+  tenHead,
+  ZHI,
+  ZHI_SLUG,
+  zhiFacts,
+  zhiPath,
+} from '../lib/bazi-kb';
+import { dayPath } from '../lib/huangli-days';
+import Invite from './Invite.astro';
+
+interface Props {
+  kind: Kind;
+  /** 天干页、地支页：哪一个字 */
+  name?: string;
+  hant?: boolean;
+}
+
+const { kind, name = '', hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+// tyme4ts 的名字都是简体：繁体页查八字名称表（十神、十二长生）与黄历的名称表（纳音、生肖、节气、东）
+const NAMES: Record<string, string> = { ...(huangliHant as unknown as { names: Record<string, string> }).names, ...namesHant };
+const tw = (s: string) => (hant ? (NAMES[s] ?? s) : s);
+const yy = (s: string) => (s === '阳' ? t('阳', '陽') : t('阴', '陰'));
+// 刑冲合会、生克只换这几个字（同排盘页）
+const rel = (s: string) => s.replace(/冲/g, t('冲', '沖')).replace(/会/g, t('会', '會')).replace(/克/g, t('克', '剋'));
+const qi = (s: string) => (s === '本气' ? t('本气', '本氣') : s === '中气' ? t('中气', '中氣') : t('余气', '餘氣'));
+const pre = (p: string) => kbPath(p, hant);
+const WEEK = '日一二三四五六';
+const cnDate = (iso: string) => `${Number(iso.slice(0, 4))}年${Number(iso.slice(5, 7))}月${Number(iso.slice(8, 10))}日`;
+const cnTime = (s: string) => `${cnDate(s)} ${s.slice(11)}`;
+
+type Item = { intro: string; read: string[] };
+const tg = hant ? tianganHant : tiangan;
+const dz = hant ? dizhiHant : dizhi;
+const pg = hant ? pagesHant : pages;
+
+const gi = GAN.indexOf(name);
+const zj = ZHI.indexOf(name);
+const gan = kind === 'gan' ? ganFacts(name) : undefined;
+// 节月取构建那一刻还没过完的那一回，该日从构建那天起（北京时间），每次部署重算
+const zhi = kind === 'zhi' ? zhiFacts(name, beijingNow()) : undefined;
+const item: Item | undefined =
+  kind === 'gan' ? (tg.items as Record<string, Item>)[GAN_SLUG[gi]!] : kind === 'zhi' ? (dz.items as Record<string, Item>)[ZHI_SLUG[zj]!] : undefined;
+
+const yang = (gan?.yinYang ?? zhi?.yinYang) === '阳';
+const order = yang ? t('阳干顺数', '陽干順數') : t('阴干逆数', '陰干逆數');
+const walk = yang ? t('顺着地支往后数', '順著地支往後數') : t('倒着地支往回数', '倒著地支往回數');
+
+let title: string;
+let lead: string;
+let read: string[] = [];
+let h1: string;
+let path: string;
+switch (kind) {
+  case 'gan':
+    h1 = name;
+    lead = item!.intro;
+    read = item!.read;
+    path = ganPath(name);
+    title = t(`天干${name} · ${yy(gan!.yinYang)}${gan!.wuXing} · 十神与十二长生 · 六爻`, `天干${name} · ${yy(gan!.yinYang)}${gan!.wuXing} · 十神與十二長生 · 六爻`);
+    break;
+  case 'zhi':
+    h1 = name;
+    lead = item!.intro;
+    read = item!.read;
+    path = zhiPath(name);
+    title = t(`地支${name} · ${yy(zhi!.yinYang)}${zhi!.wuXing} · 属${zhi!.zodiac} · 藏干与刑冲合会 · 六爻`, `地支${name} · ${yy(zhi!.yinYang)}${zhi!.wuXing} · 屬${tw(zhi!.zodiac)} · 藏干與刑沖合會 · 六爻`);
+    break;
+  case 'tiangan':
+    h1 = '十天干';
+    lead = tg.index;
+    path = '/bazi/tiangan/';
+    title = t('十天干 · 阴阳五行一览 · 六爻', '十天干 · 陰陽五行一覽 · 六爻');
+    break;
+  case 'dizhi':
+    h1 = '十二地支';
+    lead = dz.index;
+    path = '/bazi/dizhi/';
+    title = t('十二地支 · 生肖、藏干一览 · 六爻', '十二地支 · 生肖、藏干一覽 · 六爻');
+    break;
+  case 'shishen':
+    h1 = '十神';
+    lead = pg.shishen.intro;
+    read = pg.shishen.read;
+    path = '/bazi/shishen/';
+    title = t('十神 · 比肩到正印的来历与对照表 · 六爻', '十神 · 比肩到正印的來歷與對照表 · 六爻');
+    break;
+  case 'nayin':
+    h1 = t('纳音', '納音');
+    lead = pg.nayin.intro;
+    read = pg.nayin.read;
+    path = '/bazi/nayin/';
+    title = t('纳音 · 六十甲子纳音表 · 六爻', '納音 · 六十甲子納音表 · 六爻');
+    break;
+  case 'changsheng':
+    h1 = t('十二长生', '十二長生');
+    lead = pg.changsheng.intro;
+    read = pg.changsheng.read;
+    path = '/bazi/changsheng/';
+    title = t('十二长生 · 十天干长生表 · 六爻', '十二長生 · 十天干長生表 · 六爻');
+    break;
+}
+const glyph = kind === 'gan' || kind === 'zhi';
+const cta = {
+  gan: t('看自己的日主是哪一个天干：输入生辰，在浏览器里排盘，不上传。', '看自己的日主是哪一個天干：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  tiangan: t('看自己的日主是哪一个天干：输入生辰，在浏览器里排盘，不上传。', '看自己的日主是哪一個天干：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  zhi: t(`看自己的四柱里有没有${name}：输入生辰，在浏览器里排盘，不上传。`, `看自己的四柱裡有沒有${name}：輸入生辰，在瀏覽器裡排盤，不上傳。`),
+  dizhi: t('看自己的四柱里是哪几个地支：输入生辰，在浏览器里排盘，不上传。', '看自己的四柱裡是哪幾個地支：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  shishen: t('看自己盘面上的十神：输入生辰，在浏览器里排盘，不上传。', '看自己盤面上的十神：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  nayin: t('看自己四柱的纳音：输入生辰，在浏览器里排盘，不上传。', '看自己四柱的納音：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+  changsheng: t('看自己盘面上的星运与自坐：输入生辰，在浏览器里排盘，不上传。', '看自己盤面上的星運與自坐：輸入生辰，在瀏覽器裡排盤，不上傳。'),
+}[kind];
+
+// 前后：天干、地支首尾相接
+const ring = kind === 'gan' ? GAN : ZHI;
+const at = kind === 'gan' ? gi : zj;
+const prev = ring[(at + ring.length - 1) % ring.length]!;
+const next = ring[(at + 1) % ring.length]!;
+const ringPath = (x: string) => (kind === 'gan' ? ganPath(x, hant) : zhiPath(x, hant));
+
+// 地支关系一行一类，同类多条用全角空格隔开
+const rels = zhi ? REL_TYPES.map(([type, label]) => [label, zhi.rels.filter((r) => r.type === type).map((r) => r.name)] as const).filter(([, ns]) => ns.length) : [];
+const table = kind === 'shishen' ? shishenTable() : [];
+---
+
+<Paper title={title} description={lead} path={path} at="/bazi/" group="bazi" subset="index" hant={hant}>
+  <main class="kb">
+    <div class="side">
+      <section class="hero">
+        <p class="kicker">
+          八字 ·{' '}
+          {kind === 'gan' ? <><a href={pre('/bazi/tiangan/')}>十天干</a> · 第 {gi + 1}</> : kind === 'zhi' ? <><a href={pre('/bazi/dizhi/')}>十二地支</a> · 第 {zj + 1}</> : h1}
+        </p>
+        <h1 class:list={{ glyph }}>{h1}</h1>
+        <p class="lead">{lead}</p>
+      </section>
+
+      {gan && (
+        <section class="blk">
+          <h2 class="head">{t('构成', '構成')}</h2>
+          <dl class="facts">
+            <div><dt>{t('阴阳五行', '陰陽五行')}</dt><dd>{yy(gan.yinYang)} · {gan.wuXing}</dd></div>
+            <div><dt>次序</dt><dd>十天干第 {gi + 1}</dd></div>
+            <div><dt>方位</dt><dd>{tw(gan.direction)}</dd></div>
+            <div><dt>相合</dt><dd>{gan.he}</dd></div>
+            <div><dt>{t('长生在', '長生在')}</dt><dd>{gan.changsheng[0]}（{order}）</dd></div>
+          </dl>
+        </section>
+      )}
+
+      {zhi && (
+        <section class="blk">
+          <h2 class="head">{t('构成', '構成')}</h2>
+          <dl class="facts">
+            <div><dt>{t('阴阳五行', '陰陽五行')}</dt><dd>{yy(zhi.yinYang)} · {zhi.wuXing}</dd></div>
+            <div><dt>生肖</dt><dd>{tw(zhi.zodiac)}</dd></div>
+            <div><dt>方位</dt><dd>{tw(zhi.direction)}</dd></div>
+            <div><dt>{t('时辰', '時辰')}</dt><dd>{zhi.hours}</dd></div>
+            <div>
+              <dt>{t('节月', '節月')}</dt>
+              <dd>
+                {t(`${zhi.month.from.name}交节起，到${zhi.month.to.name}交节为止`, `${tw(zhi.month.from.name)}交節起，到${tw(zhi.month.to.name)}交節為止`)}
+                <span class="sub">{t(`这一回（北京时间）：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止`, `這一回（臺灣時間，UTC+8）：${cnTime(zhi.month.from.time)} 起，${cnTime(zhi.month.to.time)} 止`)}</span>
+              </dd>
+            </div>
+          </dl>
+          {name === '子' && <p class="hint">{t('子时跨两天：23 点以后出生的，本站排盘默认把日柱算到次日，可在排盘页的选项里改。', '子時跨兩天：23 點以後出生的，本站排盤預設把日柱算到次日，可在排盤頁的選項裡改。')}</p>}
+        </section>
+      )}
+
+      {kind === 'shishen' && (
+        <section class="blk">
+          <h2 class="head">{t('怎么来的', '怎麼來的')}</h2>
+          <table class="logic">
+            <caption class="sr">{t('十神的来历：五行关系与阴阳同异', '十神的來歷：五行關係與陰陽同異')}</caption>
+            <colgroup><col class="lab" /><col span="2" /></colgroup>
+            <thead>
+              <tr><th scope="col"><span class="sr">{t('五行关系', '五行關係')}</span></th><th scope="col">{t('阴阳相同', '陰陽相同')}</th><th scope="col">{t('阴阳不同', '陰陽不同')}</th></tr>
+            </thead>
+            <tbody>
+              {shishenLogic().map((r) => (
+                <tr><th scope="row">{rel(r.rel)}</th><td>{tw(r.same)}</td><td>{tw(r.diff)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="hint">{t('以日主为准：五行看生克，阴阳看同异。', '以日主為準：五行看生剋，陰陽看同異。')}</p>
+        </section>
+      )}
+
+      {kind === 'changsheng' && (
+        <section class="blk">
+          <h2 class="head">{t('十二步', '十二步')}</h2>
+          <ol class="steps">
+            {STEPS.map((s, i) => <li><span class="no">{i + 1}</span><span class="st">{tw(s)}</span></li>)}
+          </ol>
+        </section>
+      )}
+
+      <section class="cta desk">
+        <p>{cta}</p>
+        <a href={pre('/bazi/')}>{t('去排盘', '去排盤')}</a>
+      </section>
+    </div>
+
+    <div class="body">
+      {read.length > 0 && (
+        <section class="blk read">
+          <h2 class="head">{t('怎么读', '怎麼讀')}</h2>
+          {read.map((p) => <p class="prose">{p}</p>)}
+        </section>
+      )}
+
+      {gan && (
+        <>
+          <section class="blk">
+            <h2 class="head">{tenHead(name)}</h2>
+            <p class="prose">{t(`日主是${name}时，盘面上遇到各个天干，十神这样称呼：`, `日主是${name}時，盤面上遇到各個天干，十神這樣稱呼：`)}</p>
+            <ul class="cells n5 d10">
+              {gan.ten.map((x) => <li><span class="g">{x.gan}</span><span class="s">{tw(x.star)}</span></li>)}
+            </ul>
+            <a class="more" href={pre('/bazi/shishen/')}>{t('十神对照表', '十神對照表')} ›</a>
+          </section>
+          <section class="blk">
+            <h2 class="head">{csHead(name, hant)}</h2>
+            <p class="prose">{t(`${name}从${gan.changsheng[0]}起长生，一支一步，${walk}。每格的小字是步名，大字是落在的地支：`, `${name}從${gan.changsheng[0]}起長生，一支一步，${walk}。每格的小字是步名，大字是落在的地支：`)}</p>
+            <ol class="cells n6 d12 rev">
+              {gan.changsheng.map((z, i) => <li><span class="s">{tw(STEPS[i]!)}</span><span class="g">{z}</span></li>)}
+            </ol>
+            <a class="more" href={pre('/bazi/changsheng/')}>{t('十二长生表', '十二長生表')} ›</a>
+          </section>
+          <section class="blk">
+            <h2 class="head">{t(`六十甲子里的${name}`, `六十甲子裡的${name}`)}</h2>
+            <p class="prose">{t(`${name}在六十甲子里配六个地支，每一柱都有纳音；点开是纳音表里它所在的那一组：`, `${name}在六十甲子裡配六個地支，每一柱都有納音；點開是納音表裡它所在的那一組：`)}</p>
+            <ul class="cells n3 d6">
+              {gan.pillars.map((p) => <li><a href={`${pre('/bazi/nayin/')}#${p.id}`}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
+            </ul>
+          </section>
+        </>
+      )}
+
+      {zhi && (
+        <>
+          <section class="blk">
+            <h2 class="head">藏干</h2>
+            <ul class="cells n3">
+              {zhi.cang.map((c) => <li><span class="g">{c.gan}</span><span class="s">{qi(c.type)} · {yy(c.yinYang)}{c.wuXing}</span></li>)}
+            </ul>
+          </section>
+          <section class="blk">
+            <h2 class="head">{t(`刑冲合会里的${name}`, `刑沖合會裡的${name}`)}</h2>
+            <dl class="facts rels">
+              {rels.map(([label, ns]) => <div><dt>{rel(label)}</dt><dd>{ns.map(rel).join('　')}</dd></div>)}
+            </dl>
+            <p class="hint">{t('名字的写法同排盘页：两字的合、冲、害、刑按地支序，半合按三合局的次序；三刑要三支凑齐，相刑只见两支。', '名字的寫法同排盤頁：兩字的合、沖、害、刑按地支序，半合按三合局的次序；三刑要三支湊齊，相刑只見兩支。')}</p>
+          </section>
+          <section class="blk">
+            <h2 class="head">{t(`六十甲子里的${name}`, `六十甲子裡的${name}`)}</h2>
+            <p class="prose">{t(`${name}在六十甲子里配五个天干，每一柱都有纳音；点开是纳音表里它所在的那一组：`, `${name}在六十甲子裡配五個天干，每一柱都有納音；點開是納音表裡它所在的那一組：`)}</p>
+            <ul class="cells n5">
+              {zhi.pillars.map((p) => <li><a href={`${pre('/bazi/nayin/')}#${p.id}`}><span class="g">{p.ganZhi}</span><span class="s">{tw(p.naYin)}</span></a></li>)}
+            </ul>
+          </section>
+          {zhi.days.length > 0 && (
+            <section class="blk">
+              <h2 class="head">{t(`接下来的${name}日`, `接下來的${name}日`)}</h2>
+              <p class="prose">{t(`日子的地支每 12 天轮到一次${name}。接下来的 ${zhi.days.length} 个${name}日（北京时间），点开是当天的黄历：`, `日子的地支每 12 天輪到一次${name}。接下來的 ${zhi.days.length} 個${name}日（臺灣時間），點開是當天的農民曆：`)}</p>
+              <ul class="days">
+                {zhi.days.map((d) => (
+                  <li><a href={dayPath(d, hant)}><span class="d">{cnDate(d)} 星期{WEEK[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span><span class="s">{t('当天黄历', '當天農民曆')} ›</span></a></li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+
+      {(kind === 'gan' || kind === 'zhi') && (
+        <nav class="pager" aria-label={kind === 'gan' ? t('前后天干', '前後天干') : t('前后地支', '前後地支')}>
+          <a href={ringPath(prev)}><span class="k">{t('上一个', '上一個')} · 第 {ring.indexOf(prev) + 1}</span><span class="n">‹ {prev}</span></a>
+          <a class="next" href={ringPath(next)}><span class="k">{t('下一个', '下一個')} · 第 {ring.indexOf(next) + 1}</span><span class="n">{next} ›</span></a>
+        </nav>
+      )}
+
+      {kind === 'tiangan' && (
+        <ul class="list">
+          {[...GAN].map((g) => {
+            const f = ganFacts(g);
+            return (
+              <li><a href={ganPath(g, hant)}><span class="g">{g}</span><span class="a">{yy(f.yinYang)}{f.wuXing} · {tw(f.direction)}</span><span class="b">{f.he} · {t('长生在', '長生在')}{f.changsheng[0]}</span><span class="arr" aria-hidden="true">›</span></a></li>
+            );
+          })}
+        </ul>
+      )}
+
+      {kind === 'dizhi' && (
+        <ul class="list">
+          {[...ZHI].map((z) => {
+            const f = zhiFacts(z, beijingNow());
+            return (
+              <li><a href={zhiPath(z, hant)}><span class="g">{z}</span><span class="a">{yy(f.yinYang)}{f.wuXing} · {tw(f.zodiac)}</span><span class="b">藏{f.cang.map((c) => c.gan).join('')} · {tw(f.month.from.name)}起</span><span class="arr" aria-hidden="true">›</span></a></li>
+            );
+          })}
+        </ul>
+      )}
+
+      {kind === 'shishen' && (
+        <>
+          <section class="blk">
+            <h2 class="head">{t('十神对照表', '十神對照表')}</h2>
+            <p class="prose">{t('行是日主，列是盘面上遇到的天干。从日主那一行横着找过去：', '行是日主，列是盤面上遇到的天干。從日主那一行橫著找過去：')}</p>
+            {/* 320 宽放不下（338 > 320）：外包可横滑的出血容器，不缩字（设计发现 4）。键盘可聚焦滚动 */}
+            <div class="scroll" role="region" tabindex="0" aria-label={t('十神对照表，可横向滑动', '十神對照表，可橫向滑動')}>
+              <table class="ten">
+                <caption class="sr">{t('十神对照表：行是日主，列是遇到的天干', '十神對照表：行是日主，列是遇到的天干')}</caption>
+                <colgroup><col class="lab" /><col span="10" /></colgroup>
+                <thead><tr><th scope="col" class="corner">日主</th>{[...GAN].map((g) => <th scope="col">{g}</th>)}</tr></thead>
+                <tbody>
+                  {table.map((row, i) => <tr><th scope="row">{GAN[i]}</th>{row.map((s) => <td>{tw(s)}</td>)}</tr>)}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="blk">
+            <h2 class="head">{t('十个名目', '十個名目')}</h2>
+            <dl class="facts names">
+              {Object.entries(pg.shishen.names).map(([k, v]) => <div><dt>{tw(k)}</dt><dd>{v}</dd></div>)}
+            </dl>
+          </section>
+          <section class="blk">
+            <h2 class="head">{t('十天干各页', '十天干各頁')}</h2>
+            <nav class="gans" aria-label="十天干">
+              {[...GAN].map((g) => <a href={ganPath(g, hant)}>{g}</a>)}
+            </nav>
+          </section>
+        </>
+      )}
+
+      {kind === 'nayin' && (
+        <section class="blk">
+          <h2 class="head">{t('三十组纳音', '三十組納音')}</h2>
+          <p class="prose">{t('按六十甲子的次序，每组两柱共用一个名字：', '按六十甲子的次序，每組兩柱共用一個名字：')}</p>
+          <table class="ny">
+            <caption class="sr">{t('三十组纳音', '三十組納音')}</caption>
+            <colgroup><col class="no" /><col class="gz" /><col /><col class="wx" /></colgroup>
+            <thead><tr><th scope="col">序</th><th scope="col">干支</th><th scope="col">{t('纳音', '納音')}</th><th scope="col">五行</th></tr></thead>
+            <tbody>
+              {nayinGroups().map((n, i) => (
+                <tr id={n.id}><td>{i + 1}</td><th scope="row">{n.pair[0]}<span aria-hidden="true"> · </span><span class="sr">、</span>{n.pair[1]}</th><td>{tw(n.name)}</td><td>{n.wuXing}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {kind === 'changsheng' && (
+        <section class="blk">
+          <h2 class="head">{t('十天干的十二长生', '十天干的十二長生')}</h2>
+          <p class="prose">{t('行是步名，列是天干，格里是落在的地支。从日主那一列往下看，就是它走过的十二个地支：', '行是步名，列是天干，格裡是落在的地支。從日主那一列往下看，就是它走過的十二個地支：')}</p>
+          <div class="scroll" role="region" tabindex="0" aria-label={t('十天干的十二长生，可横向滑动', '十天干的十二長生，可橫向滑動')}>
+            <table class="cs">
+              <caption class="sr">{t('十天干的十二长生：行是步名，列是天干，格里是地支', '十天干的十二長生：行是步名，列是天干，格裡是地支')}</caption>
+              <colgroup><col class="lab" /><col span="10" /></colgroup>
+              <thead>
+                <tr><th scope="col" class="corner">步</th>{changshengTable().map((g) => <th scope="col">{g.gan}<span class="yy">{yy(g.yinYang)}</span></th>)}</tr>
+              </thead>
+              <tbody>
+                {STEPS.map((s, i) => <tr><th scope="row">{tw(s)}</th>{changshengTable().map((g) => <td>{g.byStep[i]}</td>)}</tr>)}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section class="cta mob">
+        <p>{cta}</p>
+        <a href={pre('/bazi/')}>{t('去排盘', '去排盤')}</a>
+      </section>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('干支、纳音、十二长生由', '干支、納音、十二長生由')} <a href="https://github.com/6tail/tyme4ts" rel="noopener">tyme4ts</a> {t('推算（MIT）；释义为本站原创', '推算（MIT）；釋義為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<style>
+  p,
+  h1,
+  h2,
+  dl,
+  dd,
+  ol,
+  ul,
+  table {
+    margin: 0;
+  }
+  ol,
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* 手机一栏：左栏、右栏都拆开，次序是标题区、构成（或来历、十二步）、正文、去排盘 */
+  .kb {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .side,
+  .body {
+    display: contents;
+  }
+  .desk {
+    display: none !important;
+  }
+
+  /* ---------- 标题区 ---------- */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .kicker {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  /* 标签里的「十天干」链到目录：点击区撑到 44 高，负外边距让行高不变 */
+  .kicker a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    margin-block: -13px;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--rule);
+  }
+  .kicker a:hover {
+    color: var(--ink);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.3;
+    letter-spacing: 0.16em;
+  }
+  /* 天干、地支页的 h1 是一个字，放大成干支大字（M19b-6） */
+  h1.glyph {
+    font-size: 64px;
+    line-height: 1.1;
+  }
+  .lead {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+
+  /* ---------- 小节 ---------- */
+  .blk {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .blk.read {
+    gap: 12px;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    flex: none;
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .prose {
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .hint {
+    margin-top: 4px;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+
+  /* 构成、关系、十个名目：行名一列，值一列 */
+  .facts {
+    border-top: 1px solid var(--rule);
+  }
+  .facts > div {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .facts dt {
+    font-size: 13px;
+    line-height: 1.95;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+  }
+  .facts dd {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .facts .sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .rels > div {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .names > div {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .names dt {
+    font-size: 15px;
+    line-height: 1.8;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+  }
+  .names dd {
+    font-size: var(--fs-s);
+    line-height: 1.8;
+  }
+
+  /* 格子：大字是干支（标题字体），小字是名字（宋体） */
+  .cells {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 0 8px;
+  }
+  .n3 {
+    --n: 3;
+  }
+  .n5 {
+    --n: 5;
+  }
+  .n6 {
+    --n: 6;
+  }
+  .cells li,
+  .cells a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .cells li {
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .cells li:has(a) {
+    padding: 0;
+  }
+  .cells a {
+    padding: 10px 0;
+    transition: opacity var(--t-hover);
+  }
+  .cells a:hover .g {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+  .g {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.3;
+  }
+  .n3 a .g,
+  .n5 a .g {
+    font-size: 20px;
+  }
+  .s {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .more {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: inline-flex;
+    align-items: center;
+    margin-top: -6px;
+    font-size: var(--fs-s);
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+  }
+  .more:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* 接下来的该日 */
+  .days {
+    border-top: 1px solid var(--rule);
+  }
+  .days a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .days .d {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+  .days .s {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+  .days a:hover .d {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* 前后天干、地支 */
+  .pager {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px 0;
+    border-block: 1px solid var(--rule);
+  }
+  .pager a {
+    min-height: var(--tap);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .pager .next {
+    align-items: flex-end;
+  }
+  .pager .k {
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .pager .n {
+    font-size: var(--fs-m);
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+  }
+  .pager a:hover .n {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* 去排盘 */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .cta p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .cta a {
+    height: var(--btn-h);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 0.4em;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: var(--fs-m);
+    letter-spacing: 0.4em;
+    transition: background-color var(--t-hover), color var(--t-hover);
+  }
+  .cta a:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* 目录：一行一个字，整行是链接 */
+  .list {
+    border-top: 1px solid var(--rule);
+  }
+  .list a {
+    min-height: 56px;
+    display: grid;
+    grid-template-columns: 40px 72px minmax(0, 1fr) 12px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--rule);
+  }
+  .list .g {
+    font-size: 24px;
+    line-height: 1.3;
+  }
+  .list .a {
+    font-size: var(--fs-s);
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+  }
+  .list .b {
+    font-size: 13px;
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .list .arr {
+    color: var(--ink-2);
+  }
+  .list a:hover .g {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  /* 十天干各页 */
+  .gans {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-block: 1px solid var(--rule);
+  }
+  .gans a {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: var(--fs-l);
+    line-height: 1.3;
+  }
+  .gans a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  /* 十二步 */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .steps li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .steps .no {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .steps .st {
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---------- 表格 ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    border-bottom: 1px solid var(--rule);
+  }
+  tbody tr {
+    border-top: 1px solid var(--rule);
+  }
+  th {
+    font-weight: 400;
+  }
+  thead th {
+    padding: 0 0 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+    text-align: left;
+  }
+  td {
+    padding: 0;
+  }
+  /* 横滑的出血容器：外边距、内边距的表达式与 Paper .page、Columns 逐字对应，两端 24px 渐隐（同栏目行） */
+  .scroll {
+    --edge-l: max(var(--gutter), env(safe-area-inset-left));
+    --edge-r: max(var(--gutter), env(safe-area-inset-right));
+    margin-inline: calc(-1 * var(--edge-l)) calc(-1 * var(--edge-r));
+    padding-inline: var(--edge-l) var(--edge-r);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    outline-offset: -3px;
+  }
+  .scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 十神的来历 5×2 */
+  .logic col.lab {
+    width: 64px;
+  }
+  .logic thead th + th {
+    text-align: center;
+  }
+  .logic tbody th {
+    padding: 10px 0;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+    text-align: left;
+  }
+  .logic td {
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+  }
+
+  /* 十神对照表 10×10：390 宽每格 31，两字 24 不换行；320 宽放不下就横滑 */
+  .ten {
+    min-width: 290px;
+  }
+  .ten col.lab {
+    width: 30px;
+  }
+  .ten thead th {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0;
+    color: var(--ink);
+  }
+  .ten thead th.corner,
+  .cs thead th.corner {
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .ten tbody th {
+    height: 36px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: left;
+  }
+  .ten td {
+    text-align: center;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  /* 十天干的十二长生 */
+  .cs {
+    min-width: 260px;
+  }
+  .cs col.lab {
+    width: 42px;
+  }
+  .cs thead th {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 17px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    color: var(--ink);
+  }
+  .yy {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .cs tbody th {
+    height: 36px;
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .cs td {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 17px;
+    line-height: 1.3;
+  }
+
+  /* 三十组纳音：每行一个锚点，天干页、地支页点过来落在这一行 */
+  .ny col.no {
+    width: 32px;
+  }
+  .ny col.gz {
+    width: 132px;
+  }
+  .ny col.wx {
+    width: 40px;
+  }
+  .ny thead th:last-child,
+  .ny td:last-child {
+    text-align: right;
+  }
+  .ny tr {
+    scroll-margin-top: 16px;
+  }
+  .ny tbody td:first-child,
+  .ny tbody td:last-child {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .ny tbody td,
+  .ny tbody th {
+    height: 48px;
+    line-height: 1.5;
+  }
+  .ny tbody th {
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 19px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  .ny tbody th span[aria-hidden] {
+    color: var(--ink-2);
+  }
+  .ny tbody td:nth-child(3) {
+    font-size: var(--fs-m);
+    letter-spacing: 0.12em;
+  }
+  /* 从天干页、地支页点过来的那一组 */
+  .ny tr:target {
+    background: var(--paper-2);
+  }
+
+  /* ---------- 桌面：左 380（够高时 sticky），右栏正文（设计稿 D27、D28） ---------- */
+  @media (min-width: 1024px) {
+    .kb {
+      width: min(1120px, 100%);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      column-gap: 96px;
+      align-items: start;
+    }
+    .side,
+    .body {
+      display: flex;
+      flex-direction: column;
+    }
+    .side {
+      gap: 40px;
+    }
+    .body {
+      gap: 56px;
+      min-width: 0;
+    }
+    .desk {
+      display: flex !important;
+    }
+    .mob {
+      display: none;
+    }
+    .kicker {
+      font-size: 13px;
+    }
+    h1 {
+      font-size: 52px;
+    }
+    h1.glyph {
+      font-size: 88px;
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .prose {
+      font-size: var(--fs-m);
+    }
+    .facts > div {
+      grid-template-columns: 96px minmax(0, 1fr);
+    }
+    .rels > div {
+      grid-template-columns: 56px minmax(0, 1fr);
+    }
+    .names > div {
+      grid-template-columns: 88px minmax(0, 1fr);
+    }
+    .names dd {
+      font-size: 15px;
+    }
+    .d6 {
+      --n: 6;
+    }
+    .d10 {
+      --n: 10;
+    }
+    .d12 {
+      --n: 12;
+    }
+    .cta p {
+      font-size: var(--fs-m);
+    }
+    .cta a {
+      width: 240px;
+    }
+    .gans {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+    }
+    .scroll {
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .ten col.lab {
+      width: 64px;
+    }
+    .ten thead th,
+    .ten tbody th,
+    .cs thead th {
+      font-size: var(--fs-l);
+    }
+    .ten tbody th {
+      height: 44px;
+    }
+    .ten td {
+      font-size: 15px;
+    }
+    .cs col.lab {
+      width: 64px;
+    }
+    .cs tbody th {
+      font-size: var(--fs-s);
+    }
+    .cs td {
+      font-size: var(--fs-l);
+    }
+  }
+
+  @media (min-width: 1024px) and (min-height: 900px) {
+    .side {
+      position: sticky;
+      top: 32px;
+    }
+  }
+</style>

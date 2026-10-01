@@ -29,6 +29,12 @@ import { TenStar, Terrain } from "tyme4ts";
 import baziHant from "./bazi-hant.json" with { type: "json" };
 import baziNamesHant from "./bazi-names-hant.json" with { type: "json" };
 import bazi from "./bazi.json" with { type: "json" };
+import baziDizhiHant from "./bazi-dizhi-hant.json" with { type: "json" };
+import baziDizhi from "./bazi-dizhi.json" with { type: "json" };
+import baziPagesHant from "./bazi-pages-hant.json" with { type: "json" };
+import baziPages from "./bazi-pages.json" with { type: "json" };
+import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
+import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
@@ -144,7 +150,7 @@ const shown = (data: unknown) => [
  */
 function componentText(hant: boolean): string[] {
 	const pair = /t\(\s*(['`])((?:(?!\1).)*)\1,\s*(['`])((?:(?!\3).)*)\3\s*,?\s*\)/g;
-	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi"].map((f) =>
+	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb"].map((f) =>
 		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8")
 			.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
 			.replace(pair, (...m: string[]) => (hant ? m[4]! : m[2]!)),
@@ -164,8 +170,8 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0))],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziNamesHant, cityText(1))],
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1))],
 	])("%s：卦爻辞、两种白话、黄历、择日、八字的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
@@ -195,11 +201,11 @@ it.each([
 	expect([...text].filter((ch) => !have.has(ch.codePointAt(0) as number)).join(""), "改了事项名要重跑 tools/subset-fonts.py").toBe("");
 });
 
-// 八字排盘的标题字体（M19a）：h1、四柱与大运流年的干支、五行个数、乾造坤造都要在 bazi 子集里
+// 八字排盘与知识页的标题字体（M19a、M19b-3 共用一份）：h1、干支、五行个数、乾造坤造，知识页的十神、纳音、十二长生、十天干、十二地支
 it.each([
-	["bazi", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造"],
-	["bazi-hant", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造"],
-])("八字标题子集 %s/index 有干支、数字与乾造坤造", (dir, text) => {
+	["bazi", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造十神纳音十二长生十天干十二地支"],
+	["bazi-hant", "八字甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥0123456789乾造坤造十神納音十二長生十天干十二地支"],
+])("八字标题子集 %s/index 有干支、数字、乾造坤造与知识页标题", (dir, text) => {
 	const have = new Set<number>();
 	for (const f of ["index", "index-wk"]) {
 		const url = new URL(`../fonts/${dir}/${f}.woff2`, import.meta.url);
