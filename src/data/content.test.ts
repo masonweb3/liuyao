@@ -52,6 +52,12 @@ import { localOffset } from "../lib/bazi-time.js";
 import baziHant from "./bazi-hant.json" with { type: "json" };
 import baziNamesHant from "./bazi-names-hant.json" with { type: "json" };
 import bazi from "./bazi.json" with { type: "json" };
+import baziDizhiHant from "./bazi-dizhi-hant.json" with { type: "json" };
+import baziDizhi from "./bazi-dizhi.json" with { type: "json" };
+import baziPagesHant from "./bazi-pages-hant.json" with { type: "json" };
+import baziPages from "./bazi-pages.json" with { type: "json" };
+import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
+import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
@@ -381,10 +387,49 @@ describe("八字（M19a）", () => {
 	});
 });
 
+describe("八字知识页（M19b）", () => {
+	const kb = [baziTiangan, baziDizhi, baziPages];
+	const kbHant = [baziTianganHant, baziDizhiHant, baziPagesHant];
+	// 字段路径（键保持简体，繁体只转值）
+	const paths = (v: unknown, p = ""): string[] =>
+		typeof v === "string" ? [p] : v && typeof v === "object" ? Object.entries(v).flatMap(([k, x]) => paths(x, `${p}/${k}`)) : [];
+	// 知识页组件写在页面上的字（注释不算）；十二长生的步名不在源码里，构建时取 Terrain.NAMES
+	const page = readFileSync(new URL("../components/BaziKb.astro", import.meta.url), "utf8").replace(
+		/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm,
+		"",
+	);
+
+	it("结构：十天干、十二地支各导语一句加「怎么读」三段，十神页十个名目，目录页各一句；繁体逐项对应", () => {
+		expect(Object.keys(baziTiangan.items)).toEqual(["jia", "yi", "bing", "ding", "wu", "ji", "geng", "xin", "ren", "gui"]);
+		expect(Object.keys(baziDizhi.items)).toEqual(["zi", "chou", "yin", "mao", "chen", "si", "wu", "wei", "shen", "you", "xu", "hai"]);
+		for (const x of [...Object.values(baziTiangan.items), ...Object.values(baziDizhi.items)]) expect(x.read).toHaveLength(3);
+		expect(Object.keys(baziPages.shishen.names).sort()).toEqual([...TenStar.NAMES].sort());
+		expect(baziPages.shishen.read).toHaveLength(2);
+		for (const k of ["nayin", "changsheng"] as const) expect(baziPages[k].read.length).toBeGreaterThanOrEqual(2);
+		kb.forEach((d, i) => expect(paths(kbHant[i])).toEqual(paths(d)));
+		for (const s of [...kb, ...kbHant].flatMap(strings)) expect(s).toMatch(/^[^\s].*。$/);
+	});
+
+	it("只讲构成与名目（§1.5）：不写寿元、疾病、婚变、吉凶、贵贱、性格，步名「病死墓绝」只在表里，不用方位词", () => {
+		for (const s of [...kb, ...kbHant].flatMap(strings).concat(page)) {
+			expect(s).not.toMatch(/寿元|壽元|疾病|灾厄|災厄|牢狱|牢獄|克夫|剋夫|克妻|剋妻|婚变|婚變|吉|凶|兇|贵|貴|贱|賤|性格|性情|改命|改运|改運|转运|轉運|化解/);
+			expect(s).not.toMatch(/[病死墓绝絕]/);
+		}
+		for (const s of [...kb, ...kbHant].flatMap(strings)) expect(s).not.toMatch(/上面|下面|左右|左邊|右邊/);
+	});
+
+	it("繁体：生克用「剋」、冲用「沖」、臺灣時間，没有 s2twp 的常见误转", () => {
+		const hant = kbHant.flatMap(strings);
+		for (const s of hant) expect(s).not.toMatch(/[兇矇佔鹹衝克]|北京|默認|藏幹/);
+		expect(hant.join("")).toMatch(/剋/);
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
 		...strings(bazi),
 		...strings(baziHant),
+		...[baziTiangan, baziDizhi, baziPages, baziTianganHant, baziDizhiHant, baziPagesHant].flatMap(strings),
 		...strings(zeri),
 		...strings(zeriHant),
 		...huangliTexts(HL),
