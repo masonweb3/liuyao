@@ -127,7 +127,7 @@ export interface Bazi {
 	solar: string;
 	/** 开了真太阳时才有：校正后的时刻与校正了多少分钟（经度差加均时差） */
 	zhenTaiYang?: { time: string; minutes: number };
-	/** 农历「庚午年四月廿一」，闰月写「闰四月」 */
+	/** 农历「庚午年四月廿一」，闰月写「闰四月」，十一、十二月写「冬月」「腊月」 */
 	lunar: string;
 	/** 生肖，按年柱（立春起） */
 	shengXiao: string;
@@ -388,14 +388,17 @@ export function bazi(birth: Birth, options: Options = {}): Bazi {
 		};
 	});
 
-	const lunarDay = local.getLunarHour().getLunarDay();
+	// 农历与 solar 同按钟表时刻，真太阳时校正后的时刻另见 zhenTaiYang
+	const lunarDay = clock.getLunarHour().getLunarDay();
 	const lunarMonth = lunarDay.getLunarMonth();
+	// 十一月、十二月写冬月、腊月，与黄历同（M17-15）
+	const monthName = lunarMonth.getName().replace("十一月", "冬月").replace("十二月", "腊月");
 
 	return {
 		gender: birth.gender,
 		solar: fmt(clock),
 		...(zhenTaiYang && { zhenTaiYang }),
-		lunar: `${lunarMonth.getLunarYear().getSixtyCycle().getName()}年${lunarMonth.getName()}${lunarDay.getName()}`,
+		lunar: `${lunarMonth.getLunarYear().getSixtyCycle().getName()}年${monthName}${lunarDay.getName()}`,
 		shengXiao: eight.getYear().getEarthBranch().getZodiac().getName(),
 		pillars,
 		taiYuan: naYin(eight.getFetalOrigin()),
