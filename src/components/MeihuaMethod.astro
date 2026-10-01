@@ -285,7 +285,8 @@ const fields = (p: string) => [
     }
     .col {
       flex-grow: 0;
-      width: 1040px;
+      /* 1024–1167 宽减去左右 64 的内边距放不下 1040：跟着收窄，不出横向滚动 */
+      width: min(1040px, 100%);
       margin: auto;
       gap: 40px;
       padding-top: 0;
