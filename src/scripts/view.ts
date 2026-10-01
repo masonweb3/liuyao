@@ -7,6 +7,7 @@
 import { benLines, dayLabel, yaoHtml } from "../lib/flow.js";
 import { fontOf } from "../lib/gua.js";
 import type { CastResult } from "../lib/liuyao/najia.js";
+import { duan, tiYong } from "../lib/meihua-duan.js";
 import type { GuaText, Reading, Row } from "../lib/reading.js";
 import {
 	ago,
@@ -323,6 +324,9 @@ type Load = () => Promise<[typeof import("../lib/liuyao/najia.js"), typeof impor
 /**
  * 往卦: every record cast again, so the list shows exactly what its reading will.
  * ritual.ts calls this only when there is something to list, and tells the user when it fails.
+ *
+ * 梅花（M21）的卦记在同一份往卦里，多一个 meihua 字段（首屏的 history.ts 原样带着读写）：
+ * 卦名照样由六爻引擎从 params 排出；印按梅花的体用生克（meihua-duan.ts），点开去梅花页重排。
  */
 export async function list(root: HTMLElement, load: Load, open: (p: Past, r: CastResult, x: Reading) => void) {
 	const [{ cast }, { compose }] = await load();
@@ -338,18 +342,24 @@ export async function list(root: HTMLElement, load: Load, open: (p: Past, r: Cas
 		...past.flatMap((p) => {
 			try {
 				const r = cast(p.params, { date: new Date(p.at), lateZi: p.lateZi });
-				const x = compose(r, p.ask);
+				const meihua = "meihua" in p;
+				const ty = meihua ? tiYong(p.params) : null;
+				const x = meihua ? null : compose(r, p.ask);
+				const verdict = x ? x.verdict : ty ? duan(ty.rel) : "";
 				const li = $("li", tpl.content).cloneNode(true) as HTMLElement;
-				$(".date", li).textContent = `${dayLabel(new Date(p.at))} · ${r.ganzhi.day}日`;
+				$(".day", li).textContent = `${dayLabel(new Date(p.at))} · ${r.ganzhi.day}日`;
+				$(".mh", li).hidden = !meihua;
 				$(".gua", li).innerHTML = r.bian ? `${r.gua.name} <small>之</small> ${r.bian.name}` : r.gua.name;
 				$(".q", li).textContent = p.question;
 				// 自记：没记、不想记的留空
 				const o = p.review?.outcome;
 				$(".v", li).textContent = o && o !== "skip" ? names[o] : "";
 				const d = $(".duan", li);
-				d.textContent = x.verdict;
-				d.dataset.verdict = x.verdict;
-				$("button", li).addEventListener("click", () => open(p, r, x));
+				d.textContent = verdict;
+				d.dataset.verdict = verdict;
+				$("button", li).addEventListener("click", () =>
+					x ? open(p, r, x) : location.assign(`/meihua/?at=${encodeURIComponent(p.at)}`),
+				);
 				return [li];
 			} catch {
 				return []; // a date the calendar cannot place

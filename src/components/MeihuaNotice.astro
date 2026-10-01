@@ -1,0 +1,73 @@
+---
+// 拦截、婉拒、紧急提示、请重写（设计稿 40）：版式同首页 Notice.astro，梅花页另写一份（理由见 MeihuaAsk.astro）。
+import MeihuaBar from "./MeihuaBar.astro";
+
+interface Props {
+  screen: string;
+  title: string;
+  body: readonly string[];
+  /** 自伤拦截：换成鸽蓝底，不显示所问。 */
+  guard?: boolean;
+}
+const { screen, title, body, guard } = Astro.props;
+---
+
+<section class:list={["screen", "notice", { guard }]} data-screen={screen} tabindex="-1" hidden>
+  {guard ? <div class="gap" /> : <MeihuaBar />}
+  <div class="col">
+    <div class="center">
+      <h1 tabindex="-1" data-autofocus>{title}</h1>
+      {body.map((p) => <p>{p}</p>)}
+      <slot name="extra" />
+    </div>
+    <footer><slot /></footer>
+  </div>
+</section>
+
+<style>
+  .guard {
+    background: var(--night-2);
+  }
+  .gap {
+    height: var(--tap);
+  }
+  .col {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .center {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px 4px;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    letter-spacing: 0.3em;
+    outline: none;
+  }
+  p {
+    margin: 0;
+    font-size: var(--fs-m);
+    line-height: 2;
+    letter-spacing: 0.04em;
+    color: rgb(248 244 237 / 0.86);
+  }
+  .guard p {
+    color: rgb(248 244 237 / 0.88);
+  }
+  footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+</style>

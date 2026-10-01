@@ -1,0 +1,474 @@
+---
+// 梅花首屏（设计稿 35 ①）与往下的纸面说明区（35 ③，M21-13）。两块一起算「首屏」：点「起卦」后一起隐藏。
+// 说明区预渲染给搜索看，不带脚本；文字为本站原创（不看任何现代译注，AGENTS.md §1.3）。
+import Columns from './Columns.astro';
+
+const rows = ['不动不占', '不因事不占'].map((row, r) => [...row].map((ch, i) => ({ ch, i: r * 4 + i })));
+// 先天数：乾一兑二离三震四巽五坎六艮七坤八，三爻初爻在前（1 阳 0 阴）
+const XIAN = [
+  ['乾', '一', '111'],
+  ['兑', '二', '110'],
+  ['离', '三', '101'],
+  ['震', '四', '100'],
+  ['巽', '五', '011'],
+  ['坎', '六', '010'],
+  ['艮', '七', '001'],
+  ['坤', '八', '000'],
+] as const;
+const ZHI = [...'子丑寅卯辰巳午未申酉戌亥'];
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<div class="first" data-screen="home" tabindex="-1">
+  <section class="screen home">
+    <header>
+      <a class="brand" href="/" aria-label="六爻首页">
+        <span class="seal" aria-hidden="true">爻</span>
+        <span class="name" aria-hidden="true">六爻</span>
+      </a>
+      {/* 栏目导航只在首屏：写下所问以后各屏都看不到它（同首页） */}
+      <Columns at="/meihua/" page dark />
+      <div class="acts">
+        <a class="past" href="/?history">往卦</a>
+        <button class="sound" aria-label="音效：已开启" aria-pressed="true" data-sound>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"></path><path class="on" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"></path></svg>
+        </button>
+      </div>
+    </header>
+    <div class="center">
+      <h1>梅花易数</h1>
+      {/* 原书「不动不占，不因事不占」。只作装饰（同设计稿），h1 已说明本页 */}
+      <div class="motto" aria-hidden="true">
+        {rows.map((row) => (
+          <span class="row">
+            {row.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}
+          </span>
+        ))}
+      </div>
+      <svg class="line" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
+      <div class="cta">
+        <button class="btn cast" data-go="ask" data-autofocus>起卦</button>
+        <span class="hint">一事一问 · 以时或以数起卦</span>
+      </div>
+    </div>
+    <footer class="foot">
+      {/* 此刻的农历与时辰：页面脚本照构建时写进页面的农历表填（不等 Worker），先占好一行 */}
+      <p class="now" data-now-line></p>
+      <a class="to-how" href="#how">梅花易数怎样起卦 ↓</a>
+    </footer>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-title">
+    <div class="col">
+      <div class="part">
+        <h2 class="head" id="how-title">梅花易数怎样起卦</h2>
+        <p>梅花易数旧题宋人邵雍所作。它不摇铜钱，用起卦那一刻的年、月、日、时，或者心里浮现、眼前所见的数成卦，再看体卦与用卦之间的生克。</p>
+      </div>
+      <div class="part">
+        <h3>时间起卦</h3>
+        <p>年支数、农历月数、日数相加，除以八取余数作上卦；再加时支数，除以八作下卦；同一个和除以六，余数为动爻。余数为零时，卦作坤、爻作上爻。</p>
+        <p>年按农历，正月初一换年；闰月按本月算；夜里十一点以后仍算当天。时辰一律按北京时间。</p>
+      </div>
+      <div class="part">
+        <h3>数字起卦</h3>
+        <p>报两个数：前一个作上卦，后一个作下卦，两数之和再加时支数定动爻。只报一个数：此数作上卦，加时支数作下卦，也定动爻。数只收一到四位的正整数。</p>
+      </div>
+      <div class="part">
+        <h3>先天数</h3>
+        <ul class="grid xian">
+          {XIAN.map(([name, n, bits]) => (
+            <li>
+              <span class="mini" aria-hidden="true">
+                {[...bits].reverse().map((b) => (b === '1' ? <i class="yang" /> : <i class="yin"><i /><i /></i>))}
+              </span>
+              <span>{name} {n}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="part">
+        <h3>地支数与时辰</h3>
+        <ul class="grid zhi">
+          {ZHI.map((z, i) => (
+            <li>
+              <span class="z">{z}</span>
+              <span class="h">{i + 1} · {pad((i * 2 + 23) % 24)}–{pad((i * 2 + 1) % 24)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="part">
+        <h3>体与用</h3>
+        <p>动爻所在的经卦为用，另一个经卦为体。体是问事的人，用是所问之事；互卦看经过，变卦看结局。五行相生相克，看的是它们对体卦如何。</p>
+        <p>本站的吉、平、凶由程序按体用生克判，不经 AI：用卦生体、比和、体克用为吉，体生用为平，克体为凶；变卦定结局；用卦、互卦、变卦里克体的多而没有生体的，为凶。原书断卦还兼看卦辞、爻辞与外应，这些程序不判，读卦时可以自己参看。</p>
+        <a class="more" href="/gua/">六十四卦 · 卦辞与白话 ›</a>
+      </div>
+      <footer class="src">
+        <p>起例照《梅花易数》卷一（维基文库，公有领域）；农历由 tyme4ts 推算（MIT）；说明为本站原创。</p>
+        <p>AI 辅助判断 · 仅供传统文化参考与娱乐</p>
+      </footer>
+    </div>
+  </section>
+</div>
+
+<style>
+  .first {
+    outline: none;
+  }
+  /* 页头同首页：手机两行（品牌与往卦、音效；栏目），桌面一行 */
+  header {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header .brand {
+    min-height: var(--tap);
+    text-decoration: none;
+  }
+  .acts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .past {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 0.24em;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    color: var(--on-night-2);
+    text-decoration: none;
+    transition: color var(--t-hover);
+  }
+  .past:hover,
+  .sound:hover {
+    color: var(--on-night);
+  }
+  .sound[aria-pressed="true"] .off,
+  .sound[aria-pressed="false"] .on {
+    display: none;
+  }
+  .sound {
+    width: var(--tap);
+    height: var(--tap);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgb(248 244 237 / 0.6);
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .home {
+    background: radial-gradient(ellipse 80% 55% at 50% 46%, var(--night-2) 0%, var(--night) 70%);
+  }
+  .center {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* 36px；矮屏随视口高收紧：667 高的手机上页头、标题、标语、按钮、页脚已占去六百四十来 px */
+    gap: clamp(10px, calc((100dvh - 640px) / 4), 36px);
+  }
+  h1 {
+    margin: 0;
+    padding-left: 0.6em;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.6em;
+    color: var(--gold);
+  }
+  .motto {
+    margin: 0;
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: var(--fs-2xl);
+    letter-spacing: 0.38em;
+    line-height: 1;
+  }
+  .row {
+    display: block;
+  }
+  .row + .row {
+    margin-right: 30px;
+    padding-top: 1.2em;
+    color: rgb(248 244 237 / 0.86);
+  }
+  .ch {
+    animation: home-in 600ms var(--ease-out) both;
+    animation-delay: calc(var(--i) * var(--t-char));
+  }
+  .line {
+    width: 188px;
+    height: 19px;
+    fill: var(--gold);
+    animation:
+      home-draw var(--t-draw) var(--ease-out) both,
+      home-breathe var(--t-breath) ease-in-out var(--t-draw) infinite;
+  }
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .cast {
+    width: 208px;
+  }
+  .hint {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: rgb(248 244 237 / 0.62);
+  }
+  .foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .now {
+    min-height: 1.5em;
+    margin: 0;
+    text-align: center;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.24em;
+    color: rgb(248 244 237 / 0.55);
+  }
+  .to-how {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--on-night-2);
+    text-decoration: none;
+    transition: color var(--t-hover);
+  }
+  .to-how:hover {
+    color: var(--on-night);
+  }
+  @keyframes home-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* 揭开用 clip-path：同首页的金线（设计稿动效说明如此，只作用于一条小金线） */
+  @keyframes home-draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+  @keyframes home-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* 纸面说明区 */
+  .how {
+    padding: 40px max(var(--gutter), env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .how :focus-visible {
+    outline-color: var(--ink);
+  }
+  .col {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  .part {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-margin-top: 16px;
+  }
+  .head {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+  }
+  .part p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.95;
+  }
+  .grid {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 8px;
+  }
+  .grid li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-top: 1px solid var(--rule);
+  }
+  .xian li {
+    gap: 6px;
+    padding: 10px 0;
+    font-size: var(--fs-s);
+  }
+  .mini {
+    width: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mini i {
+    display: block;
+    height: 2px;
+  }
+  .mini .yang {
+    background: var(--ink);
+  }
+  .mini .yin {
+    display: flex;
+    justify-content: space-between;
+  }
+  .mini .yin i {
+    width: 11px;
+    background: var(--ink);
+  }
+  .zhi li {
+    gap: 2px;
+    padding: 8px 0;
+  }
+  .z {
+    font-family: var(--font-display);
+    font-size: 18px;
+  }
+  .h {
+    font-size: 11px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .more {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-s);
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule);
+    text-underline-offset: 6px;
+  }
+  .src {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .src p {
+    margin: 0;
+  }
+
+  @media (min-width: 1024px) {
+    header {
+      display: flex;
+      gap: 34px;
+      height: 48px;
+    }
+    .acts {
+      gap: 36px;
+    }
+    .home {
+      background: radial-gradient(ellipse 55% 60% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .center {
+      gap: 40px;
+    }
+    h1 {
+      font-size: var(--fs-s);
+    }
+    .motto {
+      font-size: 54px;
+    }
+    .row + .row {
+      margin-right: 44px;
+    }
+    .line {
+      width: 260px;
+      height: 26px;
+    }
+    .cta {
+      gap: 20px;
+    }
+    .cast {
+      width: 240px;
+    }
+    .hint {
+      font-size: 13px;
+    }
+    .now {
+      font-size: 13px;
+    }
+    .how {
+      padding: 72px 64px 80px;
+    }
+    .col {
+      gap: 40px;
+    }
+    .head {
+      font-size: var(--fs-m);
+    }
+    h3 {
+      font-size: var(--fs-m);
+    }
+    .part p {
+      font-size: var(--fs-m);
+    }
+    .grid {
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
+    .zhi {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .src {
+      font-size: 13px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .line {
+      animation: home-in var(--t-draw) ease-out both;
+    }
+  }
+</style>

@@ -181,10 +181,18 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 });
 
 // 首页的栏目导航在首屏：栏目名的字要在预加载的首屏子集里，不然回退 fontsource 切片，多下几十 KB，换字体时文字跳动。
-it("首屏子集有栏目导航的每个字", () => {
-	const have = woff2Chars(readFileSync(new URL("../fonts/home-body.woff2", import.meta.url)));
+it.each(["home", "meihua"])("首屏子集 %s-body 有栏目导航的每个字", (name) => {
+	const have = woff2Chars(readFileSync(new URL(`../fonts/${name}-body.woff2`, import.meta.url)));
 	const missing = [...COLUMNS.map((c) => c.hans).join("")].filter((ch) => !have.has(ch.codePointAt(0) as number));
 	expect(missing.join(""), "加了栏目要重跑 tools/subset-fonts.py").toBe("");
+});
+
+// 梅花页首屏（M21）：此刻的农历与时辰（北京时间）由脚本填，干支、月日、时辰的字也要在预加载的子集里。
+it("梅花首屏子集有此刻一行可能用到的字", () => {
+	const have = woff2Chars(readFileSync(new URL("../fonts/meihua-body.woff2", import.meta.url)));
+	const text = "此刻（北京时间）甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥年时正二三四五六七八九十冬腊闰月初廿　";
+	const missing = [...text].filter((ch) => !have.has(ch.codePointAt(0) as number));
+	expect(missing.join(""), "改了梅花首屏要重跑 tools/subset-fonts.py").toBe("");
 });
 
 // 择日首页与月页的标题字体（M18）：标题、事项名、公历日期都要在 zeri 子集里（繁体芫荽缺的字在 -wk 补字里）。

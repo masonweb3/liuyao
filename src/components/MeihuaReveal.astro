@@ -1,0 +1,390 @@
+---
+// 成卦（设计稿 37，M21-16）。梅花没有摇钱，起卦算式就是过程：
+// 1. 算式三行依次淡入；2. 下卦三爻写出，停一下，上卦三爻写出，体、用标签随各组淡入；
+// 3. 卦名墨晕浮现，动爻微亮，磬声；4. 变卦自右淡入，互卦与时刻随后，最后是按钮。
+// 往卦在这一屏出来之前已经写好（一事一占）。时长都取 tokens.css，只动 transform、opacity
+// （墨晕沿用六爻成卦屏的小面积模糊，揭开爻用 clip-path 同摇卦屏）。
+import MeihuaBar from "./MeihuaBar.astro";
+---
+
+<section class="screen reveal" data-screen="reveal" tabindex="-1" hidden>
+  <MeihuaBar />
+  <div class="center">
+    <h1 class="sr-only">成卦</h1>
+    <div class="pair">
+      <figure class="ben">
+        <div class="lines" data-ben-lines></div>
+        <figcaption>
+          <span class="name" tabindex="-1" data-ben-name data-autofocus></span>
+          <span class="tag">本卦</span>
+        </figcaption>
+      </figure>
+      <span class="zhi" aria-hidden="true">之</span>
+      <figure class="bian">
+        <div class="lines" data-bian-lines></div>
+        <figcaption>
+          <span class="name" data-bian-name></span>
+          <span class="tag">变卦</span>
+        </figcaption>
+      </figure>
+    </div>
+    <div class="calc">
+      <p class="hu"><span class="k">互卦</span><span class="hu-name" data-hu-name></span><span class="el" data-hu-el></span></p>
+      <p class="note" data-hu-note hidden>乾坤无互，取变卦之互</p>
+      <div class="formula" data-formula></div>
+    </div>
+    <p class="when" data-reveal-when></p>
+  </div>
+  <button class="btn read" data-read>展卷而读</button>
+</section>
+
+<style>
+  .reveal {
+    /* 算式三行写完（两次停顿加一次淡入）之后才写爻 */
+    --f: calc(2 * var(--t-pause) + var(--t-fade));
+    --up: calc(var(--f) + var(--t-line) + var(--t-pause));
+    --ink: calc(var(--up) + var(--t-line));
+    --after: calc(var(--ink) + var(--t-bian) + var(--t-ink) / 2);
+    background: radial-gradient(ellipse 85% 50% at 50% 40%, var(--night-2) 0%, var(--night) 72%);
+  }
+  .center {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+  }
+  .pair {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding-left: 20px;
+  }
+  figure {
+    --w: 118px;
+    --h: 12px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .bian {
+    --w: 72px;
+    align-items: center;
+  }
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .lines :global(.grp) {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .lines :global(.tri) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .lines :global(.yao) {
+    position: relative;
+    width: var(--w);
+    height: var(--h);
+  }
+  .lines :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: var(--gold);
+  }
+  .lines :global(.moving svg) {
+    fill: var(--gold-hi);
+    filter: drop-shadow(0 0 5px rgb(226 193 124 / 0.55));
+  }
+  .lines :global(.mark) {
+    position: absolute;
+    top: -4px;
+    left: -20px;
+    font-size: 13px;
+    color: var(--gold-hi);
+  }
+  /* 体、用：体是主色，用是金色，旁边写字（不只靠颜色） */
+  .lines :global(.tag) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 5em;
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--on-night-2);
+  }
+  .lines :global(.tag b) {
+    font-weight: 600;
+    color: var(--on-night);
+  }
+  .lines :global(.tag.yong b) {
+    font-weight: 400;
+    color: var(--gold);
+  }
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .bian figcaption {
+    align-items: center;
+  }
+  .name {
+    padding-left: 0.2em;
+    font-family: var(--font-display);
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    outline: none;
+  }
+  .bian .name {
+    font-size: 20px;
+    letter-spacing: 0.12em;
+  }
+  .tag {
+    padding-left: 0.4em;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.4em;
+    color: var(--gold);
+  }
+  .zhi {
+    padding-top: 54px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: rgb(248 244 237 / 0.55);
+  }
+  .bian > * {
+    opacity: 0.72;
+  }
+  .calc {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgb(192 147 81 / 0.22);
+  }
+  .hu {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .k {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--gold);
+  }
+  .hu-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 0.16em;
+  }
+  .el,
+  .note {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.08em;
+    color: rgb(248 244 237 / 0.62);
+  }
+  .note {
+    margin: -6px 0 0;
+  }
+  .formula :global(p) {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+    color: var(--on-night-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .when {
+    margin: 0;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    text-align: center;
+    color: rgb(248 244 237 / 0.62);
+  }
+  .read {
+    --ls: 0.7em;
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  /* 节奏 */
+  .formula :global(p) {
+    animation: rv-fade var(--t-fade) ease-out both;
+  }
+  .formula :global(p:nth-child(2)) {
+    animation-delay: var(--t-pause);
+  }
+  .formula :global(p:nth-child(3)) {
+    animation-delay: calc(2 * var(--t-pause));
+  }
+  .ben .lines :global(.grp:last-child svg) {
+    animation: rv-write var(--t-line) ease-out var(--f) both;
+  }
+  .ben .lines :global(.grp:first-child svg) {
+    animation: rv-write var(--t-line) ease-out var(--up) both;
+  }
+  .ben .lines :global(.grp:last-child .tag),
+  .ben .lines :global(.grp:last-child .mark) {
+    animation: rv-fade var(--t-line) ease-out var(--f) both;
+  }
+  .ben .lines :global(.grp:first-child .tag),
+  .ben .lines :global(.grp:first-child .mark) {
+    animation: rv-fade var(--t-line) ease-out var(--up) both;
+  }
+  .ben .name,
+  .ben .tag {
+    animation: rv-ink var(--t-ink) ease-out var(--ink) both;
+  }
+  /* 动爻微亮：写出之后随卦名再亮一次 */
+  .ben .lines :global(.moving) {
+    animation: rv-glow var(--t-ink) ease-out var(--ink) both;
+  }
+  .zhi,
+  .bian {
+    animation: rv-in var(--t-ink) var(--ease-out) calc(var(--ink) + var(--t-bian)) both;
+  }
+  .hu,
+  .note,
+  .when,
+  .read {
+    animation: rv-fade 600ms ease-out var(--after) both;
+  }
+  /* 设计稿指定：卦名用小面积模糊做墨晕，只作用于一行字（同六爻成卦屏） */
+  @keyframes rv-ink {
+    from {
+      opacity: 0;
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+  @keyframes rv-glow {
+    from {
+      opacity: 0.55;
+    }
+  }
+  @keyframes rv-in {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+  @keyframes rv-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  /* 揭开用 clip-path：同摇卦屏写爻，元素只有一爻大小；负值留出动爻的光晕 */
+  @keyframes rv-write {
+    from {
+      clip-path: inset(-12px 100% -12px -12px);
+    }
+    to {
+      clip-path: inset(-12px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .reveal {
+      background: radial-gradient(ellipse 60% 55% at 50% 46%, var(--night-2) 0%, var(--night) 72%);
+    }
+    .center {
+      gap: 44px;
+    }
+    .pair {
+      gap: 56px;
+    }
+    figure {
+      --w: 220px;
+      --h: 20px;
+      gap: 32px;
+    }
+    .bian {
+      --w: 150px;
+      --h: 14px;
+      padding-top: 20px;
+    }
+    .lines {
+      gap: 32px;
+    }
+    .lines :global(.tri) {
+      gap: 18px;
+    }
+    .lines :global(.grp) {
+      gap: 20px;
+    }
+    .lines :global(.moving svg) {
+      filter: drop-shadow(0 0 8px rgb(226 193 124 / 0.5));
+    }
+    .lines :global(.mark) {
+      top: 1px;
+      left: -30px;
+      font-size: var(--fs-m);
+    }
+    .lines :global(.tag) {
+      font-size: 13px;
+    }
+    .name {
+      padding-left: 0.24em;
+      font-size: 48px;
+      letter-spacing: 0.24em;
+    }
+    .bian .name {
+      font-size: 30px;
+    }
+    .tag {
+      font-size: 13px;
+    }
+    .zhi {
+      padding-top: 96px;
+      font-size: 26px;
+    }
+    .calc {
+      width: 560px;
+    }
+    .hu-name {
+      font-size: 22px;
+    }
+    .formula :global(p),
+    .el,
+    .note,
+    .k,
+    .when {
+      font-size: 13px;
+    }
+    .read {
+      width: 240px;
+      align-self: center;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes rv-ink {
+      from {
+        opacity: 0;
+      }
+    }
+    @keyframes rv-in {
+      from {
+        opacity: 0;
+      }
+    }
+    @keyframes rv-write {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+</style>

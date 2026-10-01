@@ -27,6 +27,9 @@
 - zeri：择日首页与全部事项月页共用一份（M18）：「择日」、六个事项名（从 src/lib/zeri-rule.ts 读）、「吉日」、公历日期。
 改了 huangli.json、huangli-hant.json 的三候，zeri-rule.ts 的事项名，或这些页面上用标题字体的文案，就重跑。
 
+梅花（/meihua/，M21）：暗场首屏同首页，另一组 meihua-display、meihua-body 与 src/styles/meihua-fonts.css（见 MEIHUA）。
+起卦各屏、解读页的卦名卦辞随所起的卦而变，照首页走 fontsource 切片。
+
 八字（src/fonts/bazi/、bazi-hant/）：排盘页 /bazi/（M19a）与全部知识页（M19b-3）共用一份 index，用标题字体的字是固定的一组：
 「八字」、十天干、十二地支、0–9、乾造、坤造，知识页的「十神」「纳音」「十二长生」「十天干」「十二地支」，加纸面页都有的标题字。
 简体的干支只剩天干、地支页 h1 的那一个字（盘面、表格、格子里的干支用宋体，见 BaziKb.astro），每个字各算一块：
@@ -97,6 +100,16 @@ TEXT = {
     "display": "心有所疑不妨一问爻",
     # 品牌、往卦、起卦、提示、手动排盘、桌面竖排小字、干支日期、栏目
     "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + COLUMNS + " ·　",
+}
+
+# 梅花页（/meihua/，M21）的首屏，同首页的做法：另一组小文件 src/fonts/meihua-{display,body}.woff2
+# 与 src/styles/meihua-fonts.css，只由梅花页引入、预加载。改了梅花首屏的文案就重跑。
+LUNAR = "正二三四五六七八九十冬腊闰初廿"
+MEIHUA = {
+    # 竖排标语「不动不占 / 不因事不占」、印章
+    "display": "不动占因事爻",
+    # 品牌、往卦、栏目、h1、起卦与提示、此刻的农历与时辰（北京时间）、跳到说明的链接
+    "body": "六爻往卦梅花易数起卦一事问以时或数此刻（北京时间）怎样↓" + GANZHI + LUNAR + COLUMNS + " ·　",
 }
 
 # 语言切换「简 | 繁」用的字：(补进哪个字体族, 字重) → 字，字形都取 Noto Serif SC。
@@ -340,13 +353,14 @@ def paper_fonts() -> None:
         f.write("\n".join(css) + "\n")
 
 
-def main() -> None:
+def first_screen(name: str, text: dict[str, str], out: str) -> None:
+    """首屏字形子集：src/fonts/{name}-{display,body}.woff2 与它们的 @font-face（out）。"""
     css = [
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
     for key, (family, src) in HOME.items():
-        font = make_subset(load(src), TEXT[key])
-        path = f"src/fonts/home-{key}.woff2"
+        font = make_subset(load(src), text[key])
+        path = f"src/fonts/{name}-{key}.woff2"
         font.save(path)
         css.append(
             "@font-face {\n"
@@ -354,14 +368,18 @@ def main() -> None:
             "  font-style: normal;\n"
             "  font-weight: 400;\n"
             "  font-display: swap;\n"
-            f"  src: url('../fonts/home-{key}.woff2') format('woff2');\n"
-            f"  unicode-range: {ranges(TEXT[key])};\n"
+            f"  src: url('../fonts/{name}-{key}.woff2') format('woff2');\n"
+            f"  unicode-range: {ranges(text[key])};\n"
             "}"
         )
-        print(path, len(set(TEXT[key])), "chars")
-    with open("src/styles/fonts.css", "w", encoding="utf-8") as f:
+        print(path, len(set(text[key])), "chars")
+    with open(out, "w", encoding="utf-8") as f:
         f.write("\n".join(css) + "\n")
 
+
+def main() -> None:
+    first_screen("home", TEXT, "src/styles/fonts.css")
+    first_screen("meihua", MEIHUA, "src/styles/meihua-fonts.css")
     paper_fonts()
     gua_hans(page_blocks("src/data/guaci.json", "hans"), "src/fonts/gua")
     gua_hant(page_blocks("src/data/guaci-hant.json", "hant"), "src/fonts/gua-hant")

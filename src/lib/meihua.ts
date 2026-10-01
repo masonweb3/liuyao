@@ -4,7 +4,7 @@
  * 起例照《梅花易数》卷一（维基文库本）。只出卦和关系，不断吉凶：给不给、怎么给待定（M21）。
  * 两种起法都是确定的，不用随机数：同一时辰、同一组数得同一卦，这正是梅花的本意。
  */
-import { SolarDay } from "tyme4ts";
+import { LunarYear, SolarDay } from "tyme4ts";
 import { GUA } from "../data/gua-slugs.js";
 import type { LateZiSect } from "./liuyao/calendar.js";
 import { GUA5, GUA64, GUAS, type Gua, XING5, type Xing5, YAOS, ZHIS, type Zhi } from "./liuyao/const.js";
@@ -135,6 +135,17 @@ const hourOf = (date: Date) => ZHIS[Math.floor((new Date(date.getTime() + BEIJIN
 
 const zhiNum = (z: Zhi) => ZHIS.indexOf(z) + 1;
 
+function lunarDay(date: Date, lateZi: LateZiSect) {
+	const t = new Date(date.getTime() + BEIJING);
+	let solar = SolarDay.fromYmd(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
+	if (t.getUTCHours() === 23 && lateZi === "day-advances") solar = solar.next(1);
+	return solar.getLunarDay();
+}
+
+/** 起卦时刻所在农历年的干支：丙午。解读页写「丙午年八月廿一」用；起卦只用它的地支（moment 的 year）。 */
+export const yearName = (date: Date, lateZi: LateZiSect = "day-stays") =>
+	lunarDay(date, lateZi).getLunarMonth().getLunarYear().getSixtyCycle().getName();
+
 /**
  * 起卦时刻的农历年支、月、日与时支，按北京时间。
  *
@@ -142,10 +153,7 @@ const zhiNum = (z: Zhi) => ZHIS.indexOf(z) + 1;
  * （除夕 23:30 就成了新年正月初一）。时支两种都是子。
  */
 export function moment(date: Date, lateZi: LateZiSect = "day-stays"): Moment {
-	const t = new Date(date.getTime() + BEIJING);
-	let solar = SolarDay.fromYmd(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
-	if (t.getUTCHours() === 23 && lateZi === "day-advances") solar = solar.next(1);
-	const lunar = solar.getLunarDay();
+	const lunar = lunarDay(date, lateZi);
 	const month = lunar.getLunarMonth();
 	return {
 		// 不用 LunarDay.getYearSixtyCycle()：它按立春换年，且只精确到日。
@@ -181,4 +189,19 @@ export function byNumbers(nums: readonly number[], date: Date): Meihua {
 		return fromSums(a, b, a + b + h);
 	}
 	throw new Error(`数字起卦要一个或两个数，得到 ${nums.length} 个`);
+}
+
+/**
+ * 农历 from–to 年，每年一段「年:闰几月:各月大小（1 是三十天，闰月排在本月之后）:正月初一是公历那年的第几天（0 起）」，
+ * 逗号隔开。构建时写进梅花页：首屏和选起法的「此刻」由页面脚本照它算（meihua-page.ts 的 lunarOf），
+ * 不等载入 tyme4ts 的 Worker；meihua-page.test.ts 逐日核对它和 moment() 相同。同 Bazi.astro 的写法。
+ */
+export function lunarTable(from: number, to: number): string {
+	return Array.from({ length: to - from + 1 }, (_, i) => {
+		const y = from + i;
+		const ly = LunarYear.fromYear(y);
+		const first = ly.getMonths()[0]?.getFirstJulianDay().getSolarDay() as SolarDay;
+		const day = Math.round((Date.UTC(first.getYear(), first.getMonth() - 1, first.getDay()) - Date.UTC(y, 0, 1)) / 86_400_000);
+		return `${y}:${ly.getLeapMonth()}:${ly.getMonths().map((m) => (m.getDayCount() === 30 ? 1 : 0)).join("")}:${day}`;
+	}).join(",");
 }

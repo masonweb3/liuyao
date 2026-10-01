@@ -1,0 +1,319 @@
+---
+// 梅花易数（M21，设计稿第十四行 35–42、D29、D30）：栏目「梅花」的首页 /meihua/，先只有简体（M21-20）。
+// 流程同六爻：暗场「问」、纸面「答」，一屏一事：首屏 → 写下所问（落笔调 /api/judge）→ 分流 → 选起法 →［报数］→ 成卦 → 解读。
+// 没有静心、没有摇卦（M21-15）。成卦那一刻写进往卦（与六爻同一个 liuyao:history，判重共用），此后没有后退、重来。
+//
+// 首页首屏 JS 不能增加（按字节）：页面脚本 scripts/meihua.ts 只 import 零依赖的 lib/meihua-page.ts，
+// 起卦、卦辞、白话、断语都在 Web Worker（scripts/meihua-worker.ts）里；这一页的组件也不和首页共用
+// （共用的组件样式会被拆成两页共用的文件）。界面的字在这里写进页面，copy.ts 只在构建时读。
+import bodyFont from '../fonts/meihua-body.woff2?url';
+import displayFont from '../fonts/meihua-display.woff2?url';
+import Page from '../layouts/Page.astro';
+import '../styles/meihua-fonts.css';
+import { EMERGENCY, ERRORS, INSINCERE } from '../data/copy';
+import { YEARS } from '../lib/huangli-days';
+import { lunarTable } from '../lib/meihua';
+import MeihuaAsk from './MeihuaAsk.astro';
+import MeihuaHome from './MeihuaHome.astro';
+import MeihuaMethod from './MeihuaMethod.astro';
+import MeihuaNotice from './MeihuaNotice.astro';
+import MeihuaReading from './MeihuaReading.astro';
+import MeihuaReveal from './MeihuaReveal.astro';
+import MeihuaTopic from './MeihuaTopic.astro';
+
+const title = '梅花易数 · 在线时间起卦、报数起卦与体用生克 · 六爻';
+const description =
+  '写下所问，以此刻的年月日时或心中浮现的数起卦，按《梅花易数》起例成卦，列出本卦、互卦、变卦与体用生克，附卦爻辞原文与白话。免费，无广告，不用登录。';
+// 首屏「此刻」的农历：表覆盖黄历时间窗前后各一年（每年第四季度随 YEARS 往后加），表外只写时辰。
+const lunar = lunarTable(YEARS[0]! - 1, YEARS[YEARS.length - 1]! + 1);
+// 页面脚本要说的话（错误、报数校验）：构建时写进页面，脚本不 import copy.ts
+const copy = {
+  empty: ERRORS.empty,
+  tooLong: ERRORS.tooLong,
+  asked: ERRORS.asked,
+  rateLimited: ERRORS.rateLimited,
+  network: ERRORS.network,
+  num: {
+    notInt: '只收正整数，如 3、15、108。',
+    tooLong: '数太长了，最多四位。',
+    secondOnly: '只报一个数时，请填在第一格。',
+    notArabic: '请用阿拉伯数字，如 3。',
+    empty: '先报一个数，填在第一格。',
+  },
+};
+---
+
+<Page title={title} description={description} path="/meihua/" ogTitle="梅花易数 · 不动不占，不因事不占">
+  <Fragment slot="head">
+    {/* 首屏的字，见 tools/subset-fonts.py */}
+    <link rel="preload" href={displayFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin />
+  </Fragment>
+  <!-- 爻的墨边：笔触边缘轻微起毛（同首页） -->
+  <svg class="defs" aria-hidden="true">
+    <filter id="ink">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="2" seed="3" result="noise"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4"></feDisplacementMap>
+    </filter>
+  </svg>
+
+  <main data-meihua data-lunar={lunar} data-copy={JSON.stringify(copy)}>
+    <MeihuaHome />
+    <MeihuaAsk />
+
+    <MeihuaNotice screen="guard" guard title="先停一停" body={['从你写下的话里，我们感到你可能正经历很难熬的时刻。', '这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。']}>
+      <a class="help" href="https://findahelpline.com" target="_blank" rel="noopener">
+        查找你所在地区的求助热线
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+      </a>
+      <a class="tel" href="tel:12356"><span>拨打 12356 心理援助热线</span><span class="where">中国大陆</span></a>
+      <button class="quiet" data-go="home" data-clear>我想先静一静</button>
+      <p class="note">如果你正身处危险之中，请立即拨打当地紧急电话。</p>
+    </MeihuaNotice>
+
+    <MeihuaNotice screen="decline" title="此问不占" body={['彩票号码、赌局输赢，是概率之事，卦象给不出答案。', '卦为心中之疑而设。换一件真正让你犹豫的事，再来问。']}>
+      <Fragment slot="extra">
+        <svg class="stroke" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
+        <p class="quote">善为《易》者不占。<span>——《荀子·大略》</span></p>
+      </Fragment>
+      <button class="btn" style="--ls: 0.5em" data-go="ask" data-clear>换一件事问</button>
+    </MeihuaNotice>
+
+    <MeihuaNotice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body}>
+      <button class="btn" style="--ls: 0.5em" data-go="home" data-clear>{EMERGENCY.back}</button>
+      <button class="quiet" data-proceed>{EMERGENCY.proceed}</button>
+      <p class="note">{EMERGENCY.note}</p>
+    </MeihuaNotice>
+
+    <MeihuaNotice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]}>
+      <button class="btn" style="--ls: 0.5em" data-go="ask">{INSINCERE.action}</button>
+    </MeihuaNotice>
+
+    <MeihuaTopic />
+    <MeihuaMethod />
+    <MeihuaReveal />
+    <MeihuaReading />
+  </main>
+
+  <script>
+    import '../scripts/meihua.ts';
+  </script>
+</Page>
+
+<style is:global>
+  /* 同首页 index.astro 的全局样式（暗场、一屏一事、品牌、按钮）；梅花页另写一份，不和首页共用样式文件。 */
+  html,
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--on-night);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  textarea,
+  input {
+    font: inherit;
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 1px solid var(--gold-hi);
+    outline-offset: 3px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+  .screen {
+    position: relative;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: max(16px, env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right))
+      max(36px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+    animation: screen-in var(--t-fade) var(--ease-out);
+  }
+  .screen:focus {
+    outline: none;
+  }
+  @keyframes screen-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .screen {
+      padding-inline: max(var(--gutter), calc(50% - 320px));
+    }
+  }
+  @media (min-width: 1024px) {
+    .screen {
+      padding: 32px 64px 48px;
+    }
+  }
+  .dock {
+    position: sticky;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .seal {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    background: var(--seal);
+    color: var(--on-night);
+    font-family: var(--font-display);
+    font-size: 17px;
+    border-radius: var(--radius);
+  }
+  .brand .name {
+    font-size: var(--fs-s);
+    letter-spacing: 0.4em;
+    color: rgb(248 244 237 / 0.78);
+  }
+  .btn {
+    --ls: 0.9em;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: 0 0 0 var(--ls);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    background: rgb(192 147 81 / 0.07);
+    color: var(--gold-hi);
+    font-size: 18px;
+    letter-spacing: var(--ls);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      border-color var(--t-hover),
+      background-color var(--t-hover);
+  }
+  .btn:hover {
+    border-color: var(--gold-hi);
+  }
+  .btn.solid {
+    background: var(--gold);
+    color: var(--night);
+    font-weight: 600;
+  }
+  .btn.solid:hover {
+    background: var(--gold-hi);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .btn.solid:disabled:hover {
+    border-color: var(--gold);
+    background: var(--gold);
+  }
+  @media (min-width: 1024px) {
+    .brand {
+      gap: 12px;
+    }
+    .brand .seal {
+      width: 30px;
+      height: 30px;
+      font-size: 19px;
+    }
+    .brand .name {
+      font-size: 15px;
+      color: rgb(248 244 237 / 0.8);
+    }
+    .btn {
+      height: 56px;
+      font-size: 19px;
+    }
+  }
+</style>
+
+<style>
+  /* 拦截、婉拒页的按钮与附注（同首页） */
+  .help,
+  .tel {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius);
+    text-decoration: none;
+  }
+  .help {
+    height: 56px;
+    background: var(--on-night);
+    color: var(--night);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  .tel {
+    height: var(--btn-h);
+    border: 1px solid rgb(248 244 237 / 0.5);
+    color: var(--on-night);
+    font-size: 15px;
+    letter-spacing: 0.08em;
+  }
+  .where {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--on-night-2);
+  }
+  .quiet {
+    min-height: var(--tap);
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: var(--fs-s);
+    letter-spacing: 0.24em;
+    color: var(--on-night-2);
+    cursor: pointer;
+    transition: color var(--t-hover);
+  }
+  .quiet:hover {
+    color: var(--on-night);
+  }
+  .note {
+    margin: 8px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    text-align: center;
+    color: rgb(248 244 237 / 0.62);
+  }
+  .stroke {
+    width: 120px;
+    height: 12px;
+    margin-top: 16px;
+    fill: var(--gold);
+  }
+  .quote {
+    margin: 0;
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+    color: var(--gold);
+  }
+  .quote span {
+    color: rgb(248 244 237 / 0.6);
+  }
+</style>

@@ -39,7 +39,7 @@ import Slots from "./Slots.astro";
   <template data-item>
     <li>
       <button type="button" class="rec">
-        <span class="date"></span>
+        <span class="date"><span class="day"></span><span class="mh" hidden>梅花</span></span>
         <span class="gua"></span>
         <span class="q"></span>
         <span class="mine"><span class="k">{TALLY.mine} · </span><span class="v"></span></span>
@@ -150,6 +150,16 @@ import Slots from "./Slots.astro";
     font-size: var(--fs-xs);
     letter-spacing: 0.14em;
     color: var(--ink-2);
+  }
+  /* 梅花起的卦（M21）：日期后一个小框字，不用新颜色 */
+  .rec :global(.mh) {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 0 6px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    font-size: 11px;
+    letter-spacing: 0.12em;
   }
   .rec :global(.gua) {
     grid-area: gua;
