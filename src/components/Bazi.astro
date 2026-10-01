@@ -4,7 +4,7 @@
 // 生辰、性别、出生地不上传、不进网址、不进日志（AGENTS.md §1.5）：表单没有提交按钮、method="dialog"，脚本没载入时按「排盘」、按回车什么也不发生；
 // 盘面不写进 query、hash，没有分享链接。存盘只在用户点「存到这台设备」时写进 localStorage（M19-8、M19-14）。
 // 页面脚本只 import 零依赖的 bazi-time.ts，不 import tyme4ts、不用动态 import()：免得打包拆出与首页共用的分包。
-import { LunarYear, Sound, Zodiac } from 'tyme4ts';
+import { LunarYear, SolarTerm, Sound, Zodiac } from 'tyme4ts';
 import namesHant from '../data/bazi-names-hant.json';
 import baziHant from '../data/bazi-hant.json';
 import bazi from '../data/bazi.json';
@@ -36,10 +36,10 @@ const lunar = years
   })
   .join(',');
 
-// 繁体页把 tyme4ts 的简体名字换成繁体：十神、十二长生、神煞查八字名称表，纳音、生肖查黄历的名称表（同一套校对）
+// 繁体页把 tyme4ts 的简体名字换成繁体：十神、十二长生、神煞查八字名称表，纳音、生肖、节气（时辰不详那天交节的节名）查黄历的名称表（同一套校对）
 const hl = (huangliHant as unknown as { names: Record<string, string> }).names;
 const names = hant
-  ? JSON.stringify({ ...namesHant, ...Object.fromEntries([...Sound.NAMES, ...Zodiac.NAMES].map((n) => [n, hl[n] ?? n])) })
+  ? JSON.stringify({ ...namesHant, ...Object.fromEntries([...Sound.NAMES, ...Zodiac.NAMES, ...SolarTerm.NAMES].map((n) => [n, hl[n] ?? n])) })
   : undefined;
 
 const title = t('八字排盘 · 四柱、十神、大运流年 · 六爻', '八字排盤 · 四柱、十神、大運流年 · 六爻');
@@ -759,7 +759,7 @@ const ROWS = ['十神', '天干', '地支', '藏干', t('星运', '星運'), '�
           { class: 'notice' },
           t(
             `出生那天北京时间 ${c.jie.time.slice(11, 16)} 交${c.jie.name}，年柱、月柱与大运要看出生的时刻；时辰不详，这里按中午 12 点排。`,
-            `出生那天臺灣時間（UTC+8）${c.jie.time.slice(11, 16)} 交${c.jie.name}，年柱、月柱與大運要看出生的時刻；時辰不詳，這裡按中午 12 點排。`,
+            `出生那天臺灣時間（UTC+8）${c.jie.time.slice(11, 16)} 交${tw(c.jie.name)}，年柱、月柱與大運要看出生的時刻；時辰不詳，這裡按中午 12 點排。`,
           ),
         ),
       );
