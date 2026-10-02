@@ -204,7 +204,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
           </dl>
         </section>
 
-        {/* 八字知识（M19b-2，设计稿 32 ①）：十天干、十二地支逐字可点，再列十神、纳音、十二长生。预渲染，盘面里不加链接 */}
+        {/* 八字知识（M19b-2，设计稿 32 ①）：十天干、十二地支逐字可点，再列十神、纳音、十二长生、六十日柱（第二批）。预渲染，盘面里不加链接 */}
         <section class="kb" aria-labelledby="bz-kb">
           <h2 class="head" id="bz-kb">{t('八字知识', '八字知識')}</h2>
           <div class="kb-group">
@@ -219,6 +219,7 @@ const more = (k: number) => MORE[bazi.terms[k]!.term];
             <li><a href={kbPath('/bazi/shishen/', hant)}><span><span class="kt">十神</span><span class="ks">{t('十个名目与 10×10 对照表', '十個名目與 10×10 對照表')}</span></span><span aria-hidden="true">›</span></a></li>
             <li><a href={kbPath('/bazi/nayin/', hant)}><span><span class="kt">{t('纳音', '納音')}</span><span class="ks">{t('三十组，一张表', '三十組，一張表')}</span></span><span aria-hidden="true">›</span></a></li>
             <li><a href={kbPath('/bazi/changsheng/', hant)}><span><span class="kt">{t('十二长生', '十二長生')}</span><span class="ks">{t('十个天干的十二步', '十個天干的十二步')}</span></span><span aria-hidden="true">›</span></a></li>
+            <li><a href={kbPath('/bazi/rizhu/', hant)}><span><span class="kt">六十日柱</span><span class="ks">{t('甲子到癸亥，一柱一页', '甲子到癸亥，一柱一頁')}</span></span><span aria-hidden="true">›</span></a></li>
           </ul>
         </section>
       </div>

@@ -60,6 +60,9 @@ import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
 import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
 import { compose } from "../lib/meihua-reading.js";
+import { RIZHU_SLUG } from "../lib/bazi-kb.js";
+import baziRizhuHant from "./bazi-rizhu-hant.json" with { type: "json" };
+import baziRizhu from "./bazi-rizhu.json" with { type: "json" };
 
 const NAMES = Object.values(GUA64).sort();
 
@@ -389,8 +392,8 @@ describe("八字（M19a）", () => {
 });
 
 describe("八字知识页（M19b）", () => {
-	const kb = [baziTiangan, baziDizhi, baziPages];
-	const kbHant = [baziTianganHant, baziDizhiHant, baziPagesHant];
+	const kb = [baziTiangan, baziDizhi, baziPages, baziRizhu];
+	const kbHant = [baziTianganHant, baziDizhiHant, baziPagesHant, baziRizhuHant];
 	// 字段路径（键保持简体，繁体只转值）
 	const paths = (v: unknown, p = ""): string[] =>
 		typeof v === "string" ? [p] : v && typeof v === "object" ? Object.entries(v).flatMap(([k, x]) => paths(x, `${p}/${k}`)) : [];
@@ -411,11 +414,10 @@ describe("八字知识页（M19b）", () => {
 		for (const s of [...kb, ...kbHant].flatMap(strings)) expect(s).toMatch(/^[^\s].*。$/);
 	});
 
+	const RED = /寿元|壽元|疾病|灾厄|災厄|牢狱|牢獄|克夫|剋夫|克妻|剋妻|婚变|婚變|吉|凶|兇|贵|貴|贱|賤|性格|性情|改命|改运|改運|转运|轉運|化解|[病死墓绝絕]/;
+
 	it("只讲构成与名目（§1.5）：不写寿元、疾病、婚变、吉凶、贵贱、性格，步名「病死墓绝」只在表里，不用方位词", () => {
-		for (const s of [...kb, ...kbHant].flatMap(strings).concat(page)) {
-			expect(s).not.toMatch(/寿元|壽元|疾病|灾厄|災厄|牢狱|牢獄|克夫|剋夫|克妻|剋妻|婚变|婚變|吉|凶|兇|贵|貴|贱|賤|性格|性情|改命|改运|改運|转运|轉運|化解/);
-			expect(s).not.toMatch(/[病死墓绝絕]/);
-		}
+		for (const s of [...kb, ...kbHant].flatMap(strings).concat(page)) expect(s).not.toMatch(RED);
 		for (const s of [...kb, ...kbHant].flatMap(strings)) expect(s).not.toMatch(/上面|下面|左右|左邊|右邊/);
 	});
 
@@ -424,6 +426,39 @@ describe("八字知识页（M19b）", () => {
 		for (const s of hant) expect(s).not.toMatch(/[兇矇佔鹹衝克]|北京|默認|藏幹/);
 		expect(hant.join("")).toMatch(/剋/);
 	});
+
+	it("六十日柱（第二批）：60 个键按六十甲子次序（键即网址 slug），导语一句、「怎么读这一柱」三段，目录导语一句；繁体逐项对应", () => {
+		for (const d of [baziRizhu, baziRizhuHant]) {
+			expect(Object.keys(d)).toEqual(["index", "items"]);
+			expect(d.index).toMatch(/^[^。]+。$/);
+			expect(Object.keys(d.items)).toEqual(RIZHU_SLUG);
+			for (const [slug, x] of Object.entries(d.items)) {
+				expect(Object.keys(x), slug).toEqual(["intro", "read"]);
+				expect(x.intro, slug).toMatch(/^[^。]+。$/);
+				expect(x.read, slug).toHaveLength(3);
+			}
+		}
+		// 描述（meta description）用导语：60 条互不相同
+		expect(new Set(Object.values(baziRizhu.items).map((x) => x.intro)).size).toBe(60);
+	});
+
+	it("晚子时提示：子页与每个日柱页（主会话裁定，设计稿未画）都是第一批定稿的同一句，简繁都在页面里，过红线、不带「」", () => {
+		const LATE = [
+			"子时跨两天：23 点以后出生的，本站排盘默认把日柱算到次日，可在排盘页的选项里改。",
+			"子時跨兩天：23 點以後出生的，本站排盤預設把日柱算到次日，可在排盤頁的選項裡改。",
+		];
+		for (const s of LATE) {
+			expect(page).toContain(s);
+			expect(s).not.toMatch(RED);
+			expect(s).not.toMatch(/[「」]/);
+		}
+		expect(LATE[1]).not.toMatch(/[兇矇佔鹹衝克]|北京|默認|藏幹/);
+	});
+
+	it("六十日柱只讲构成与名目：不写「某日生的人」、日坐，不用合化、通根、得令、身强身弱、格局、用神、喜忌这类评断用语", () => {
+		for (const s of [...strings(baziRizhu), ...strings(baziRizhuHant)])
+			expect(s).not.toMatch(/日生的人|日坐|合化|通根|得令|身强|身強|身弱|格局|用神|喜忌|六亲|六親|配偶|父母|子女|财运|財運|事业|事業/);
+	});
 });
 
 describe("红线（简繁都查）", () => {
@@ -431,6 +466,7 @@ describe("红线（简繁都查）", () => {
 		...strings(bazi),
 		...strings(baziHant),
 		...[baziTiangan, baziDizhi, baziPages, baziTianganHant, baziDizhiHant, baziPagesHant].flatMap(strings),
+		...[baziRizhu, baziRizhuHant].flatMap(strings),
 		...strings(zeri),
 		...strings(zeriHant),
 		...huangliTexts(HL),
