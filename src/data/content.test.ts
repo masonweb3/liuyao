@@ -47,6 +47,11 @@ import { ITEMS } from "../lib/zeri-rule.js";
 import zeriHant from "./zeri-hant.json" with { type: "json" };
 import zeri from "./zeri.json" with { type: "json" };
 import { readFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
+import qumingHant from "./quming-hant.json" with { type: "json" };
+import qumingShuliHant from "./quming-shuli-hant.json" with { type: "json" };
+import qumingShuli from "./quming-shuli.json" with { type: "json" };
+import quming from "./quming.json" with { type: "json" };
 import { shenSha } from "../lib/bazi.js";
 import { localOffset } from "../lib/bazi-time.js";
 import baziHant from "./bazi-hant.json" with { type: "json" };
@@ -426,6 +431,47 @@ describe("八字知识页（M19b）", () => {
 	});
 });
 
+describe("取名（M22a）", () => {
+	const paths = (v: unknown, p = ""): string[] =>
+		typeof v === "string" ? [p] : v && typeof v === "object" ? Object.entries(v).flatMap(([k, x]) => paths(x, `${p}/${k}`)) : [];
+	const copy = [quming, qumingHant];
+	const shuli = [qumingShuli, qumingShuliHant];
+	// 页面上的字：两个组件写定的界面文字与脚本写进结果的字（注释不算）
+	const page = ["Quming", "QumingShuli"].map((f) =>
+		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8").replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""),
+	);
+	const all = [...copy, ...shuli].flatMap(strings).concat(page);
+
+	it("结构：文案与八十一数简繁逐项对应，八十一数正好 1 到 81 条，每条是完整的话", () => {
+		expect(paths(qumingHant)).toEqual(paths(quming));
+		expect(paths(qumingShuliHant)).toEqual(paths(qumingShuli));
+		expect(Object.keys(qumingShuli.numbers)).toEqual(Array.from({ length: 81 }, (_, i) => String(i + 1)));
+		for (const s of shuli.flatMap(strings)) expect(s).toMatch(/^[^\s].*。$/);
+		expect(quming.how).toHaveLength(6);
+	});
+
+	it("不标吉凶、不写家人祸福（儿童条款）、不说改名改运（§1.5、M22-3）", () => {
+		for (const s of all) {
+			expect(s).not.toMatch(/寿元|壽元|疾病|灾厄|災厄|牢狱|牢獄|克夫|剋夫|克妻|剋妻|婚变|婚變|吉|凶|兇|贵|貴|贱|賤|性格|性情|改命|改运|改運|转运|轉運|化解/);
+			expect(s).not.toMatch(/灾|災|病|夭|孤|克|剋|刑|改名|父母|子女|婚|寿|壽|财|財|运|運|旺|衰|祸|禍|福|健康|命|缺|补|補|祖|配偶/);
+		}
+	});
+
+	it("三才只列五行，不写生克（M22-19）", () => {
+		for (const c of copy) expect(c.sancai).not.toMatch(/生|克|剋/);
+		for (const s of all) expect(s).not.toMatch(/[木火土金水](生|克|剋)[木火土金水]|相生|相克|相剋|生克|生剋/);
+	});
+
+	it("繁体：台湾用语，没有 s2twp 的误转（迴圈、演算法、指令碼、這臺）与常见误转字", () => {
+		for (const s of [qumingHant, qumingShuliHant].flatMap(strings)) expect(s).not.toMatch(/[兇矇佔鹹衝]|北京|默認|這臺|迴圈|演算法|指令碼/);
+	});
+
+	it("「整份约多少 KB」与字表的 gzip 大小相符（取整到 10）", () => {
+		const kb = Math.round(gzipSync(readFileSync(new URL("./quming-zi.json", import.meta.url)), { level: 9 }).length / 10240) * 10;
+		for (const c of copy) expect(c.loading).toContain(`${kb} KB`);
+	});
+});
+
 describe("红线（简繁都查）", () => {
 	const all = [
 		...strings(bazi),
@@ -442,6 +488,7 @@ describe("红线（简繁都查）", () => {
 		...strings(TEMPLATES),
 		...strings(SPECIAL),
 		...strings(copy),
+		...[quming, qumingHant, qumingShuli, qumingShuliHant].flatMap(strings),
 	];
 
 	it("不出现改命、转运、化解之类的字样", () => {

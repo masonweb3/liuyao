@@ -1,0 +1,1011 @@
+---
+// 取名栏目首页 /quming/（M22a，设计稿 45、46、D32）：先放测名，繁体 /zh-hant/quming/。纯计算，不带 Jev。
+// 名字只在浏览器里算（AGENTS.md §1.5、M22-5、M22-20、M22-29）：
+// - 字表（src/data/quming-zi.json）第一次点进输入框时整份下载，不按字取；之后点测名、点选字形读音都不再发请求；
+// - 输入框、脚本写出来的整块结果与提示一律用设备字体 --font-private：网页字体按 unicode-range 切片加载，
+//   按名字挑出来的字（名字本身、八十一数、部首名、繁体字形、带调拼音）会去请求还没下载的切片，几次请求连起来就知道是哪几个字；
+// - 表单 method="dialog"、控件不写 name、没有提交按钮，名字进不了网址；不存、不分享；离开页面（pagehide）清空。
+// 页面脚本只 import 零依赖的 lib/quming.ts（首页入口包不能变）；文案由构建时写进 data-copy、data-shuli。
+import zi from '../data/quming-zi.json?url';
+import copyHant from '../data/quming-hant.json';
+import shuliHant from '../data/quming-shuli-hant.json';
+import shuli from '../data/quming-shuli.json';
+import copyHans from '../data/quming.json';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+
+interface Props {
+  hant?: boolean;
+}
+
+const { hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const c = hant ? copyHant : copyHans;
+const numbers = (hant ? shuliHant : shuli).numbers;
+const home = hant ? '/zh-hant/quming/' : '/quming/';
+---
+
+<Paper title={c.title} description={c.description} path="/quming/" at="/quming/" home group="quming" subset="index" hant={hant} ogType="website">
+  <main class="qm" data-qm data-hant={hant ? '1' : undefined} data-zi={zi} data-copy={JSON.stringify(c)} data-shuli={JSON.stringify(numbers)}>
+    <section class="intro">
+      <h1>取名</h1>
+      <p>{c.lead}</p>
+    </section>
+
+    <div class="body">
+      <div class="left">
+        <section class="tool" aria-labelledby="qm-tool">
+          <h2 class="head" id="qm-tool">{t('测名', '測名')}</h2>
+          <noscript>
+            <style is:inline>[data-form]{display:none!important}</style>
+            <p class="nojs">{c.nojs}</p>
+          </noscript>
+          {/* 控件不写 name，「测名」是 type=button；method="dialog"：脚本没载入时按回车什么也不发生（同 /bazi/） */}
+          <form class="form" method="dialog" autocomplete="off" data-form aria-labelledby="qm-tool">
+            <div class="names">
+              <div>
+                <label for="qm-sur">姓</label>
+                <input id="qm-sur" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="qm-err" placeholder={t('如：林', '如：陳')} />
+              </div>
+              <div>
+                <label for="qm-giv">名</label>
+                <input id="qm-giv" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="qm-err" placeholder={t('如：雨涵', '如：怡君')} />
+              </div>
+              <p class="err" id="qm-err" role="alert" data-f="err"></p>
+            </div>
+            <p class="status" role="status" data-f="status" hidden><span class="dot" aria-hidden="true"></span>{c.loading}</p>
+            <div class="fail" role="alert" data-f="fail" hidden>
+              <p>{c.failed}</p>
+              <button type="button" data-f="retry">{t('再试一次', '再試一次')}</button>
+            </div>
+            <div class="go">
+              <button type="button" class="submit" data-f="submit">{t('测名', '測名')}</button>
+              <button type="button" class="clear" data-f="clear">清空</button>
+            </div>
+            <p class="privacy">{c.privacy}</p>
+          </form>
+        </section>
+
+        <details class="how">
+          <summary>{t('怎么算', '怎麼算')}<span class="mark" aria-hidden="true"></span></summary>
+          <ul>{c.how.map((x) => <li>{x}</li>)}</ul>
+        </details>
+      </div>
+
+      <div class="right">
+        <section class="result" data-f="result" aria-label={t('测名结果', '測名結果')} tabindex="-1" hidden></section>
+        {/* 名字里的字（M22a 只有八十一数；常见字与单字页是 M22b） */}
+        <section class="kb" aria-labelledby="qm-kb">
+          <h2 class="head" id="qm-kb">{t('名字里的字', '名字裡的字')}</h2>
+          <ul role="list">
+            <li><a href={`${home}81/`}><span><span class="kt">{t('八十一数', '八十一數')}</span><span class="ks">{c.more81}</span></span><span aria-hidden="true">›</span></a></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('字形、读音、部首笔画取自', '字形、讀音、部首筆畫取自')} <a href="https://www.unicode.org/reports/tr38/" rel="noopener">Unicode Unihan</a>（<a href="https://www.unicode.org/license.txt" rel="license noopener">Unicode License v3</a>）；{t('康熙笔画按《康熙字典》同文书局本核对；英文不雅词表改编自', '康熙筆畫按《康熙字典》同文書局本核對；英文不雅詞表改編自')} <a href="https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words" rel="noopener">LDNOOBW</a>（<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>）；{t('八十一数与说明为本站原创', '八十一數與說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<script>
+  // 只 import 零依赖的 lib/quming.ts（见文件头）。
+  import { check, type Data, fold, GE, type Ge, measure, type Missing, type Pick, type Result, radStrokes, type Table, table, zhuyin } from '../lib/quming';
+  import type copyType from '../data/quming.json';
+
+  type Copy = typeof copyType;
+  const root = document.querySelector<HTMLElement>('[data-qm]')!;
+  const hant = root.dataset.hant === '1';
+  const t = (hans: string, tw: string) => (hant ? tw : hans);
+  const C = JSON.parse(root.dataset.copy!) as Copy;
+  const N81 = JSON.parse(root.dataset.shuli!) as Record<string, string>;
+  const $ = <T extends HTMLElement = HTMLElement>(k: string) => root.querySelector<T>(`[data-f="${k}"]`)!;
+  const form = root.querySelector<HTMLFormElement>('[data-form]')!;
+  const sur = document.getElementById('qm-sur') as HTMLInputElement;
+  const giv = document.getElementById('qm-giv') as HTMLInputElement;
+  const res = $('result');
+  const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ''));
+  const esc = (s: string | number) => String(s).replace(/[&<>"]/g, (x) => `&#${x.charCodeAt(0)};`);
+
+  // ---------- 字表：第一次点进输入框时整份下载 ----------
+  let tbl: Table | undefined;
+  let pending: Promise<Table> | undefined;
+  function load() {
+    pending ??= fetch(root.dataset.zi!)
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json() as Promise<Data>;
+      })
+      .then((d) => (tbl = table(d)))
+      .catch((e) => {
+        pending = undefined;
+        throw e;
+      });
+    return pending;
+  }
+  function warm() {
+    if (tbl || pending) return;
+    $('status').hidden = false;
+    $('fail').hidden = true;
+    load().then(
+      () => ($('status').hidden = true),
+      () => {
+        $('status').hidden = true;
+        $('fail').hidden = false;
+      },
+    );
+  }
+  form.addEventListener('focusin', warm);
+
+  // ---------- 测名 ----------
+  let picks: Record<number, Pick> = {};
+  let last = '';
+  let name: [string, string] = ['', ''];
+
+  function reset() {
+    res.hidden = true;
+    res.classList.remove('late');
+    res.replaceChildren();
+    showErr(null);
+    picks = {};
+    last = '';
+  }
+
+  function showErr(p: keyof Copy['errors'] | null) {
+    const e = $('err');
+    e.textContent = p ? C.errors[p] : '';
+    sur.toggleAttribute('aria-invalid', p === 'empty' || p === 'surEmpty' || p === 'split' || p === 'surBad');
+    giv.toggleAttribute('aria-invalid', p === 'empty' || p === 'givEmpty' || p === 'givBad');
+  }
+
+  async function go() {
+    const s = sur.value.replace(/\s+/g, '');
+    const g = giv.value.replace(/\s+/g, '');
+    const p = check(s, g);
+    showErr(p);
+    if (p) {
+      reset();
+      showErr(p);
+      return;
+    }
+    if (`${s}|${g}` !== last) picks = {};
+    last = `${s}|${g}`;
+    name = [s, g];
+    res.classList.remove('late');
+    if (!tbl) {
+      // 字表还没到：结果区按常见高度先占位，取到再填，不跳版（设计稿 45 ④）
+      res.hidden = false;
+      res.classList.add('late');
+      res.innerHTML = `<div class="skel" aria-hidden="true">${'<span></span>'.repeat(8)}</div>`;
+      warm();
+      try {
+        await load();
+      } catch {
+        res.hidden = true;
+        res.replaceChildren();
+        return;
+      }
+      if (last !== `${s}|${g}`) return;
+    }
+    render();
+    res.focus();
+  }
+
+  function render() {
+    const r = measure(tbl!, name[0], name[1], picks, hant);
+    res.hidden = false;
+    res.innerHTML = 'missing' in r ? missing(r.missing) : result(r);
+  }
+
+  // ---------- 结果的写法 ----------
+  const RAD = (n: number) => {
+    const ch = tbl!.data.rad[n - 1] ?? '';
+    // 康熙部首的「靑」照今字形写；「曰」在小字号下像「日」，带上读音
+    return ch === '靑' ? '青' : ch === '曰' ? '曰（yuē）' : ch;
+  };
+  const LABEL: Record<Ge, string> = { tian: '天格', ren: '人格', di: '地格', wai: '外格', zong: t('总格', '總格') };
+  const SYS = { py: '拼音', wg: t('威妥玛', '威妥瑪'), jp: t('粤语拼音', '粵語拼音') };
+  const JYUT = t('粤语', '粵語');
+  const reading = (py: string) => (hant ? `${esc(zhuyin(py))} <span class="py">${esc(py)}</span>` : esc(py));
+
+  function kxNote(f: Result['chars'][number]['form']) {
+    const r = RAD(f.rad);
+    const bits: string[] = [];
+    if (f.conv === 'wang') bits.push(C.kx.wang);
+    else if (f.conv === 'num') bits.push(fill(C.kx.num, { n: f.kx, r, res: f.res }));
+    else if (f.page) bits.push(fill(C.kx.exc, { r, res: f.res, book: radStrokes(f.rad) + f.res, page: f.page }));
+    else {
+      bits.push(fill(f.res ? C.kx.rad : C.kx.rad0, { r, n: f.res }));
+      // 偏旁写成省体（氵、扌、阝……）时才说怎么还原：今写的笔画比康熙笔画少
+      const pp = (C.pianpang as Record<string, string>)[tbl!.data.rad[f.rad - 1] ?? ''];
+      if (pp && f.today < f.kx) bits.push(pp);
+    }
+    if (f.today !== f.kx) bits.push(fill(C.kx.today, { n: f.today }));
+    if (f.unchecked) bits.push(C.kx.unchecked);
+    return esc(bits.join(' · '));
+  }
+
+  const chip = (act: string, i: number, v: string, label: string, on: boolean) =>
+    `<button type="button" class="chip" data-act="${act}" data-i="${i}" data-v="${esc(v)}" aria-pressed="${on}">${label}</button>`;
+
+  function card(c: Result['chars'][number], i: number) {
+    const f = c.form;
+    const rows = [
+      `<span class="kxn">${t('康熙笔画', '康熙筆畫')} <b>${f.kx}</b></span>`,
+      `<span class="note">${kxNote(f)}</span>`,
+    ];
+    if (c.zi.forms.length > 1)
+      rows.push(
+        `<span class="pick"><span class="note">${esc(C.pickForm)}</span><span class="chips" role="group" aria-label="${esc(C.pickForm)}">${c.zi.forms
+          .map((x) => chip('form', i, x.form, `${esc(x.form)} <span class="n">${x.kx}</span>`, x.form === f.form))
+          .join('')}</span></span>`,
+      );
+    if (c.surname || c.zi.readings.length < 2) {
+      rows.push(`<span class="rd">${reading(c.read)} · ${JYUT} ${esc(c.jyut || '—')}</span>`);
+      if (c.surname && c.zi.readings.length > 1) rows.push(`<span class="note">${esc(fill(C.surRead, { py: c.read, all: c.zi.readings.join('、') }))}</span>`);
+    } else
+      rows.push(
+        `<span class="pick"><span class="note">${esc(C.pickRead)}</span><span class="chips" role="group" aria-label="${esc(C.pickRead)}">${c.zi.readings
+          .map((x) => chip('read', i, x, reading(x), x === c.read))
+          .join('')}</span><span class="rd">${JYUT} ${esc(c.jyut || '—')}<span class="mute">${esc(C.jyutOne)}</span></span></span>`,
+      );
+    if (!c.zi.inTgh) rows.push(`<span class="note">${esc(C.notTgh)}</span>`);
+    const tr = c.zi.forms.length === 1 && f.form !== c.used ? `<span class="tr">${t('繁', '繁')} ${esc(f.form)}</span>` : '';
+    return `<li><span class="big"><span class="ch">${esc(c.used)}</span>${tr}</span><span class="rows">${rows.join('')}</span></li>`;
+  }
+
+  function formula(r: Result, k: Ge) {
+    const s = r.strokes.slice(0, r.surLen);
+    const g = r.strokes.slice(r.surLen);
+    const w = r.wuge;
+    if (k === 'tian') return s.length === 1 ? `姓 ${s[0]} ＋ 1` : `姓 ${s[0]} ＋ ${s[1]}`;
+    if (k === 'ren') return s.length > 1 || g.length > 1 ? `姓末字 ${s.at(-1)} ＋ 名首字 ${g[0]}` : `姓 ${s[0]} ＋ 名 ${g[0]}`;
+    if (k === 'di') return g.length === 1 ? `名 ${g[0]} ＋ 1` : g.length === 2 ? `名首字 ${g[0]} ＋ 名末字 ${g[1]}` : g.map((x) => `名 ${x}`).join(' ＋ ');
+    if (k === 'wai') return `天格 ${w.tian} ＋ 地格 ${w.di} − 人格 ${w.ren}`;
+    return r.strokes.join(' ＋ ');
+  }
+
+  function wuge(r: Result) {
+    const seen = new Map<number, string>();
+    const rows = GE.map((k) => {
+      const n = r.wuge[k];
+      const f = fold(n);
+      const same = seen.get(f);
+      if (!same) seen.set(f, LABEL[k]);
+      const over = f !== n ? `<span class="over">${t(`（超过 81，按 ${f} 查）`, `（超過 81，按 ${f} 查）`)}</span>` : '';
+      const text = same ? `<span class="same">${t(`同${same}，见上。`, `同${same}，見上。`)}</span>` : `<span class="txt">${esc(N81[f] ?? '')}</span>`;
+      return `<li><span class="ge"><span class="lb">${LABEL[k]}</span><span class="num">${n}</span></span><span class="rows"><span class="fx">${esc(formula(r, k))}${over}</span>${text}</span></li>`;
+    });
+    const w = r.wuge;
+    const sancai = `<li><span class="ge"><span class="lb">三才</span><span class="sc">${esc(r.sancai)}</span></span><span class="rows"><span class="fx">${t(`天格 ${w.tian} · 人格 ${w.ren} · 地格 ${w.di} 的尾数`, `天格 ${w.tian} · 人格 ${w.ren} · 地格 ${w.di} 的尾數`)}</span><span class="same">${esc(C.sancai)}</span></span></li>`;
+    return `<section class="blk"><h3>三才五格</h3><ul role="list" class="wg">${rows.join('')}${sancai}</ul><p class="foot">${esc(C.noteWuge)}</p></section>`;
+  }
+
+  function english(r: Result) {
+    const row = (dt: string, dd: string, note = '') => `<div><dt>${dt}</dt><dd><span>${esc(dd)}</span>${note && `<span class="mute">${esc(note)}</span>`}</dd></div>`;
+    const dl = [row('拼音', r.roman.py), row(SYS.wg, r.roman.wg, C.wgNote), row(SYS.jp, r.roman.jp), r.roman.hk ? row(t('港式', '港式'), r.roman.hk, C.hkNote) : ''].join('');
+    const hits = r.hits.length
+      ? r.hits
+          .map((h) => {
+            const mask = h.word[0] + '*'.repeat(h.word.length - 1);
+            const wgClean = h.sys === 'py' && !r.hits.some((x) => x.sys === 'wg');
+            const text = h.cross
+              ? fill(wgClean ? C.hit.crossWg : C.hit.cross, { sys: SYS[h.sys], joined: h.joined, mask, sep: h.sep, wg: r.roman.wg })
+              : fill(C.hit.syl, { sys: SYS[h.sys], syl: h.word.charAt(0).toUpperCase() + h.word.slice(1) });
+            return `<div class="hit" role="note"><span class="lb">${t('英文谐音', '英文諧音')}</span><span>${esc(text)}</span><span class="mute">${esc(C.hit.source)}</span></div>`;
+          })
+          .join('')
+      : `<p class="foot">${esc(C.hit.none)}</p>`;
+    return `<section class="blk"><h3>${t('英文写法', '英文寫法')}</h3><dl>${dl}</dl>${hits}</section>`;
+  }
+
+  function result(r: Result) {
+    const names = r.chars.map((c) => c.used).join('');
+    const top: string[] = [];
+    for (const c of r.chars) if (c.used !== c.input) top.push(`<p class="foot">${esc(fill(C.sub, { c: c.input, v: c.used }))}</p>`);
+    if (r.fu) {
+      const [s, g] = name;
+      top.push(
+        `<div class="banner" role="status"><span>${esc(fill(C.fu, { fu: r.fu, rest: [...g].slice(1).join('') }))}</span><button type="button" data-act="fu" data-i="0" data-v="">${t('改成复姓', '改成複姓')}</button></div>` +
+          `<p class="foot">${esc(fill(C.fuNote, { s, g, c: [...g][0]! }))}</p>`,
+      );
+    }
+    const forms = r.chars.map((c) => c.form.form).join('');
+    const simps = r.chars.map((c) => c.zi.simp).join('');
+    // 繁体页写的是繁体，另一种写法列简体；简体页列繁体字形
+    const [label, alt] = hant ? [t('简体', '簡體'), simps] : [t('繁体', '繁體'), forms];
+    const other = alt !== names ? `${label} ${esc(alt)} · ` : '';
+    const kind = `${r.surLen > 1 ? t('复姓', '複姓') : t('单姓', '單姓')} · ${[t('单名', '單名'), t('双名', '雙名'), '三字名'][r.chars.length - r.surLen - 1]}`;
+    const echo = `<div class="echo"><span class="name">${esc(names)}</span><span class="sub">${other}${esc(r.chars.map((c) => c.read).join(' '))} · ${kind}</span></div>`;
+    const cards = `<section class="blk"><h3>${t('逐字', '逐字')}</h3><ul role="list" class="cards">${r.chars.map(card).join('')}</ul></section>`;
+    return top.join('') + echo + cards + wuge(r) + english(r);
+  }
+
+  function missing(m: Missing) {
+    if (!m.variant) return `<p class="banner">${esc(fill(C.missingNone, { c: m.ch }))}</p><p class="foot">${esc(C.missingNote)}</p>`;
+    return (
+      `<div class="banner" role="status"><span>${esc(fill(C.missing, { c: m.ch, v: m.variant }))}</span>` +
+      `<button type="button" data-act="sub" data-i="${m.index}" data-v="${esc(m.variant)}">${t(`按${esc(m.variant)}算`, `按${esc(m.variant)}算`)}</button></div>` +
+      `<p class="foot">${esc(C.missingNote)}</p>`
+    );
+  }
+
+  // 点选字形、读音、异体：就地重算，不发请求；整块重画后焦点回到同一个按钮
+  res.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-act]');
+    if (!b) return;
+    const { act, i, v } = b.dataset as { act: 'form' | 'read' | 'sub' | 'fu'; i: string; v: string };
+    res.classList.remove('late');
+    if (act === 'fu') {
+      const g = [...name[1]];
+      sur.value = name[0] + g[0];
+      giv.value = g.slice(1).join('');
+      go();
+      return;
+    }
+    (picks[+i] ??= {})[act] = v;
+    render();
+    if (act === 'sub') res.focus();
+    else res.querySelector<HTMLButtonElement>(`button[data-act="${act}"][data-i="${i}"][data-v="${CSS.escape(v)}"]`)?.focus();
+  });
+
+  $('submit').addEventListener('click', go);
+  $('clear').addEventListener('click', () => {
+    sur.value = '';
+    giv.value = '';
+    reset();
+    sur.focus();
+  });
+  $('retry').addEventListener('click', () => {
+    warm();
+    if (last) go();
+  });
+  // 回车即测名（没有提交按钮）；输入法选字时的回车不算
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && e.target instanceof HTMLInputElement) {
+      e.preventDefault();
+      go();
+    }
+  });
+  // 离开页面清空（M22-29）：共用设备上不留名字，前进后退缓存也恢复不回来
+  addEventListener('pagehide', () => {
+    sur.value = '';
+    giv.value = '';
+    reset();
+  });
+</script>
+
+<style is:global>
+  .qm p,
+  .qm h1,
+  .qm h2,
+  .qm h3,
+  .qm dl,
+  .qm dd,
+  .qm ul {
+    margin: 0;
+  }
+  .qm ul {
+    padding: 0;
+    list-style: none;
+  }
+  .qm [hidden] {
+    display: none !important;
+  }
+  .qm {
+    /* 名字和按名字算出来的东西只用设备自带的字体（M22-20）：这里不许出现任何 @font-face 声明过的字体名 */
+    --font-private: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
+    --skel: 1600px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .qm:lang(zh-Hant) {
+    --font-private: 'Songti TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', serif;
+  }
+  .qm .intro {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .qm h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.3;
+    letter-spacing: 0.24em;
+  }
+  .qm .intro p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .qm .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .qm .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+
+  /* 手机：一栏，测名 → 结果 → 怎么算 → 名字里的字（设计稿 45） */
+  .qm .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .qm .left,
+  .qm .right {
+    display: contents;
+  }
+  .qm .tool {
+    order: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .qm .result {
+    order: 2;
+  }
+  .qm .how {
+    order: 3;
+  }
+  .qm .kb {
+    order: 4;
+  }
+
+  /* ---------- 表单 ---------- */
+  .qm .form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .qm .names {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .qm label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .qm input {
+    width: 100%;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    padding: 0 14px;
+    border: 1px solid var(--ink-2);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+    /* 显式写，不 inherit 页面字体 */
+    font-family: var(--font-private);
+    font-size: 22px;
+    letter-spacing: 0.12em;
+  }
+  .qm input::placeholder {
+    color: rgb(110 102 94 / 0.6);
+  }
+  .qm input:focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .qm input[aria-invalid] {
+    border-color: var(--seal);
+  }
+  /* 脚本后来才显示的字（提示、出错、结果）也用设备字体：显示的那一刻再拉网页字体的切片，会被当成和名字有关的请求 */
+  .qm .err,
+  .qm .status,
+  .qm .fail,
+  .qm .result {
+    font-family: var(--font-private);
+  }
+  .qm .err {
+    grid-column: 1 / -1;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--seal);
+  }
+  .qm .err:empty {
+    display: none;
+  }
+  .qm .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .qm .dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-2);
+    animation: qm-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes qm-breathe {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qm .dot {
+      animation: none;
+    }
+  }
+  .qm .fail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--ink-2);
+    border-radius: var(--radius);
+  }
+  .qm .fail p {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .qm button {
+    font: inherit;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .qm .fail button,
+  .qm .banner button {
+    flex-shrink: 0;
+    min-height: var(--tap);
+    padding: 0 12px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: transparent;
+    font-size: var(--fs-s);
+    letter-spacing: 0.08em;
+  }
+  .qm .go {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .qm .submit {
+    flex-grow: 1;
+    height: var(--btn-h);
+    box-sizing: border-box;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 17px;
+    letter-spacing: 0.6em;
+    padding-left: 0.6em;
+    transition: background-color var(--t-hover);
+  }
+  .qm .submit:hover {
+    background: rgb(45 46 54 / 0.04);
+  }
+  .qm .clear {
+    flex-shrink: 0;
+    min-width: 56px;
+    height: var(--tap);
+    border: 0;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: var(--fs-s);
+    letter-spacing: 0.16em;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .qm .privacy,
+  .qm .nojs {
+    font-size: var(--fs-xs);
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 结果（整块设备字体） ---------- */
+  .qm .result {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    outline: none;
+  }
+  .qm .result.late {
+    min-height: var(--skel);
+  }
+  .qm .skel {
+    height: var(--skel);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .qm .skel span {
+    display: block;
+    flex: 1;
+    border-radius: var(--radius);
+    background: rgb(45 46 54 / 0.06);
+  }
+  .qm .skel span:nth-child(-n + 2) {
+    flex: 0 0 52px;
+  }
+  .qm .banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: var(--fs-s);
+    line-height: 1.7;
+  }
+  .qm .result .foot {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .qm .echo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .qm .echo .name {
+    font-size: 40px;
+    line-height: 1.25;
+    letter-spacing: 0.2em;
+    overflow-wrap: anywhere;
+  }
+  .qm .echo .sub {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+  .qm .blk {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .qm h3 {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+  }
+  .qm .cards {
+    border-top: 1px solid var(--rule);
+  }
+  .qm .cards li {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .qm .big {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .qm .big .ch {
+    font-size: 36px;
+    line-height: 1.15;
+  }
+  .qm .tr {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .qm .rows {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .qm .kxn {
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+  .qm .kxn b {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .qm .note,
+  .qm .mute {
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .qm .rd {
+    font-size: var(--fs-s);
+    line-height: 1.7;
+  }
+  .qm .rd .mute {
+    margin-left: 2px;
+  }
+  .qm .py {
+    color: var(--ink-2);
+  }
+  .qm .pick {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .qm .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .qm .chip {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: transparent;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+  .qm .chip[aria-pressed='true'] {
+    border-color: var(--ink);
+    background: rgb(45 46 54 / 0.06);
+  }
+  .qm .chip .n {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .qm .wg {
+    border-top: 1px solid var(--rule);
+  }
+  .qm .wg li {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .qm .ge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .qm .ge .lb {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+  }
+  .qm .ge .num {
+    font-size: 26px;
+    line-height: 1.2;
+  }
+  .qm .ge .sc {
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+  .qm .fx,
+  .qm .over {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+  }
+  .qm .txt {
+    font-size: var(--fs-s);
+    line-height: 1.85;
+  }
+  .qm .same {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  .qm .result dl {
+    border-top: 1px solid var(--rule);
+  }
+  .qm .result dl > div {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .qm dt {
+    padding-top: 3px;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+  }
+  .qm dd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .qm dd .mute {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .qm .hit {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--ink-2);
+    border-radius: var(--radius);
+    font-size: var(--fs-s);
+    line-height: 1.8;
+  }
+  .qm .hit .lb {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.2em;
+    color: var(--ink-2);
+  }
+  .qm .hit .mute {
+    font-size: 11px;
+  }
+
+  /* ---------- 怎么算、名字里的字 ---------- */
+  .qm .how {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .qm .how summary {
+    min-height: var(--btn-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 15px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    list-style: none;
+  }
+  .qm .how summary::-webkit-details-marker {
+    display: none;
+  }
+  .qm .how .mark::before {
+    content: '＋';
+    color: var(--ink-2);
+  }
+  .qm .how[open] .mark::before {
+    content: '−';
+  }
+  .qm .how ul {
+    margin: 0 0 16px;
+    padding-left: 18px;
+    list-style: disc;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .qm .how li {
+    font-size: var(--fs-s);
+    line-height: 1.9;
+  }
+  .qm .kb {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .qm .kb ul {
+    border-top: 1px solid var(--rule);
+  }
+  .qm .kb a {
+    min-height: var(--btn-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .qm .kb a > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 0;
+  }
+  .qm .kt {
+    font-size: 16px;
+    letter-spacing: 0.06em;
+  }
+  .qm .ks,
+  .qm .kb a > span:last-child {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+
+  /* 桌面（设计稿 D32）：左 360 测名卡与怎么算（sticky），右栏结果与名字里的字 */
+  @media (min-width: 1024px) {
+    .qm {
+      --skel: 1160px;
+      width: min(1120px, 100%);
+      margin-inline: auto;
+    }
+    .qm h1 {
+      font-size: 44px;
+    }
+    .qm .intro p {
+      max-width: 640px;
+      font-size: 16px;
+    }
+    .qm .head {
+      font-size: 16px;
+    }
+    .qm .head::before {
+      width: 7px;
+      height: 7px;
+    }
+    .qm .body {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 48px;
+      align-items: start;
+    }
+    .qm .left,
+    .qm .right {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      min-width: 0;
+    }
+    .qm .left {
+      position: sticky;
+      top: 24px;
+    }
+    .qm .right {
+      gap: 56px;
+    }
+    .qm .tool {
+      padding: 28px;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+    }
+    .qm .names {
+      grid-template-columns: 128px minmax(0, 1fr);
+    }
+    .qm .echo .name {
+      font-size: 44px;
+    }
+    .qm .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 24px;
+    }
+    .qm .big .ch {
+      font-size: 40px;
+    }
+    .qm .txt,
+    .qm .how li {
+      font-size: 15px;
+    }
+    /* 页脚的来源一句很长：两句接成一段居中折行（设计稿 D32），不并排成两栏 */
+    .page > .qm ~ .foot {
+      display: block;
+      text-align: center;
+    }
+    .page > .qm ~ .foot p {
+      display: inline;
+    }
+  }
+</style>

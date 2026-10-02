@@ -37,6 +37,10 @@ import baziTianganHant from "./bazi-tiangan-hant.json" with { type: "json" };
 import baziTiangan from "./bazi-tiangan.json" with { type: "json" };
 import cities from "./cities.json" with { type: "json" };
 import { compose } from "../lib/meihua-reading.js";
+import qumingHant from "./quming-hant.json" with { type: "json" };
+import qumingShuliHant from "./quming-shuli-hant.json" with { type: "json" };
+import qumingShuli from "./quming-shuli.json" with { type: "json" };
+import quming from "./quming.json" with { type: "json" };
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -151,7 +155,7 @@ const shown = (data: unknown) => [
  */
 function componentText(hant: boolean): string[] {
 	const pair = /t\(\s*(['`])((?:(?!\1).)*)\1,\s*(['`])((?:(?!\3).)*)\3\s*,?\s*\)/g;
-	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb"].map((f) =>
+	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb", "Quming", "QumingShuli"].map((f) =>
 		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8")
 			.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
 			.replace(pair, (...m: string[]) => (hant ? m[4]! : m[2]!)),
@@ -171,9 +175,9 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0))],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1))],
-	])("%s：卦爻辞、两种白话、黄历、择日、八字的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), quming, qumingShuli)],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), qumingHant, qumingShuliHant)],
+	])("%s：卦爻辞、两种白话、黄历、择日、八字、取名的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
 		const missing = (text as string[]).filter((ch) => !have.has(ch.codePointAt(0) as number));
@@ -230,6 +234,19 @@ it.each([
 		if (existsSync(url)) for (const ch of woff2Chars(readFileSync(url))) have.add(ch);
 	}
 	expect([...text].filter((ch) => !have.has(ch.codePointAt(0) as number)).join(""), "改了事项名要重跑 tools/subset-fonts.py").toBe("");
+});
+
+// 取名（M22a）的标题字体：测名页与八十一数页共用一份，只有两个 h1
+it.each([
+	["quming", "取名八十一数"],
+	["quming-hant", "取名八十一數"],
+])("取名标题子集 %s/index 有两页的 h1", (dir, text) => {
+	const have = new Set<number>();
+	for (const f of ["index", "index-wk"]) {
+		const url = new URL(`../fonts/${dir}/${f}.woff2`, import.meta.url);
+		if (existsSync(url)) for (const ch of woff2Chars(readFileSync(url))) have.add(ch);
+	}
+	expect([...text].filter((ch) => !have.has(ch.codePointAt(0) as number)).join(""), "重跑 tools/subset-fonts.py").toBe("");
 });
 
 // 八字排盘与知识页的标题字体（M19a、M19b-3 共用一份）：h1、干支、五行个数、乾造坤造，知识页的十神、纳音、十二长生、十天干、十二地支。

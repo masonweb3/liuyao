@@ -1,0 +1,186 @@
+---
+// 八十一数页 /quming/81/（M22-3 A 的附带页，设计稿 47 ⑤），繁体 /zh-hant/quming/81/。取名栏目里的纸面页，零 JS。
+// 只写数的来历与意象，不分好坏；每条一个锚点 #n1…#n81。文字取 quming-shuli.json（原创，独立审查后入库）。
+import copyHant from '../data/quming-hant.json';
+import shuliHant from '../data/quming-shuli-hant.json';
+import shuli from '../data/quming-shuli.json';
+import copyHans from '../data/quming.json';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+
+interface Props {
+  hant?: boolean;
+}
+
+const { hant = false } = Astro.props;
+const t = (hans: string, tw: string) => (hant ? tw : hans);
+const c = hant ? copyHant : copyHans;
+const s = hant ? shuliHant : shuli;
+const home = hant ? '/zh-hant/quming/' : '/quming/';
+const title = t('八十一数 · 五格里每个数的来历 · 六爻', '八十一數 · 五格裡每個數的來歷 · 六爻');
+---
+
+<Paper title={title} description={s.index} path="/quming/81/" at="/quming/" group="quming" subset="index" hant={hant}>
+  <main class="s81">
+    <section class="intro">
+      <a class="label" href={home}>取名</a>
+      <h1>{t('八十一数', '八十一數')}</h1>
+      <p>{s.index}</p>
+    </section>
+    <section class="part" aria-labelledby="s81-from">
+      <h2 class="head" id="s81-from">{t('来历', '來歷')}</h2>
+      {s.intro.map((p) => <p class="text">{p}</p>)}
+      <p class="note">{c.noteWuge}{t('超过 81 的数减去 80 再查。', '超過 81 的數減去 80 再查。')}</p>
+    </section>
+    <section class="part" aria-labelledby="s81-list">
+      <h2 class="head" id="s81-list">{t('一到八十一', '一到八十一')}</h2>
+      <ol role="list">
+        {Object.entries(s.numbers).map(([n, x]) => (
+          <li id={`n${n}`}>
+            <span class="n">{n}</span>
+            <p>{x}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+    <section class="cta">
+      <p>{c.cta}</p>
+      <a href={home}>{t('去测名', '去測名')}</a>
+    </section>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('八十一数的说明为本站原创', '八十一數的說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
+  </Fragment>
+</Paper>
+
+<style>
+  p,
+  h1,
+  h2,
+  ol {
+    margin: 0;
+  }
+  .s81 {
+    width: min(720px, 100%);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .intro,
+  .part {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .label {
+    align-self: flex-start;
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-xs);
+    letter-spacing: 0.3em;
+    color: var(--ink-2);
+    text-decoration: underline;
+    text-decoration-color: var(--ink-2);
+    text-underline-offset: 3px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.3;
+    letter-spacing: 0.24em;
+  }
+  .intro p,
+  .text {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.3em;
+  }
+  .head::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+  }
+  .note {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-2);
+  }
+  ol {
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--rule);
+  }
+  li {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+    /* 从别处点 #n27 进来时，不让页头盖住 */
+    scroll-margin-top: 16px;
+  }
+  .n {
+    font-size: 24px;
+    line-height: 1.3;
+  }
+  li p {
+    font-size: 15px;
+    line-height: 1.85;
+  }
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .cta p {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .cta a {
+    height: var(--btn-h);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-size: 16px;
+    letter-spacing: 0.4em;
+    padding-left: 0.4em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  @media (min-width: 1024px) {
+    h1 {
+      font-size: 44px;
+    }
+    .intro p,
+    .text,
+    .cta p {
+      font-size: 16px;
+    }
+    .head {
+      font-size: 16px;
+    }
+    .cta a {
+      width: 240px;
+    }
+  }
+</style>
