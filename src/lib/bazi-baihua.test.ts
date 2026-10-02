@@ -246,8 +246,14 @@ describe("八字白话（M20）：样例盘", () => {
 		expect(old.p.dy.lead).toMatch(/今年（2026 年）已在第十步之后。$/);
 		const jie = make(solar(2025, 2, 3, undefined, undefined, "男"));
 		expect(jie.chart.jie?.name).toBe("立春");
-		expect(jie.p.dy.lead).toMatch(/^时辰不详，出生那天正好交立春，起运早晚、大运顺排还是逆排都要看出生的时刻；/);
-		expect(make(solar(2025, 2, 3, undefined, undefined, "男"), {}, { hant: true }).p.dy.lead).toMatch(/^時辰不詳，出生那天正好交立春，/);
+		expect(jie.p.dy.lead).toMatch(/^时辰不详，出生那天正好交立春：出生在交节之前还是之后，各步大运的干支都不一样；/);
+		expect(make(solar(2025, 2, 3, undefined, undefined, "男"), {}, { hant: true }).p.dy.lead).toMatch(/^時辰不詳，出生那天正好交立春：/);
+		// 那句只说干支：当天 0:00 与 23:59 出生，第一步大运的干支不同；顺逆只在立春那天翻（惊蛰那天不翻），起运早晚立春那天多半不变（审查实算 1901–2026）
+		for (const [m, d, flips] of [[2, 3, true], [3, 5, false]] as const) {
+			const [a, z] = [bazi(solar(2025, m, d, 0, 0, "男")), bazi(solar(2025, m, d, 23, 59, "男"), { lateZi: "day-stays" })];
+			expect(a.daYun[0]!.ganZhi).not.toBe(z.daYun[0]!.ganZhi);
+			expect(a.qiYun.forward !== z.qiYun.forward).toBe(flips);
+		}
 	});
 
 	it("地支本气、天干方位两张小表与 tyme4ts 一致", () => {
