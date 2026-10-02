@@ -49,6 +49,8 @@ import zeri from "./zeri.json" with { type: "json" };
 import { readFileSync } from "node:fs";
 import { shenSha } from "../lib/bazi.js";
 import { localOffset } from "../lib/bazi-time.js";
+import baziBaihuaHant from "./bazi-baihua-hant.json" with { type: "json" };
+import baziBaihua from "./bazi-baihua.json" with { type: "json" };
 import baziHant from "./bazi-hant.json" with { type: "json" };
 import baziNamesHant from "./bazi-names-hant.json" with { type: "json" };
 import bazi from "./bazi.json" with { type: "json" };
@@ -430,6 +432,8 @@ describe("红线（简繁都查）", () => {
 	const all = [
 		...strings(bazi),
 		...strings(baziHant),
+		...strings(baziBaihua),
+		...strings(baziBaihuaHant),
 		...[baziTiangan, baziDizhi, baziPages, baziTianganHant, baziDizhiHant, baziPagesHant].flatMap(strings),
 		...strings(zeri),
 		...strings(zeriHant),
