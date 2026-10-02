@@ -156,7 +156,7 @@ def cmap(key: str) -> dict[int, str]:
     return TTFont(io.BytesIO(load(key)), lazy=True).getBestCmap()
 
 
-def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False) -> TTFont:
+def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False, drop: tuple[str, ...] = ()) -> TTFont:
     # 不写入当前时间，重跑结果逐字节相同，git 里不出现无谓的改动。
     font = TTFont(io.BytesIO(raw), recalcTimestamp=False)
     if "fvar" in font:
@@ -172,6 +172,7 @@ def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False) -> T
         # 让 Lighthouse 模拟的首页 LCP 慢了一个往返（约 145 ms），去掉这些就回到原样。
         options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14]
         options.drop_tables += ["STAT"]
+    options.drop_tables += list(drop)
     sub = subset.Subsetter(options)
     sub.populate(text=text)
     sub.subset(font)
@@ -373,7 +374,10 @@ def first_screen(name: str, text: dict[str, str], out: str) -> None:
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
     for key, (family, src) in HOME.items():
-        font = make_subset(load(src), text[key], lean=True)
+        # 正文子集再去掉 GSUB（aalt、fwid、hwid、pwid，浏览器默认都不开）、GPOS（kern、vpal）、BASE（M22）：栏目加「取名」后
+        # home-body.woff2 从 9,852 涨到 10,140 字节，Lighthouse 模拟的首页 LCP 又慢了一个往返（约 130 ms，同 M21）；
+        # 去掉这三张表是 9,856 字节，LCP 回到原样，首页首屏 390、1440 宽的截图与去掉之前逐像素相同。
+        font = make_subset(load(src), text[key], lean=True, drop=("GSUB", "GPOS", "BASE") if key == "body" else ())
         path = f"src/fonts/{name}-{key}.woff2"
         font.save(path)
         css.append(
