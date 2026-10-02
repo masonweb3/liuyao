@@ -138,7 +138,8 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
       },
     );
   }
-  form.addEventListener('focusin', warm);
+  // 只认输入框：点「再试一次」时按钮先得到焦点，这里要是也去取表，会先把失败框（连同按钮）藏起来，点击就落空了
+  form.addEventListener('focusin', (e) => e.target instanceof HTMLInputElement && warm());
 
   // ---------- 测名 ----------
   let picks: Record<number, Pick> = {};
