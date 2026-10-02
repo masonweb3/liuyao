@@ -79,6 +79,7 @@ src/
   lib/meihua-duan.ts 梅花的吉凶（零依赖）：只看本卦六爻，三层体用生克规则；梅花页的 Worker 和首页往卦列表（view.ts）共用
   lib/meihua-page.ts 梅花页脚本的全部逻辑（零依赖，只有 import type）：照抄的往卦与判重、分流、回访、磬声（测试与原件逐条比），报数校验，此刻的时辰与农历
   lib/meihua-reading.ts 梅花成卦屏与解读页的全部文字（卦象、依据、断语建议、卦爻辞白话、算式）；只在 Worker 里跑
+  lib/quming.ts     测名的计算（零 DOM、零依赖：/quming/ 页面脚本只 import 它）：查字表、康熙笔画（例外表与两条约定）、五格三才、注音、威妥玛、谐音比对（见 §6「取名」）
   components/       各屏的 Astro 组件：首屏、手动排盘、所问、择类、提示页、静心、摇卦、成卦、解读、往卦；
                     Gua.astro、GuaList.astro 是卦页和目录的正文（简繁共用，传 hant）；
                     Invite.astro 是纸面页底部的起卦块；
@@ -86,6 +87,7 @@ src/
                     Zeri、ZeriMonth 是择日首页、事项月页的正文；Bazi 是八字排盘页的正文（表单、盘面、存盘、盘面上的词、八字知识）；
                     BaziKb 是八字知识页的正文（27 种页一个组件，简繁共用）；
                     Meihua.astro 是梅花页（/meihua/）的全部，各屏在 Meihua*.astro（首屏与说明区、所问、提示页、择类、选起法与报数、成卦、解读），不和首页共用组件；
+                    Quming.astro 是测名页（/quming/）的正文与脚本，QumingShuli.astro 是八十一数页（零 JS），都简繁共用；
                     Columns.astro 是栏目导航（首页首屏和纸面页头共用，见 §6）；
                     Slots.astro 把 copy.ts 里带 {空} 的一句写进页面，留给 view.ts 填数字、日期、所问
   layouts/Page.astro  全站公共 <head>：title、description、canonical、OG、hreflang、统计脚本
@@ -114,6 +116,9 @@ src/
   data/bazi-names-hant.json 八字盘面上 tyme4ts 名字的繁体：十神、十二长生、十三种神煞（纳音、生肖用 huangli-hant.json 的 names）
   data/bazi-tiangan.json、bazi-dizhi.json、bazi-pages.json 八字知识页的释义：天干、地支各导语与「怎么读」三段，十神、纳音、十二长生页，两个目录页的导语（本项目原创，经独立审查，CC BY-NC-SA 4.0）；各带 -hant 繁体（逐条校对）
   data/cities.json  出生地名单（tools/build-cities.py 生成）：城市简繁名、所属、经度、IANA 时区；经度取自 Natural Earth（公有领域），/bazi/ 点进出生地才下载
+  data/quming-zi.json 测名的字表（tools/build-quming.py 由 Unihan 18.0.0 生成，Unicode License v3；谐音词表改编自 LDNOOBW，CC BY 4.0）：8105 字加 Big5 的字形、康熙笔画、读音、异体，姓氏读音、复姓、港式姓氏；/quming/ 第一次点进输入框才整份下载
+  data/quming.json  测名页的导语、提示句、怎么算（本项目原创，CC BY-NC-SA 4.0）；quming-hant.json 是繁体（s2twp 转换后逐条校对）
+  data/quming-shuli.json 八十一数：/quming/81/ 的导语、来历与 81 条（本项目原创，经独立审查后入库）；-hant 是繁体
   pages/index.astro 首屏加完整起卦流程（单页）
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
@@ -122,6 +127,7 @@ src/
   pages/zeri/       择日首页 /zeri/ 与事项月页 /zeri/{事项}/{YYYY-MM}/（预渲染）；繁体同构在 pages/zh-hant/zeri/
   pages/bazi/       八字排盘 /bazi/（预渲染标题区、表单与盘面上的词，盘面在浏览器里算）；[...kb].astro 是 27 个知识页（预渲染、零 JS）；繁体 pages/zh-hant/bazi/
   pages/meihua/     梅花易数 /meihua/（首屏、说明区与整套起卦流程在一页；先只有简体）
+  pages/quming/     取名：测名 /quming/（预渲染表单与说明，结果在浏览器里算）与八十一数 /quming/81/；繁体 pages/zh-hant/quming/
   pages/api/judge.ts 服务端路由：调用 Jev
   pages/api/remind.ics.ts 服务端路由：iPhone、iPad 的到时提醒 .ics（只按网址里的两个日期和卦名现生成，不存不记）
   pages/sitemap.xml.ts 可被收录的页面清单：新页面在这里登记
@@ -131,10 +137,11 @@ src/
   styles/webfonts.css fontsource 全部切片，异步加载；webfonts-hant.css 是繁体页的（Noto Serif TC）
   styles/paper-fonts.css 卦页、目录页的正文补字与语言切换用字的 @font-face（生成文件，Paper.astro 引入）
   fonts/            首屏字形子集（home-*，梅花页另有 meihua-*）；fonts/gua/ 是卦页每页一份的站酷小薇子集，fonts/gua-hant/ 是繁体卦页的
-                    芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；fonts/bazi/、bazi-hant/ 是八字排盘页与知识页共用的；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
+                    芫荽子集（缺字另有 -wk 文楷子集）；fonts/huangli/、huangli-hant/ 是黄历与节气页的（见 §6「黄历」）；fonts/bazi/、bazi-hant/ 是八字排盘页与知识页共用的；fonts/quming/、quming-hant/ 是取名两页共用的；body-hans/hant.woff2 是 fontsource 切片里缺的正文字，
                     lang-400/600.woff2 是语言切换用字（都由 tools/subset-fonts.py 生成）
 public/             og.png 分享预览图、_headers
-tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源
+tools/              开发脚本（在测试服务器的容器里跑）、og.png 的源；quming-kangxi.json 是康熙笔画的例外表与已核字形，
+                    quming-privacy.mjs 是测名的隐私检查（playwright，对着预览站跑，不进 CI）
 .github/workflows/  ci.yml：PR 上跑测试和构建；tag.yml：合并后打日期 tag
 .coderabbit.yaml    CodeRabbit 审 PR 的设置
 docs/               调研与路线图（本地，不进 git）
@@ -261,7 +268,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 解读页上本卦、变卦的卦名链到卦页。
   - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
 - **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
-  - 现在五栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17；排盘页与知识页都算这一栏）、梅花（`/meihua/`，M21-21；先只有简体，繁体页上也链简体页）。五项在 390 宽一行放得下；320 宽从第五项起要横滑（滚动宽 336），照下面「栏目多了」的零 JS 做法。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
+  - 现在六栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17；排盘页与知识页都算这一栏）、梅花（`/meihua/`，M21-21；先只有简体，繁体页上也链简体页）、取名（`/quming/`，M22-7；测名页与八十一数页都算这一栏，M23 的起名也进这一栏）。六项在 390 宽一行刚好放下（末项文字右缘 367，右端渐隐从 366 起）；320 宽从第五项起要横滑，/quming/ 上当前项「取名」在屏外，Chromium 133 起由 `scroll-initial-target` 滚进来，Safari、Firefox 停在最左（M16-4，不改）；繁体 390 宽「農民曆」多一字，「取名」一半在渐隐里。照下面「栏目多了」的零 JS 做法。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
   - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时传 `at`（本页属于哪一栏）、`home`（是不是这一栏的首页）、`group`（标题字体子集的目录），数据来源与许可写进 `slot="foot"`。梅花上线后第一栏仍叫「起卦」（M16-9）。
   - **位置**：手机和 768–1023 在页头下面单独一行，高 44，首项的字与品牌左缘对齐；≥1024 并进页头那一行，紧跟品牌（品牌到首项的字 48px）。首页只在首屏：写在 `Home.astro` 的首屏 section 里，跟着这一屏显隐，写下所问以后各屏都没有导航，仪式中不打断这一卦。纸面页头是品牌、栏目、工具区（往卦、简 | 繁），手机两行共 88 高；桌面不再有「起卦」线框按钮（M16-1），卦页左栏和页底的起卦块仍直达写下所问。页头只有这一个 nav 地标（`aria-label` 栏目／欄目），首页的往卦、音效和纸面页的工具区都是 div。DOM 顺序是品牌、栏目、工具区，Tab 顺序同桌面的视觉顺序；手机上栏目行在工具区下面，Tab 先到栏目再回上行的往卦。
   - **样式**：正文宋体 400，14px，字距 0.24em，项与项之间只靠间距（手机每项左右 10px、桌面 14px，点击区高 44）。当前项主色加一道 12×2 短线（暗场金、纸面印章红），不加粗（M16-7：首页字形子集只有 400）；其余次要色，悬停变主色。首页、目录页这种栏目首页 `aria-current="page"`，栏目里的其他页（卦页）`"true"`，点它回栏目首页；当前项另带 `aria-label`「起卦，当前栏目」（繁体「六十四卦，目前欄目」），不用视觉隐藏的字（首页上看不见的字也会触发字体下载）。
@@ -320,6 +327,20 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **吉凶**（M21-5、M21-18，`meihua-duan.ts`，完全由代码判，Jev 不参与）：用卦定基调（生体、比和、体克用为吉，体生用为平，克体为凶）；变卦定结局（用吉变凶、用凶变吉为平，用平随变卦）；用卦、互卦下上、变卦四处克体两处以上又无生体为凶。原书 10 个有结局的卦例对上 6 例；384 种起法里吉 222、平 77、凶 85。不看卦气旺衰。印章、断语与建议同六爻（`templates.ts` 按类别 × 吉平凶），类别只换说法；解读页写明「按体用生克断」，同一时辰（同一组数）起出同一卦、同一个印，这是起法本身的性质。依据列体卦、用卦、互卦、变卦对体卦的生克，关系一律叫生体、克体、比和、为体所生、为体所克（不写「体生用」：互卦、变卦的经卦不是用卦）；白话三句，印由第三步定下时补一句「……处克体，没有一处生体，所以断为凶。」，一吉一凶断平时补一句，免得依据说好、印却是凶（`meihua-reading.test.ts` 核 384 种：72 种、65 种）。乾、坤取变卦之互（M21-10），解读页与成卦屏加小注；动在初爻、上爻时变卦之互仍是自身，不出小注，互卦一段写「与卦页相同」。
   - **字体**：卦名、卦辞、爻辞凡用小薇都过 `fontOf`（在 Worker 里算好传回，夬、姤整块宋体）；体用、算式、互卦小注是宋体。梅花页不引 `paper-fonts.css`，说明区与界面的字只靠 fontsource 切片：`glyphs.test.ts` 核对组件、页面脚本与 Worker 拼出的依据、算式，缺字时换说法或给梅花页加补字。首屏另一组字形子集 `meihua-display`、`meihua-body`（`tools/subset-fonts.py` 的 `MEIHUA`，预加载），「此刻」的农历由构建时写进页面的农历表算（`lunarTable`，覆盖黄历时间窗前后各一年，表外只写时辰），不等 Worker；`meihua-page.test.ts` 逐日核对它和引擎相同。首屏下面的说明区一进页就排版、显示（给搜索与读屏），但首屏入场动画播完（或一滚动）之前用系统衬线字（`data-later` 时 `--font-body`、`--font-display` 换成 `serif`），不然它的正文一进页就拉下三四十个 fontsource 切片，首屏的 LCP 晚好几秒；不要改回 `content-visibility: hidden`（那两秒里读屏读不到、Tab 不到）。
   - **音效**：成卦磬声照用（M21-23），合成代码照抄在 `meihua-page.ts`，开关与六爻共用（`liuyao:sound`）；没有铜钱声。
+- **取名（M22a，设计稿第十六行 45、46、47 ⑤、48、D32，待定 M22-1 至 M22-30 见 `docs/design-ceming.md` §3，负责人全部选推荐项）：** 栏目「取名」的首页 `/quming/` 先放测名，`/quming/81/` 是八十一数页，繁体 `/zh-hant/quming/…`。纯计算，不带 Jev：页脚写数据来源与「仅供传统文化参考与娱乐」。单字页 `/zi/{字}/` 是 M22b，结果里先不链字页（M22b 加时只链写好字义的字，带 `rel="noreferrer"`，M22-23）。
+  - **隐私**（§1.5，M22-5、M22-20、M22-29）：名字只在浏览器里算。
+    - 字表 `quming-zi.json` 第一次点进输入框（`focusin`）时整份下载（gzip 约 150 KB），不按字、不按码位分片：按字取，请求日志就是名字。之后点测名、点选字形读音、按异体算、改成复姓都不发请求。
+    - 输入框、状态行、出错提示与整块结果一律用设备字体 `--font-private`（`'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif`，繁体另一组），不许出现任何 `@font-face` 声明过的名字；`<input>` 显式设、不 inherit。网页字体按 unicode-range 切片加载，名字、按名字挑出来的八十一数短句、部首名、繁体字形、带调拼音都会去请求还没下载的切片。脚本后来才显示的字（「正在取字表」、取表失败）也用设备字体：显示的那一刻再拉切片，就和名字的请求混在一起。代价是 iPhone、iPad 上结果是苹方（系统没有宋体）。
+    - 表单 `method="dialog"`、`autocomplete="off"`，控件不写 `name`，「测名」是 `type=button`，回车由脚本接（输入法选字的回车不算）；名字不进网址、不进 localStorage，没有存、分享、复制；`pagehide` 时清空输入框与结果（共用设备、前进后退缓存）。
+    - `tools/quming-privacy.mjs`（playwright，对着预览站跑，不进 CI）：点进输入框、字表下完以后写名字、测名、点选、按回车，全程请求数 0（含字体）；结果区每个元素（含 `::before`、`::after`）的 computed font-family 里没有本页 `document.fonts` 里的字体名；不进网址与本机存储；`pagehide` 后清空。改测名页就跑一遍。
+  - **字表**（`tools/build-quming.py`，Unihan 18.0.0、CJKRadicals.txt、LDNOOBW 都按固定网址加 sha256 下载）：《通用规范汉字表》8105 字（`g`，按表的序号排）加表外的 Big5 字与繁体字形（`z`），共 16,182 字。一字一条字符串：「部首号.部外画.今写笔画[.1]」;读音（默认在前）;粤拼;台湾读音;Big5 字形（名字里默认的在前，`NAME_FORM`，M22-21）。繁体字形的读音跟它的规范字；浏览器按 `g` 的次序反查繁体字形的规范字（鍾 → 钟 不是 锺）。另有字表外的字 → 异体（`v`，M22-24）、姓氏读音（`SURNAME`，普通话读音都断言在该字的 kTGHZ2013 里）、复姓（`COMPOUND`，M22-25）、港式姓氏写法（`HK`，只有姓）、谐音词表与放行表。改了这些表或例外表就重跑，把 json 拷回提交。
+  - **康熙笔画**（M22-1 A、M22-2 A）：繁体字形（只留 Big5）→ `kRSUnicode`（多值取部首在该字 `kKangXi` 页码范围里的那个）→ 部首本字笔画加部外画；`tools/quming-kangxi.json` 的例外表优先（看同文书局本影印写成，每条带页码），数字一到十按数值、王 记 4 写在 `quming.ts`。被书序检查标出（differs、odd、radhead、原书正文没收、多值）又不在已核字形里的，逐字卡上写「未逐字核对原书」（M22-1 A1）；`quming-kangxi.json` 的 `checked` 现在只有调研看过影印本的 8 个字形，候选 2,015 字的 195 个字形看完后换上。逐字卡写「X部 N 画」、偏旁还原（只在今写笔画比康熙笔画少、即写成省体时才写「氵按水 4 画」，免得 泰、志 也说成省体）、今写几画、例外的原书页码。今写笔画是 Unihan 的 `kTotalStrokes`（大陆计法，阝 记 2），繁体页也照用。
+  - **五格与三才**（M22-4 A ①、M22-19）：带假一；外格 = 天 + 地 − 人；总格不加；超过 81 减 80，81 自成一条；同数的八十一数只写一次（「同人格，见上。」）。三才只列天、人、地格尾数配的三个五行，加一句固定说明，不写生克（「人格克天格」接上「天格是祖上」就是「克父母」）。八十一数短句来自 `quming-shuli.json`，构建时写进 `data-shuli`。
+  - **读音与写法**：名字里的字默认取 `kMandarin` 第一个（繁体页取台湾读音），多音字、一简多繁在逐字卡上就地点选（`aria-pressed`），点了只重算不发请求；姓不让选读音，查姓氏表，表里没有的取默认读音、多音时写「作姓读 yè」。繁体页写的字本身就是它的一个字形时照写的算，不让选字形（陳、云、杰）。粤语每字只有字表那一个读音，多音字旁注（M22-22）。注音由台湾读音机械换算（M22-12）。英文写法：拼音（ü 照写，a o e 开头的音节加隔音符号）、威妥玛（规则换算，标「台湾护照常见」）、粤拼、港式（只有姓，标「名字的写法因人而异」，M22-14）。字表外的字不猜笔画，Unihan 记了字表里的异体就问一句「按某字算」（M22-24）；姓一格只写一个字、它和名的首字是复姓时提示「改成复姓」，点了才挪字（M22-25）。
+  - **谐音**（M22-13 A、M22-30 A）：拼音、威妥玛、粤拼各按姓名、名姓两种次序连成一串，和词表比对，只在跨了字、或正好等于一个完整音节时才算；放行表里的词（粤拼 mong、tit）正好是一个音节时不算。词表 = LDNOOBW 英文表不带空格、三个字母以上的单词（去掉 guro、yaoi）加自建的「读音像」7 条（fuk dik kok chink homo nazi pusi）；自建表拿 Wikidata 71,442 个名字试过，fuc、suk、kunt、bich、shag、shat 与 dong、wang 几乎全是误报，不收。命中的词打码（s***），跨字的给分开写的写法，拼音命中而威妥玛不命中时再给威妥玛。
+  - **文案**：导语、隐私一行、提示句、怎么算 6 条、谐音提示在 `quming.json`（繁体 `quming-hant.json`），页面构建时写进 `data-copy`；页面脚本不 import json。`content.test.ts`「取名（M22a）」核对：简繁逐项对应，八十一数 1–81 条齐全，不出现吉凶、寿夭、灾病、婚、财、运、福、命、克、刑、父母、子女、改名改运一类字（两个组件的页面文字也查），三才不写生克，「整份约多少 KB」与字表的 gzip 大小相符。
+  - **版式**：手机一栏，测名 → 结果 → 怎么算（收起）→ 名字里的字（M22a 只有八十一数一条）→ 起卦块；≥1024 左 360 测名卡与怎么算（sticky），右栏结果与名字里的字（D32）。结果第一次填进来时如果字表还没到，先按常见高度占位（手机 1,600、桌面 1,160 px，`.late` 保持到下一次操作），不跳版。八十一数页一栏（最宽 720），每条一个锚点 `#n1`…`#n81`。
+  - **字体**：h1「取名」「八十一数」用标题字体，两页共用一份子集 `fonts/quming/index`（繁体 `quming-hant/index`）。栏目加「取名」后首页、梅花页的首屏正文子集多「取」「名」两字；`home-body.woff2` 因此从 9,852 涨到 10,140 字节，Lighthouse 模拟的首页 LCP 慢了一个往返，`subset-fonts.py` 给首屏正文子集再去掉 GSUB（aalt、fwid、hwid、pwid，浏览器默认不开）、GPOS（kern、vpal）与基线表 BASE，回到 9,856 字节，首页首屏 390、1440 宽的截图与去掉之前逐像素相同。以后首屏子集再加字，先量一下首页 LCP。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。

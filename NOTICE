@@ -79,6 +79,8 @@ src/data/huangli.json（节气导语、时令与三候白话，建除、值神�
 src/data/bazi.json（八字排盘页的导语与「盘面上的词」）为本项目原创，许可同上；src/data/bazi-hant.json 是它的繁体版，
 src/data/bazi-names-hant.json 是八字盘面上 tyme4ts 名称（十神、十二长生、神煞）的繁体对照表。
 八字的四柱、十神、藏干、十二长生、纳音、大运由 tyme4ts 计算；神煞、刑冲合会按《三命通会》（公有领域）的查法由本项目实现。
+src/data/quming.json（测名页的导语、提示句与说明）、src/data/quming-shuli.json（八十一数）为本项目原创，许可同上；
+-hant 是它们的繁体版（做法同上）。
 
 ---------------------------------------------------------------------------
 地理数据
@@ -86,6 +88,65 @@ src/data/bazi-names-hant.json 是八字盘面上 tyme4ts 名称（十神、十�
 src/data/cities.json（八字排盘的出生地名单）由本项目的 tools/build-cities.py 生成：城市经度取自
 Natural Earth 1:10m Populated Places v5.1.2（https://www.naturalearthdata.com/ ，公有领域，不要求署名）；
 城市的中文名（简繁）、所属的省或国家、IANA 时区由本项目写定。
+
+---------------------------------------------------------------------------
+测名的字表
+
+src/data/quming-zi.json（测名的字表）由本项目的 tools/build-quming.py 生成。
+
+字形、繁简、部首与笔画、读音、异体取自 Unicode Unihan Database 18.0.0
+（https://www.unicode.org/Public/18.0.0/ucd/Unihan.zip 与 CJKRadicals.txt）的 kTGH、kRSUnicode、kTotalStrokes、
+kTraditionalVariant、kSimplifiedVariant、kBigFive、kKangXi、kTGHZ2013、kMandarin、kCantonese、kSemanticVariant、
+kZVariant、kSpecializedSemanticVariant 字段。本项目做了换算（康熙笔画 = 部首本字的笔画 + 部外画数；繁体只留 Big5 字形；
+读音按默认读音排序）与修正（对着《康熙字典》同文书局本影印逐字核对，写入 tools/quming-kangxi.json 的例外表）。
+按 Unicode License v3 授权，全文如下：
+
+UNICODE LICENSE V3
+
+COPYRIGHT AND PERMISSION NOTICE
+
+Copyright © 1991-2026 Unicode, Inc.
+
+NOTICE TO USER: Carefully read the following legal agreement. BY
+DOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR
+SOFTWARE, YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO BE BOUND BY, ALL OF THE
+TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT
+DOWNLOAD, INSTALL, COPY, DISTRIBUTE OR USE THE DATA FILES OR SOFTWARE.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of data files and any associated documentation (the "Data Files") or
+software and any associated documentation (the "Software") to deal in the
+Data Files or Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, and/or sell
+copies of the Data Files or Software, and to permit persons to whom the
+Data Files or Software are furnished to do so, provided that either (a)
+this copyright and permission notice appear with all copies of the Data
+Files or Software, or (b) this copyright and permission notice appear in
+associated Documentation.
+
+THE DATA FILES AND SOFTWARE ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF
+THIRD PARTY RIGHTS.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE
+BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES,
+OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THE DATA
+FILES OR SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall
+not be used in advertising or otherwise to promote the sale, use or other
+dealings in these Data Files or Software without prior written
+authorization of the copyright holder.
+
+同一文件里的英文不雅词表改编自 List of Dirty, Naughty, Obscene, and Otherwise Bad Words
+（https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words ，commit 5faf2ba，
+© 2012–2020 Shutterstock, Inc.），按 CC BY 4.0（https://creativecommons.org/licenses/by/4.0/）授权。
+改动：只取英文表里不带空格、三个字母以上的单词条目，去掉 guro、yaoi 两条，另加本站自建的读音相近词。
+
+姓氏读音、复姓、港式姓氏写法、名字常用的繁体字形与谐音放行表由本项目写定（读音、写法是事实，不抄字典条目）。
 
 ---------------------------------------------------------------------------
 依赖
@@ -98,15 +159,15 @@ tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail�
 Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站酷小薇 ZCOOL XiaoWei
 （Copyright 2018 The ZCOOL XiaoWei Project Authors），均采用 SIL Open Font
 License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；
-src/fonts/home-*.woff2、src/fonts/gua/*.woff2、src/fonts/huangli/*.woff2 与 src/fonts/bazi/*.woff2 是 tools/subset-fonts.py 从 google/fonts
-（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字、黄历与节气页用字、八字排盘页用字），保留原字体里的版权与许可信息。
+src/fonts/home-*.woff2、src/fonts/gua/*.woff2、src/fonts/huangli/*.woff2、src/fonts/bazi/*.woff2 与 src/fonts/quming/*.woff2 是 tools/subset-fonts.py 从 google/fonts
+（commit 23e54b5）的原字体截取的字形子集（首屏用字、卦页用字、黄历与节气页用字、八字排盘页用字、取名页标题用字），保留原字体里的版权与许可信息。
 
 繁体页（/zh-hant/）另用三款字体，均采用 SIL Open Font License 1.1：
 - Noto Serif TC（字形 (c) 2017-2024 Adobe），正文，经 @fontsource 分片自托管；
 - 芫荽 Iansui v1.012（Copyright 2025 The Iansui Project Authors，https://github.com/ButTaiwan/iansui），标题；
 - 霞鹜文楷 TC LXGW WenKai TC v1.522（Copyright 2022-2026 LXGW，https://github.com/lxgw/LxgwWenkaiTC；
   Copyright 2020 The Klee Project Authors），补芫荽缺的字。
-src/fonts/gua-hant/*.woff2（以及 huangli-hant/、bazi-hant/）是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
+src/fonts/gua-hant/*.woff2（以及 huangli-hant/、bazi-hant/、quming-hant/）是 tools/subset-fonts.py 截取的每页子集：芫荽取自 google/fonts（commit 23e54b5），
 霞鹜文楷 TC 取自其 GitHub 发布的 v1.522；src/fonts/lang-400.woff2、lang-600.woff2 是 Noto Serif SC 的几字子集
 （页头语言切换「简 | 繁」用的字，Noto Serif TC 没有「简」）；src/fonts/body-hans.woff2、body-hant.woff2 是
 google/fonts（commit 23e54b5）上完整的 Noto Serif SC / TC 的子集，只含 fontsource 切片里缺、正文却要用的字。
