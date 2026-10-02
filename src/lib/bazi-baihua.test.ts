@@ -123,10 +123,10 @@ describe("八字白话（M20）：样例盘", () => {
 		expect(p.wx.paras).toEqual([
 			"八个字里，土最多，有 4 个；水 2 个，木、火各 1 个；金是 0 个，八个字里没有金。",
 			"算上地支里藏的天干，金有 1 个：月支戌里的辛。",
-			"日主以外的三个天干上，露出的十神是食神（戊，年干）、七杀（壬，月干、时干）。比肩、劫财、正财、正官、偏印、正印只藏在地支里。伤官、偏财在这一盘上没有。",
+			"日主以外的三个天干，十神分别是食神（戊，年干）、七杀（壬，月干、时干）。比肩、劫财、正财、正官、偏印、正印只藏在地支里。伤官、偏财在这一盘上没有。",
 			"天干上这几个称呼的来由：丙火生戊土，戊、丙都属阳，称食神；壬水克丙火，壬、丙都属阳，称七杀。",
 		]);
-		expect(p.dy.lead).toBe("11 岁（2008 年）起运，大运逆排，十年一步。1–10 岁还没有大运。今年（2026 年）在庚申运。");
+		expect(p.dy.lead).toBe("11 岁（2008 年）起运，大运逆排（从月柱往前数六十甲子），十年一步。1–10 岁还没有大运。今年（2026 年）在庚申运。");
 		expect(p.dy.pre).toEqual({ ages: "1–10岁", years: "1998–2007" });
 		const now = p.dy.steps.filter((s) => s.now);
 		expect(now).toHaveLength(1);
@@ -156,7 +156,7 @@ describe("八字白话（M20）：样例盘", () => {
 		const now = p.dy.steps.find((s) => s.now)!;
 		expect(now.rel).toBe("與四柱之間：寅申相沖（年柱）、寅申相刑（年柱）。");
 		expect(now.ten).toBe("偏財 · 偏財");
-		expect(p.dy.lead).toBe("11 歲（2008 年）起運，大運逆排，十年一步。1–10 歲還沒有大運。今年（2026 年）在庚申運。");
+		expect(p.dy.lead).toBe("11 歲（2008 年）起運，大運逆排（從月柱往前數六十甲子），十年一步。1–10 歲還沒有大運。今年（2026 年）在庚申運。");
 		expect(p.ui.cols[3]).toBe("八個字裡");
 		// 甲乙方位「東」
 		expect(make(solar(1975, 1, 9, 12, 0, "女"), {}, { hant: true }).p.dm.card[0]).toBe("陰木 · 十天干第二 · 方位東");
@@ -165,19 +165,28 @@ describe("八字白话（M20）：样例盘", () => {
 	it("S2 海外：温哥华 1991-06-06 18:40 男（夏令时），按北京时间排会是另一个日主；水 0、克我一类全无；1 岁起运", () => {
 		const { chart: c, p } = abroad("America/Vancouver", 1991, 6, 6, 18, 40, "男");
 		expect(c.pillars.map((x) => x.ganZhi)).toEqual(["辛未", "甲午", "丁未", "己酉"]);
+		// 夏令时：日柱、时柱按拨回去的标准时间（审查 S4）
 		expect(p.dm.paras[2]).toBe(
-			"出生在温哥华，日柱、时柱按当地时间排。同一刻北京时间是6月7日 09:40；有的排盘工具把出生时刻一律换成北京时间来排，那样日柱是戊申，日主是戊。",
+			"出生在温哥华，日柱、时柱按当地的标准时间（拨回夏令时）排。同一刻北京时间是6月7日 09:40；有的排盘工具把出生时刻一律换成北京时间来排，那样日柱是戊申，日主是戊。",
 		);
 		// 拿同一刻的北京时间真排一次（设计稿 S2：辛未 甲午 戊申 丁巳）
 		expect(bazi(solar(1991, 6, 7, 9, 40, "男")).pillars[2]!.ganZhi).toBe("戊申");
 		expect(p.wx.paras).toContain("算上地支里藏的天干，水也没有。");
-		expect(p.wx.paras).toContain("克我的五行是水，这一类十神叫七杀、正官。日主以外的天干和地支藏干里都没有水，这两个名目在这一盘上都没有。");
+		// 一整类没有的不单列，并进「没有」那一串（审查 S1）
+		expect(p.wx.paras[2]).toBe(
+			"日主以外的三个天干，十神分别是食神（己，时干）、偏财（辛，年干）、正印（甲，月干）。比肩、偏印只藏在地支里。劫财、伤官、正财、七杀、正官在这一盘上没有。",
+		);
+		expect(p.wx.paras.join("")).not.toMatch(/这一类十神/);
+		// 开了真太阳时：按当地的真太阳时排
+		const o = localOffset("America/Vancouver", 1991, 6, 6, 18, 40);
+		const zty = make(solar(1991, 6, 6, 18, 40, "男"), { ...o, longitude: -123.1 }, { city: "温哥华" }).p;
+		expect(zty.dm.paras.at(-1)).toMatch(/^出生在温哥华，日柱、时柱按当地的真太阳时排。同一刻北京时间是6月7日 09:40；/);
 		expect(c.daYun[0]!.startAge).toBe(1);
 		expect(p.dy.pre).toBeUndefined();
-		expect(p.dy.lead).toMatch(/^1 岁（1991 年）起运，大运逆排，十年一步。今年/);
+		expect(p.dy.lead).toMatch(/^1 岁（1991 年）起运，大运逆排（从月柱往前数六十甲子），十年一步。今年/);
 		const tw = abroad("America/Vancouver", 1991, 6, 6, 18, 40, "男", true, "溫哥華").p;
 		expect(tw.dm.paras[2]).toBe(
-			"出生在溫哥華，日柱、時柱按當地時間排。同一刻臺灣時間（UTC+8）是6月7日 09:40；有的排盤工具把出生時刻一律換成 UTC+8 來排，那樣日柱是戊申，日主是戊。",
+			"出生在溫哥華，日柱、時柱按當地的標準時間（撥回夏令時）排。同一刻換算成 UTC+8 是6月7日 09:40；有的排盤工具把出生時刻一律換成 UTC+8 來排，那樣日柱是戊申，日主是戊。",
 		);
 	});
 
@@ -199,10 +208,10 @@ describe("八字白话（M20）：样例盘", () => {
 		expect(p.dm.paras[2]).toBe("时辰不详，日柱按出生那天排。若是晚子时（23 点到 0 点）出生，本站默认把日柱算到次日，那样日柱是丙辰，日主是丙。");
 		expect(p.wx.paras[0]).toBe("时辰不详，只数年、月、日三柱。六个字里，木最多，有 4 个；火、土各 1 个；金、水都是 0 个，六个字里没有金、水。");
 		expect(p.wx.paras[1]).toBe("算上地支里藏的天干，金有 1 个：月支丑里的辛；水有 1 个：月支丑里的癸。");
-		expect(p.wx.paras[2]).toMatch(/^日主以外的两个天干上，/);
+		expect(p.wx.paras[2]).toMatch(/^日主以外的两个天干，十神分别是/);
 		expect(p.ui.cols[3]).toBe("六个字里");
 		expect(p.dy.lead).toMatch(
-			/^时辰不详，起运按当天中午估：约 2 岁（1976 年）起运，大运逆排，十年一步。当天 0 点出生是 1975 年交运，23:59 出生是 1976 年，各步的起止年份可能差一年。今年/,
+			/^时辰不详，起运按当天中午估：约 2 岁（1976 年）起运，大运逆排（从月柱往前数六十甲子），十年一步。当天 0 点出生是 1975 年交运，23:59 出生是 1976 年，各步的起止年份可能差一年。今年/,
 		);
 		// 只差一年时写「1岁」「1975」，不写「1–1岁」
 		expect(p.dy.pre).toEqual({ ages: "1岁", years: "1975" });
@@ -215,13 +224,16 @@ describe("八字白话（M20）：样例盘", () => {
 		expect(c.pillars.map((x) => x.ganZhi)).toEqual(["己酉", "丁丑", "丙戌", "丁酉"]);
 		expect(p.wx.paras[0]).toMatch(/木、水都是 0 个，八个字里没有木、水。$/);
 		expect(p.wx.paras[1]).toBe("算上地支里藏的天干，木也没有；水有 1 个：月支丑里的癸。");
-		expect(p.wx.paras).toContain("生我的五行是木，这一类十神叫偏印、正印。日主以外的天干和地支藏干里都没有木，这两个名目在这一盘上都没有。");
+		// 生我一类（偏印、正印）整类没有：并进「没有」那一串（审查 S1）
+		expect(p.wx.paras[2]).toBe(
+			"日主以外的三个天干，十神分别是劫财（丁，月干、时干）、伤官（己，年干）。食神、正财、正官只藏在地支里。比肩、偏财、七杀、偏印、正印在这一盘上没有。",
+		);
 		expect(p.dy.steps[9]!.ages).toBe("100–109岁");
 	});
 
 	it("S5 起运最晚（1950-09-08 11:29 女）：12 岁起运，起运前 1–11 岁，第十步 102–111 岁", () => {
 		const { p } = make(solar(1950, 9, 8, 11, 29, "女"));
-		expect(p.dy.lead).toMatch(/^12 岁（1961 年）起运，大运.排，十年一步。1–11 岁还没有大运。/);
+		expect(p.dy.lead).toMatch(/^12 岁（1961 年）起运，大运.排（从月柱往.数六十甲子），十年一步。1–11 岁还没有大运。/);
 		expect(p.dy.pre).toEqual({ ages: "1–11岁", years: "1950–1960" });
 		expect(p.dy.steps[9]!.ages).toBe("102–111岁");
 	});
@@ -234,6 +246,22 @@ describe("八字白话（M20）：样例盘", () => {
 		expect(b.chart.pillars[2]!.ganZhi).toBe("庚辰");
 		expect(b.p.dm.paras.at(-1)).toBe("这一盘的出生时刻落在晚子时（23 点到 0 点），选项里选了仍算当天；本站默认算到次日，那样日柱是辛巳，日主是辛。");
 		expect(make(solar(1990, 5, 15, 22, 59, "男")).p.dm.paras).toHaveLength(2);
+	});
+
+	it("晚子时按换算后的时刻：真太阳时、夏令时说清按哪个时刻，「当天」写成日期（审查 S4）", () => {
+		// 喀什东经 76 度，填 5 月 16 日 02:30，真太阳时是 5 月 15 日 23 点多
+		const k = make(solar(1990, 5, 16, 2, 30, "男"), { longitude: 75.99 });
+		expect(k.chart.zhenTaiYang!.time).toMatch(/^1990-05-15 23:/);
+		expect(k.p.dm.paras.at(-1)).toMatch(
+			/^按真太阳时，这一盘的出生时刻是5月15日 23:\d\d，落在晚子时（23 点到 0 点）：本站默认把日柱算到次日；选项里可改成仍算5月15日，那样日柱是庚辰，日主是庚。$/,
+		);
+		// 温哥华 7 月 10 日 00:30（夏令时）拨回去是 7 月 9 日 23:30
+		const o = localOffset("America/Vancouver", 1991, 7, 10, 0, 30);
+		const v = make(solar(1991, 7, 10, 0, 30, "女"), { ...o, lateZi: "day-stays" }, { city: "温哥华" });
+		const adv = bazi(solar(1991, 7, 10, 0, 30, "女"), o).pillars[2]!.ganZhi;
+		expect(v.p.dm.paras[2]).toBe(
+			`按标准时间（拨回夏令时），这一盘的出生时刻是7月9日 23:30，落在晚子时（23 点到 0 点）：选项里选了仍算7月9日；本站默认算到次日，那样日柱是${adv}，日主是${adv[0]}。`,
+		);
 	});
 
 	it("今年还没起运、已在第十步之后；时辰不详又正好交节", () => {
@@ -319,7 +347,21 @@ describe("八字白话（M20）：网格", () => {
 				if (hant) continue;
 				const zeros = Object.values(chart.wuXing).filter((v) => v === 0).length;
 				if (chart.pillars.length === 4) st.zero[Math.min(zeros, 3)]!++;
-				if (p.wx.paras.some((s) => s.includes("这一类十神叫"))) st.none++;
+				// 一整类十神没有（天干、藏干里都没有那两个名目）：两个名目都写进「没有」那一串，不单列（审查 S1）
+				const names = new Set(chart.pillars.flatMap((x, k) => [...(k === 2 ? [] : [x.shiShen!]), ...x.cangGan.map((h) => h.shiShen)]));
+				const absent = p.wx.paras[p.wx.paras.length - 2]!.match(/([^。]*)在这一盘上没有。/)?.[1]?.split("、") ?? [];
+				for (let g = 0; g < 10; g += 2) {
+					const pair = [TEN_NAMES[g]!, TEN_NAMES[g + 1]!];
+					if (pair.some((n) => names.has(n))) continue;
+					st.none++;
+					if (!pair.every((n) => absent.includes(n))) bad.push(`整类没有却没写进「没有」：${pair}：${p.wx.paras.join("")}`);
+				}
+				// 三行以上并列不说「最多」（审查 S3）
+				if (/([木火土金水]、){2}[木火土金水]最多/.test(p.wx.paras[0]!)) bad.push(`三行以上并列说了最多：${p.wx.paras[0]}`);
+				// 真太阳时、夏令时换算后落进晚子时：说清按哪个时刻（审查 S4）
+				const lateAt = p.dm.paras.find((s) => s.includes("落在晚子时"));
+				const shifted = chart.zhenTaiYang ? chart.zhenTaiYang.time !== chart.solar : (options.dst ?? 0) > 0;
+				if (lateAt && shifted !== lateAt.startsWith("按")) bad.push(`晚子时没说清按哪个时刻：${lateAt}`);
 				if (chart.daYun[0]!.startAge === 1) st.age1++;
 				if (chart.daYun[0]!.startAge === 2) st.age2++;
 				if (p.dy.lead.includes("可能差一年")) st.yearDiff++;
@@ -328,7 +370,7 @@ describe("八字白话（M20）：网格", () => {
 				if (p.dy.lead.includes("正好交")) st.jie++;
 				if (p.dm.paras[1]!.includes("只藏着")) st.sitOne++;
 				// 晚子时那句写的日柱 = 换一种晚子时选项真排出来的日柱；没写那句的，换了选项日柱不变
-				const late = p.dm.paras.find((s) => s.includes("晚子时（23 点到 0 点），"));
+				const late = p.dm.paras.find((s) => s.includes("落在晚子时"));
 				const clockHour = birth.hour ?? 12;
 				if (late || (birth.hour !== undefined && (clockHour >= 20 || clockHour <= 3))) {
 					const flipped = bazi(birth, { ...options, lateZi: (options.lateZi ?? "day-advances") === "day-advances" ? "day-stays" : "day-advances" }).pillars[2]!.ganZhi;

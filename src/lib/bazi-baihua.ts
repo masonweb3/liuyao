@@ -125,17 +125,25 @@ export function plain({ chart: c, options = {}, year, city = "", hant = false, n
 		dmParas.push(advance ? f("dm.noTime", { gz: alt, g: alt[0]! }) : f("dm.noTimeStay"));
 	} else {
 		// 日柱、时柱按的时刻：真太阳时，或当地标准时（夏令时拨回去），同 bazi.ts
-		const local = c.zhenTaiYang ? minutes(c.zhenTaiYang.time) : minutes(c.solar) - Math.round(options.dst ?? 0);
+		const dst = Math.round(options.dst ?? 0);
+		const local = c.zhenTaiYang ? minutes(c.zhenTaiYang.time) : minutes(c.solar) - dst;
+		const basis = c.zhenTaiYang ? "solar" : dst ? "standard" : "time";
 		if (mod(local, 1440) >= 1380) {
 			const alt = shift(day.ganZhi, advance ? -1 : 1);
-			dmParas.push(f(advance ? "dm.lateZi" : "dm.lateZiStay", { gz: alt, g: alt[0]! }));
+			// 换算后的钟点和填的不同（真太阳时、夏令时）：说清按哪个时刻，「当天」写成那一天的日期（审查 S4）
+			if (local !== minutes(c.solar)) {
+				const t = new Date(local * 6e4);
+				const d = `${t.getUTCMonth() + 1}月${t.getUTCDate()}日`;
+				const at = { basis: W.late[basis as "solar" | "standard"], date: `${d} ${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`, day: d };
+				dmParas.push(f(advance ? "dm.lateZiAt" : "dm.lateZiStayAt", { ...at, gz: alt, g: alt[0]! }));
+			} else dmParas.push(f(advance ? "dm.lateZi" : "dm.lateZiStay", { gz: alt, g: alt[0]! }));
 		}
 		// 不在 UTC+8 出生：把出生时刻换成北京时间来排的工具，日柱会差几天（M20-2）
 		const bj = c.beijing;
 		const diff = bj ? dayOf(minutes(bj)) - dayOf(local) : 0;
 		if (bj && diff) {
 			const alt = shift(day.ganZhi, diff);
-			dmParas.push(f("dm.abroad", { city, date: `${+bj.slice(5, 7)}月${+bj.slice(8, 10)}日 ${bj.slice(11, 16)}`, gz: alt, g: alt[0]! }));
+			dmParas.push(f("dm.abroad", { city, basis: W.abroad[basis], date: `${+bj.slice(5, 7)}月${+bj.slice(8, 10)}日 ${bj.slice(11, 16)}`, gz: alt, g: alt[0]! }));
 		}
 	}
 
@@ -173,7 +181,8 @@ export function plain({ chart: c, options = {}, year, city = "", hant = false, n
 	const has = [...WX].filter((e) => wx[e]! > 0).sort((a, b) => wx[b]! - wx[a]!);
 	const max = wx[has[0]!]!;
 	const tops = has.filter((e) => wx[e] === max);
-	let count = f(tops.length > 1 ? "wx.tops" : "wx.top", { n: N, els: tops.join("、"), k: max });
+	// 三行以上并列时不说「最多」（审查 S3）
+	let count = f(tops.length >= 3 ? "wx.even" : tops.length > 1 ? "wx.tops" : "wx.top", { n: N, els: tops.join("、"), k: max });
 	const rest = [...new Set(has.filter((e) => wx[e]! < max).map((e) => wx[e]!))].map((k) => {
 		const es = has.filter((e) => wx[e] === k);
 		return f(es.length > 1 ? "wx.rests" : "wx.rest", { els: es.join("、"), k });
@@ -197,15 +206,15 @@ export function plain({ chart: c, options = {}, year, city = "", hant = false, n
 			}),
 		);
 
-	// 十神：天干上露出的、只藏在地支里的、没有的；一整类没有的单说一句；天干上的称呼怎么来
+	// 十神：天干上的、只藏在地支里的、没有的；天干上的称呼怎么来。一整类没有的不单说一句，并进「没有」那一串
+	// （审查 S1：女命整类没有克我、男命整类没有我克，单列会被读成「无夫星」「无妻星」）
 	const exposed = new Map<string, { o: string; pos: string[] }>();
 	c.pillars.forEach((p, k) => {
 		if (k !== 2) exposed.set(p.shiShen!, { o: p.gan, pos: [...(exposed.get(p.shiShen!)?.pos ?? []), posGan(k)] });
 	});
 	const inHidden = new Set(hidden.map((x) => x.ss));
-	const none = groups.filter((g) => g.names.every((n) => !exposed.has(n) && !inHidden.has(n)));
 	const only = TEN.filter((n) => inHidden.has(n) && !exposed.has(n));
-	const absent = TEN.filter((n) => !exposed.has(n) && !inHidden.has(n) && !none.some((g) => g.names.includes(n)));
+	const absent = TEN.filter((n) => !exposed.has(n) && !inHidden.has(n));
 	let ten = f("ten.exposed", {
 		n: W.stems[known ? 0 : 1]!,
 		list: TEN.filter((n) => exposed.has(n))
@@ -214,7 +223,7 @@ export function plain({ chart: c, options = {}, year, city = "", hant = false, n
 	});
 	if (only.length) ten += f("ten.only", { list: only.map(tw).join("、") });
 	if (absent.length) ten += f("ten.absent", { list: absent.map(tw).join("、") });
-	wxParas.push(ten, ...none.map((g) => f("ten.group", { rel: g.rel, el: g.el, names: g.names.map(tw).join("、") })));
+	wxParas.push(ten);
 	const why = TEN.filter((n) => exposed.has(n)).map((n) => {
 		const o = exposed.get(n)!.o;
 		const ss = tw(n);
