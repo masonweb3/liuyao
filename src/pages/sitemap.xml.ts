@@ -26,6 +26,9 @@ const PATHS = [
 		`${hant ? HANT : ''}/bazi/`,
 		// 八字知识页（M19b）：十天干、十二地支（各带目录）、十神、纳音、十二长生，27 页
 		...KB_PAGES.map((p) => kbPath(p.path, hant)),
+		// 取名（M22a）：测名页与八十一数页；名字只在浏览器里算，不进网址
+		`${hant ? HANT : ''}/quming/`,
+		`${hant ? HANT : ''}/quming/81/`,
 	]),
 	// 梅花易数（M21）：先只有简体（M21-20）；起出的卦不进网址
 	'/meihua/',
