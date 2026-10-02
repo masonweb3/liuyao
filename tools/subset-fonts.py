@@ -374,10 +374,13 @@ def first_screen(name: str, text: dict[str, str], out: str) -> None:
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
     for key, (family, src) in HOME.items():
-        # 正文子集再去掉 GSUB（aalt、fwid、hwid、pwid，浏览器默认都不开）、GPOS（kern、vpal）、BASE（M22）：栏目加「取名」后
-        # home-body.woff2 从 9,852 涨到 10,140 字节，Lighthouse 模拟的首页 LCP 又慢了一个往返（约 130 ms，同 M21）；
-        # 去掉这三张表是 9,856 字节，LCP 回到原样，首页首屏 390、1440 宽的截图与去掉之前逐像素相同。
-        font = make_subset(load(src), text[key], lean=True, drop=("GSUB", "GPOS", "BASE") if key == "body" else ())
+        # 首页正文子集再去掉 GSUB、GPOS、BASE（M22）：栏目加「取名」后 home-body.woff2 从 9,852 涨到 10,140 字节，
+        # Lighthouse 模拟的首页 LCP 又慢了一个往返（约 130 ms，同 M21）；去掉这三张表是 9,856 字节，LCP 回到原样。
+        # 首页这份子集没有标点，GSUB 只剩 aalt、fwid、hwid、pwid（浏览器默认都不开），GPOS 只剩 kern、vpal，
+        # 首页首屏 390、1440 宽的截图与去掉之前逐像素相同。梅花页的子集有（）：↓，GSUB 有 vert、GPOS 有 halt、chws
+        # （标点挤压要用），不去。
+        lean_drop = ("GSUB", "GPOS", "BASE") if (name, key) == ("home", "body") else ()
+        font = make_subset(load(src), text[key], lean=True, drop=lean_drop)
         path = f"src/fonts/{name}-{key}.woff2"
         font.save(path)
         css.append(

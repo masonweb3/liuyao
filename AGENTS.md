@@ -340,7 +340,7 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **谐音**（M22-13 A、M22-30 A）：拼音、威妥玛、粤拼各按姓名、名姓两种次序连成一串，和词表比对，只在跨了字、或正好等于一个完整音节时才算；放行表里的词（粤拼 mong、tit）正好是一个音节时不算。词表 = LDNOOBW 英文表不带空格、三个字母以上的单词（去掉 guro、yaoi）加自建的「读音像」7 条（fuk dik kok chink homo nazi pusi）；自建表拿 Wikidata 71,442 个名字试过，fuc、suk、kunt、bich、shag、shat 与 dong、wang 几乎全是误报，不收。命中的词打码（s***），跨字的给分开写的写法，拼音命中而威妥玛不命中时再给威妥玛。
   - **文案**：导语、隐私一行、提示句、怎么算 6 条、谐音提示在 `quming.json`（繁体 `quming-hant.json`），页面构建时写进 `data-copy`；页面脚本不 import json。`content.test.ts`「取名（M22a）」核对：简繁逐项对应，八十一数 1–81 条齐全，不出现吉凶、寿夭、灾病、婚、财、运、福、命、克、刑、父母、子女、改名改运一类字（两个组件的页面文字也查），三才不写生克，「整份约多少 KB」与字表的 gzip 大小相符。
   - **版式**：手机一栏，测名 → 结果 → 怎么算（收起）→ 名字里的字（M22a 只有八十一数一条）→ 起卦块；≥1024 左 360 测名卡与怎么算（sticky），右栏结果与名字里的字（D32）。结果第一次填进来时如果字表还没到，先按常见高度占位（手机 1,600、桌面 1,160 px，`.late` 保持到下一次操作），不跳版。八十一数页一栏（最宽 720），每条一个锚点 `#n1`…`#n81`。
-  - **字体**：h1「取名」「八十一数」用标题字体，两页共用一份子集 `fonts/quming/index`（繁体 `quming-hant/index`）。栏目加「取名」后首页、梅花页的首屏正文子集多「取」「名」两字；`home-body.woff2` 因此从 9,852 涨到 10,140 字节，Lighthouse 模拟的首页 LCP 慢了一个往返，`subset-fonts.py` 给首屏正文子集再去掉 GSUB（aalt、fwid、hwid、pwid，浏览器默认不开）、GPOS（kern、vpal）与基线表 BASE，回到 9,856 字节，首页首屏 390、1440 宽的截图与去掉之前逐像素相同。以后首屏子集再加字，先量一下首页 LCP。
+  - **字体**：h1「取名」「八十一数」用标题字体，两页共用一份子集 `fonts/quming/index`（繁体 `quming-hant/index`）。栏目加「取名」后首页、梅花页的首屏正文子集多「取」「名」两字；`home-body.woff2` 因此从 9,852 涨到 10,140 字节，Lighthouse 模拟的首页 LCP 慢了一个往返，`subset-fonts.py` 给首页的首屏正文子集再去掉 GSUB（aalt、fwid、hwid、pwid，浏览器默认不开）、GPOS（kern、vpal）与基线表 BASE，回到 9,856 字节，首页首屏 390、1440 宽的截图与去掉之前逐像素相同；梅花页的子集有标点（GSUB 有 vert，GPOS 有 halt、chws），不去。以后首屏子集再加字，先量一下首页 LCP。
 - **动效：**
   - 只对 transform 和 opacity 做动画，不用大面积 blur 或 backdrop-filter。
   - 开启 `prefers-reduced-motion` 时去掉位移，但保留停顿。
