@@ -35,6 +35,9 @@
 简体的干支只剩天干、地支页 h1 的那一个字（盘面、表格、格子里的干支用宋体，见 BaziKb.astro），每个字各算一块：
 「己」按小薇缺字处理，只有己页的 h1 用宋体，子集里不收它。
 
+取名（src/fonts/quming/、quming-hant/，M22a）：测名页 /quming/ 与八十一数页共用一份 index，只有 h1「取名」「八十一数」加纸面页都有的
+标题字。测名的输入框与结果用设备字体（M22-20），不进任何子集。
+
 站酷小薇按缺字处理的字（gua_hans 整块不收）从 src/lib/gua.ts 的 NO_XIAOWEI 读，规则只写在那里；
 它比 cmap 缺的字多一个「己」：小薇有这个码位，字形却和「巳」一样。
 
@@ -122,8 +125,8 @@ LANG = {
 
 # 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
 BODY = {
-    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json"]),
-    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json"]),
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json", "quming.json", "quming-shuli.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json", "quming-hant.json", "quming-shuli-hant.json"]),
 }
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
@@ -221,6 +224,11 @@ def bazi_blocks(lang: str) -> dict[str, list[str]]:
     （同 fontOf：己页的 h1 用宋体，别的字照收）。"""
     kb = ["十神", "納音", "十二長生"] if lang == "hant" else ["十神", "纳音", "十二长生"]
     return {"index": [CHROME[lang], "八字", *GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支"]}
+
+
+def quming_blocks(lang: str) -> dict[str, list[str]]:
+    """取名（M22a）：测名页与八十一数页共用一份，h1 各一块。"""
+    return {"index": [CHROME[lang], "取名", "八十一數" if lang == "hant" else "八十一数"]}
 
 
 def city_chars(lang: str) -> str:
@@ -393,6 +401,8 @@ def main() -> None:
     gua_hant(huangli_blocks("hant"), "src/fonts/huangli-hant")
     gua_hans(bazi_blocks("hans"), "src/fonts/bazi")
     gua_hant(bazi_blocks("hant"), "src/fonts/bazi-hant")
+    gua_hans(quming_blocks("hans"), "src/fonts/quming")
+    gua_hant(quming_blocks("hant"), "src/fonts/quming-hant")
 
 
 if __name__ == "__main__":
