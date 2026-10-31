@@ -5,6 +5,40 @@ Required Notice: Copyright 2026 0xMason (https://github.com/masonweb3)
 原创文案与美术资源采用 CC BY-NC-SA 4.0。
 
 ---------------------------------------------------------------------------
+起名的古文摘句
+
+src/data/qiming-names.json 中的《诗经》《楚辞》摘句取自
+https://github.com/chinese-poetry/chinese-poetry
+固定 commit b8594f81a89752241442f2ce267d6f66f96704ee，
+原路径为 诗经/shijing.json、楚辞/chuci.json，采用下方 MIT 许可。
+只摘古文并去掉原数据标点，繁体逐条校对；候选说明为本站原创，
+不使用现代译注。字五行意象表 src/data/qiming-wuxing.json 为本站原创，
+按这些摘句中的花木、明光、地面、玉石金属、水云意象归类，
+没有明确自然意象的字不强行归类，不冒称统一的传统字五行标准。
+
+The MIT License (MIT)
+
+Copyright (c) 2016 JackeyGao
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+---------------------------------------------------------------------------
 第三方代码
 
 src/lib/liuyao/ 下的 const.ts、utils.ts、calendar.ts、najia.ts、parity.json，
