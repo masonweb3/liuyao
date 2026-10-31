@@ -46,6 +46,11 @@ import qumingShuliHant from "./quming-shuli-hant.json" with { type: "json" };
 import qumingShuli from "./quming-shuli.json" with { type: "json" };
 import quming from "./quming.json" with { type: "json" };
 import ziContent from "./zi.json" with { type: "json" };
+import homeUiHant from './home-ui-hant.json';
+import homeCopyHant from './copy-hant.json';
+import homeRuntimeHant from './home-runtime-hant.json';
+import templatesHant from './templates-hant.json';
+import messagesHant from './liuyao-messages-hant.json';
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -174,6 +179,18 @@ const cityText = (k: 0 | 1) => {
 };
 
 describe("正文字体覆盖（fontsource 切片加补字）", () => {
+	it('繁体起卦、提醒与解读的新文案都有正文补字',()=>{
+		const have=fontsourceChars('noto-serif-tc');
+		for(const ch of patchChars('Noto Serif TC'))have.add(ch);
+		const text=chars(Object.values(homeUiHant),homeCopyHant,homeRuntimeHant,templatesHant,Object.values(messagesHant.terms),messagesHant.formats.map(x=>x[1]));
+		expect(text.filter(ch=>!have.has(ch.codePointAt(0)!)).join('')).toBe('');
+	});
+	it('繁体起卦标题字由首屏与流程子集覆盖',()=>{
+		const have=new Set<number>();
+		for(const name of ['home-hant-display','home-hant-flow'])for(const c of woff2Chars(readFileSync(new URL(`../fonts/${name}.woff2`,import.meta.url))))have.add(c);
+		const text='心有所疑不妨一問爻手動排盤所問何事此事關乎靜心搖卦成卦先停一停此問不占先顧眼前再說具體些往卦問開元通寶吸呼';
+		expect([...text].filter(ch=>!have.has(ch.codePointAt(0)!)).join('')).toBe('');
+	});
 	it("WOFF2 读得对：语言切换补字文件正好是这三个字", () => {
 		const file = readFileSync(new URL("../fonts/lang-400.woff2", import.meta.url));
 		expect([...woff2Chars(file)].map((ch) => String.fromCodePoint(ch)).join("")).toBe("体简體");

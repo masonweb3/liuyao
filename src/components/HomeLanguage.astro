@@ -1,0 +1,13 @@
+---
+interface Props { hant?: boolean }
+const {hant=false}=Astro.props;
+---
+<span class="lang" role="group" aria-label={hant ? '語言' : '语言'}>
+  {hant ? <a href="/" hreflang="zh-Hans" lang="zh-Hans">简<span class="sr">体中文</span></a> : <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文（当前）</span></span>}
+  <span class="bar" aria-hidden="true"></span>
+  {hant ? <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文（目前）</span></span> : <a href="/zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>}
+</span>
+<style>
+  .lang .sr{font-weight:400}
+  .lang{display:flex;align-items:center}.lang>a,.lang>span[aria-current]{min-width:44px;height:44px;display:grid;place-items:center;font-size:14px;color:var(--on-night-2);text-decoration:none}.lang>span[aria-current]{font-weight:600;color:var(--on-night)}.lang>a:hover{color:var(--on-night)}.bar{height:12px;border-left:1px solid rgb(248 244 237 / .22)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@media(min-width:1024px){.lang>a,.lang>span[aria-current]{min-width:34px}}
+</style>

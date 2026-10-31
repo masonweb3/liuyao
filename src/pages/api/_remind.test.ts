@@ -43,6 +43,16 @@ describe("GET /api/remind.ics", () => {
 		expect((await call(query({ ...good, g: "火雷噬嗑之山火贲" }))).status).toBe(200);
 		expect((await call(`${query(good)}&utm_source=x`)).status).toBe(200);
 	});
+	it('繁体提醒保留繁体卦名、文案与回访链接，只接受白名单语言',async()=>{
+		const res=await call(query({...good,g:'兌為澤之天水訟',l:'zh-hant'}));
+		expect(res.status).toBe(200);
+		const text=(await res.text()).replace(/\r\n /g,'');
+		expect(text).toContain('兌為澤之天水訟');
+		expect(text).toContain('https://sixyao.app/zh-hant/?history');
+		expect(text).toContain('瀏覽器');
+		expect((await call(query({...good,l:'bogus'}))).status).toBe(400);
+		expect((await call(query({...good,l:'zh-hant'})+'&l=zh-hant')).status).toBe(400);
+	});
 
 	const bad: [string, Record<string, string> | string][] = [
 		["不是卦名", { ...good, g: "明天发财" }],

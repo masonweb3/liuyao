@@ -11,6 +11,7 @@ import zi from '../data/zi.json';
 // 两处都写反而要保证永远一致。
 const PATHS = [
 	'/',
+	'/zh-hant/',
 	'/gua/',
 	...GUA.map(([name]) => guaPath(name)),
 	`${HANT}/gua/`,

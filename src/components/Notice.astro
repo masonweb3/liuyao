@@ -1,8 +1,11 @@
 ---
+const hant = Astro.props.hant ?? false;
+
 // 拦截、婉拒、紧急提示、请重写：一段话加几个按钮。桌面沿用手机版式，最宽 560px。
 import Bar from "./Bar.astro";
 
 interface Props {
+  hant?: boolean;
   screen: string;
   title: string;
   body: readonly string[];
@@ -13,7 +16,7 @@ const { screen, title, body, guard } = Astro.props;
 ---
 
 <section class:list={["screen", "notice", { guard }]} data-screen={screen} tabindex="-1" hidden>
-  {guard ? <div class="gap" /> : <Bar />}
+  {guard ? <div class="gap" /> : <Bar  hant={hant}/>}
   <div class="col">
     <div class="center">
       <h1 tabindex="-1" data-autofocus>{title}</h1>

@@ -178,3 +178,7 @@ src/fonts/gua-hant/*.woff2（以及 huangli-hant/、bazi-hant/、quming-hant/）
 （页头语言切换「简 | 繁」用的字，Noto Serif TC 没有「简」）；src/fonts/body-hans.woff2、body-hant.woff2 是
 google/fonts（commit 23e54b5）上完整的 Noto Serif SC / TC 的子集，只含 fontsource 切片里缺、正文却要用的字。
 都保留原字体里的版权与许可信息。
+
+首页繁体子集 src/fonts/home-hant-*.woff2 与分享预览图用的 og-hant-body.woff2
+同样由上述固定版本的芫荽、Noto Serif TC 截取，保留原字体版权与许可信息。
+首页静态繁体文案、断语模板和技术句式均为本站文字的校对转写；不使用第三方现代译注。

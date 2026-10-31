@@ -3,7 +3,7 @@
  * Returned as a PNG data: URL, because WeChat's long-press save does not
  * pick up blob: images.
  */
-import { DISCLAIMER } from "../data/copy.js";
+import type { HomeRuntime } from '../lib/home-runtime';
 import { isMoving, isYang, STROKES } from "../lib/flow.js";
 import type { CastResult } from "../lib/liuyao/najia.js";
 import type { GuaText } from "../lib/reading.js";
@@ -20,6 +20,11 @@ const CLOSING = "，。、；：！？）》」』”’…";
 
 /** `question` is empty unless the asker ticked 所问上卡. */
 export async function card(r: CastResult, ben: GuaText, question: string): Promise<string> {
+	const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
+	if(document.documentElement.lang==='zh-Hant-TW'){
+		const {register}=await import('./hant-fonts');
+		register(r.gua.name);if(r.bian)register(r.bian.name);
+	}
 	const css = getComputedStyle(document.documentElement);
 	const v = (name: string) => css.getPropertyValue(name).trim();
 	const display = v("--font-display");
@@ -30,9 +35,9 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 
 	const g = r.ganzhi;
 	const date = `${g.year}年 ${g.month}月 ${g.day}日`;
-	const foot = `${location.hostname} · ${DISCLAIMER[0]}`;
-	const name = r.gua.name;
-	const zhi = r.bian ? `之${r.bian.name}` : "";
+	const foot = `${location.hostname} · ${UI.disclaimer[0]}`;
+	const name = ben.name;
+	const zhi = r.bian ? `之${UI.names[r.bian.name]??r.bian.name}` : "";
 	const asked = question.replace(/\s+/g, " ").trim();
 	// 卦名、卦辞含站酷小薇缺的字时整块改用宋体（compose 已按 fontOf 算好）；canvas 也是逐字回退，不改就会混排。
 	const nameFont = v(ben.font);
@@ -41,7 +46,9 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 	// The fonts load in unicode-range slices as the page needs them; a 卦 the
 	// page has not shown yet would otherwise draw in a fallback font.
 	await Promise.all([
-		document.fonts.load(`76px ${display}`, `爻${name}${ben.ci}`),
+		document.fonts.load(`76px ${nameFont}`, name),
+		document.fonts.load(`76px ${ciFont}`, ben.ci),
+		document.fonts.load(`46px ${display}`, '爻'),
 		document.fonts.load(`36px ${body}`, `六爻所问○×…${zhi}${ben.baihua}${date}${foot}${asked}`),
 	]);
 
@@ -148,7 +155,7 @@ export async function card(r: CastResult, ben: GuaText, question: string): Promi
 
 	if (qH) {
 		pen(26, body, ink2);
-		row("所问", LEFT, y + 18, 8);
+		row(UI.asked, LEFT, y + 18, 8);
 		pen(36, body, ink);
 		lines(q, LEFT, y + 50, 61, 1.5);
 		y += qH + gap;

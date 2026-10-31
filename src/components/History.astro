@@ -1,5 +1,12 @@
 ---
-import { HISTORY_EMPTY, HISTORY_FAIL, REVIEW, TALLY } from "../data/copy";
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+const home = hant ? '/zh-hant/' : '/';
+
+import * as copyHans from "../data/copy";
+import copyHant from "../data/copy-hant.json";
+const { HISTORY_EMPTY, HISTORY_FAIL, REVIEW, TALLY } = hant ? copyHant : copyHans;
 import Slots from "./Slots.astro";
 
 // 条目由 src/scripts/view.ts 按 src/lib/history.ts 的记录重新排盘后填入；自记与复盘一行见 src/lib/revisit.ts。
@@ -7,39 +14,39 @@ import Slots from "./Slots.astro";
 
 <section class="screen history" data-screen="history" tabindex="-1" hidden>
   <header class="top">
-    <a class="back" href="/" aria-label="回到首屏">
+    <a class="back" href={home} aria-label={t("回到首屏")}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
     </a>
-    <a class="brand" href="/" aria-label="六爻，回到首屏">
-      <span class="seal" aria-hidden="true">爻</span>
-      <span class="name" aria-hidden="true">六爻</span>
+    <a class="brand" href={home} aria-label={t("六爻，回到首屏")}>
+      <span class="seal" aria-hidden="true">{t("爻")}</span>
+      <span class="name" aria-hidden="true">{t("六爻")}</span>
     </a>
-    <a class="ask" href="/?ask">起卦</a>
+    <a class="ask" href={`${home}?ask`}>{t("起卦")}</a>
   </header>
 
   <div class="col">
     <div class="title">
-      <h1 tabindex="-1" data-autofocus>往卦</h1>
-      <p>记录只保存在这台设备的浏览器里。</p>
+      <h1 tabindex="-1" data-autofocus>{t("往卦")}</h1>
+      <p>{t("记录只保存在这台设备的浏览器里。")}</p>
       <p class="tally" hidden data-tally><Slots text={TALLY.line} /></p>
     </div>
     <p class="fail" role="alert" data-fail={HISTORY_FAIL}></p>
     <div class="records">
-      <div class="thead" aria-hidden="true"><span>日期</span><span>卦</span><span>所问</span><span>{TALLY.mine}</span><span>断</span></div>
-      <ol class="list" aria-label="往卦记录" data-list data-outcomes={JSON.stringify(REVIEW.outcomes)}></ol>
+      <div class="thead" aria-hidden="true"><span>{t("日期")}</span><span>{t("卦")}</span><span>{t("所问")}</span><span>{TALLY.mine}</span><span>{t("断")}</span></div>
+      <ol class="list" aria-label={t("往卦记录")} data-list data-outcomes={JSON.stringify(REVIEW.outcomes)}></ol>
     </div>
-    <button class="clear" data-forget data-confirm="再点一次，全部清除">清除全部记录</button>
+    <button class="clear" data-forget data-confirm={t("再点一次，全部清除")}>{t("清除全部记录")}</button>
     <div class="none">
       <p class="none-title">{HISTORY_EMPTY.title}</p>
       <p>{HISTORY_EMPTY.body}</p>
-      <a class="go" href="/?ask">{HISTORY_EMPTY.action}</a>
+      <a class="go" href={`${home}?ask`}>{HISTORY_EMPTY.action}</a>
     </div>
   </div>
 
   <template data-item>
     <li>
       <button type="button" class="rec">
-        <span class="date"><span class="day"></span><span class="mh" hidden><span class="sr-only">，</span>梅花</span></span>
+        <span class="date"><span class="day"></span><span class="mh" hidden><span class="sr-only">，</span>{t("梅花")}</span></span>
         <span class="gua"></span>
         <span class="q"></span>
         <span class="mine"><span class="k">{TALLY.mine} · </span><span class="v"></span></span>

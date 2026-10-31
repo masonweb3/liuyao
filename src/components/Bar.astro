@@ -1,15 +1,19 @@
 ---
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
 // 所问一直以小字悬在顶部；桌面版左侧再加品牌。文字由 ritual.ts 填入 [data-question]。
 ---
 
 <header class="bar">
   <div class="brand" aria-hidden="true">
-    <span class="seal">爻</span>
-    <span class="name">六爻</span>
+    <span class="seal">{t("爻")}</span>
+    <span class="name">{t("六爻")}</span>
   </div>
   <p class="asked">
-    <span class="mark" aria-hidden="true">问</span>
-    <span class="sr-only">所问：</span>
+    <span class="mark" aria-hidden="true">{t("问")}</span>
+    <span class="sr-only">{t("所问：")}</span>
     <span class="q" data-question></span>
   </p>
 </header>

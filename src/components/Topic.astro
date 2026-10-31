@@ -1,25 +1,29 @@
 ---
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
 import Bar from "./Bar.astro";
 
 // 按钮上的叫法取自设计稿；data-topic 是引擎里的类别名。
 const cats = [
-  { topic: "财", label: "财", yong: "妻财", sub: "收入 · 投资 · 买卖" },
-  { topic: "事业", label: "事业", yong: "官鬼", sub: "工作 · 升迁 · 官司" },
-  { topic: "父母", label: "父母", yong: "父母", sub: "长辈 · 房屋 · 文书 · 考试" },
-  { topic: "子孙", label: "子女", yong: "子孙", sub: "子女 · 晚辈 · 医药" },
-  { topic: "兄弟", label: "朋友", yong: "兄弟", sub: "兄弟 · 同事 · 竞争 · 合伙" },
-  { topic: "婚恋", label: "婚恋", yong: "随性别", sub: "恋爱 · 婚姻 · 复合" },
+  { topic: "财", label: t("财"), yong: t("妻财"), sub: t("收入 · 投资 · 买卖") },
+  { topic: "事业", label: t("事业"), yong: t("官鬼"), sub: t("工作 · 升迁 · 官司") },
+  { topic: "父母", label: t("父母"), yong: t("父母"), sub: t("长辈 · 房屋 · 文书 · 考试") },
+  { topic: "子孙", label: t("子女"), yong: t("子孙"), sub: t("子女 · 晚辈 · 医药") },
+  { topic: "兄弟", label: t("朋友"), yong: t("兄弟"), sub: t("兄弟 · 同事 · 竞争 · 合伙") },
+  { topic: "婚恋", label: t("婚恋"), yong: t("随性别"), sub: t("恋爱 · 婚姻 · 复合") },
 ];
 ---
 
 <section class="screen topic" data-screen="topic" tabindex="-1" hidden>
-  <Bar />
+  <Bar  hant={hant}/>
   <div class="col">
     <div class="title">
-      <h1 tabindex="-1" data-autofocus>此事关乎</h1>
-      <p>请为所问择一类，以定用神。</p>
+      <h1 tabindex="-1" data-autofocus>{t("此事关乎")}</h1>
+      <p>{t("请为所问择一类，以定用神。")}</p>
     </div>
-    <div class="grid" role="group" aria-label="问题类别">
+    <div class="grid" role="group" aria-label={t("问题类别")}>
       {cats.map((c) => (
         <button type="button" class="cat" data-topic={c.topic} aria-pressed="false">
           <span class="head">{c.label}<span class="yong">{c.yong}</span></span>
@@ -27,19 +31,19 @@ const cats = [
         </button>
       ))}
       <button type="button" class="cat wide" data-topic="自身" aria-pressed="false">
-        <span class="head">自身</span>
-        <span class="sub">自己的运势 · <span class="yong">世爻</span></span>
+        <span class="head">{t("自身")}</span>
+        <span class="sub">{t("自己的运势 ·")}<span class="yong">{t("世爻")}</span></span>
       </button>
     </div>
     <div class="who" data-who hidden>
-      <span id="who" class="label">问卦之人</span>
+      <span id="who" class="label">{t("问卦之人")}</span>
       <div class="pair" role="group" aria-labelledby="who">
-        <button type="button" data-gender="男" aria-pressed="false">男</button>
-        <button type="button" data-gender="女" aria-pressed="false">女</button>
+        <button type="button" data-gender="男" aria-pressed="false">{t("男")}</button>
+        <button type="button" data-gender="女" aria-pressed="false">{t("女")}</button>
       </div>
-      <p class="note">婚恋之事，男问取妻财，女问取官鬼。只用于排盘，不会保存。</p>
+      <p class="note">{t("婚恋之事，男问取妻财，女问取官鬼。只用于排盘，不会保存。")}</p>
     </div>
-    <button class="btn solid done dock" data-topic-done disabled>定</button>
+    <button class="btn solid done dock" data-topic-done disabled>{t("定")}</button>
   </div>
 </section>
 

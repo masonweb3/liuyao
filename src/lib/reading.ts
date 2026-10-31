@@ -41,16 +41,16 @@ export interface YaoText {
 /** 完整盘面 one row. */
 export interface Row {
 	title: string;
-	god: Shen6;
-	qin: Qing6;
+	god: string;
+	qin: string;
 	/** 纳甲 with 五行: 丁未土 */
 	gz: string;
 	yang: boolean;
 	moving: boolean;
-	shiYing: "世" | "应" | "";
+	shiYing: string;
 	yong: boolean;
 	/** 动爻 only: what it turns into. */
-	bian: { qin: Qing6; gz: string; hua: string } | null;
+	bian: { qin: string; gz: string; hua: string } | null;
 }
 
 export interface Reading {

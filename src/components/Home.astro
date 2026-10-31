@@ -1,27 +1,33 @@
 ---
-import Columns from './Columns.astro';
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
 
-const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, i) => ({ ch, i: r * 4 + i })));
+import Columns from './Columns.astro';
+import HomeLanguage from './HomeLanguage.astro';
+
+const rows = [t("心有所疑"), t("不妨一问")].map((row, r) => [...row].map((ch, i) => ({ ch, i: r * 4 + i })));
 ---
 
 <section class="screen home" data-screen="home" tabindex="-1">
   <header>
     <div class="brand">
-      <span class="seal" aria-hidden="true">爻</span>
-      <span class="name">六爻</span>
+      <span class="seal" aria-hidden="true">{t("爻")}</span>
+      <span class="name">{t("六爻")}</span>
     </div>
     {/* 栏目导航只在首屏：跟着这一屏显隐，写下所问以后各屏都看不到它，仪式中不打断这一卦。 */}
-    <Columns at="/" page dark />
+    <Columns at="/" page dark  hant={hant}/>
     {/* 页头只留栏目这一个 nav 地标：往卦、音效是两个按钮，用 div */}
     <div class="acts">
-      <button class="past" data-go="history">往卦</button>
-      <button class="sound" aria-label="音效：已开启" aria-pressed="true" data-sound>
+      <button class="past" data-go="history">{t("往卦")}</button>
+      <HomeLanguage hant={hant} />
+      <button class="sound" aria-label={t("音效：已开启")} aria-pressed="true" data-sound>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4z"></path><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"></path><path class="on" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"></path></svg>
       </button>
     </div>
   </header>
   <div class="center">
-    <h1 class="motto" aria-label="心有所疑，不妨一问">
+    <h1 class="motto" aria-label={t("心有所疑，不妨一问")}>
       {rows.map((row) => (
         <span class="row" aria-hidden="true">
           {row.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}
@@ -30,14 +36,14 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     </h1>
     <svg class="line" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
     <div class="cta">
-      <button class="btn cast" data-go="ask" data-autofocus>起卦</button>
-      <span class="hint">一事一问 · 六次摇卦</span>
+      <button class="btn cast" data-go="ask" data-autofocus>{t("起卦")}</button>
+      <span class="hint">{t("一事一问 · 六次摇卦")}</span>
     </div>
   </div>
-  <p class="aside" aria-hidden="true">寂然不动　感而遂通</p>
+  <p class="aside" aria-hidden="true">{t("寂然不动　感而遂通")}</p>
   <footer class="foot">
     <p class="today" data-today></p>
-    <button class="pro" data-go="manual">手动排盘</button>
+    <button class="pro" data-go="manual">{t("手动排盘")}</button>
   </footer>
 </section>
 
@@ -55,7 +61,7 @@ const rows = ["心有所疑", "不妨一问"].map((row, r) => [...row].map((ch, 
     justify-self: end;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
   }
   .past {
     min-height: var(--tap);

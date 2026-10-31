@@ -1,25 +1,29 @@
 ---
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
 import Bar from "./Bar.astro";
 ---
 
 <section class="screen calm" data-screen="calm" tabindex="-1" hidden>
-  <Bar />
+  <Bar  hant={hant}/>
   <div class="center">
-    <h1 class="sr-only">静心</h1>
+    <h1 class="sr-only">{t("静心")}</h1>
     <div class="rings" aria-hidden="true">
       <div class="halo"></div>
       <div class="ring" data-ring></div>
     </div>
     <div class="words">
-      <p class="breath" aria-hidden="true"><span class="in">吸</span> · <span class="out">呼</span></p>
-      <p class="guide">随金环，呼吸三次，心中默念所问</p>
+      <p class="breath" aria-hidden="true"><span class="in">{t("吸")}</span> · <span class="out">{t("呼")}</span></p>
+      <p class="guide">{t("随金环，呼吸三次，心中默念所问")}</p>
     </div>
-    <div class="dots" role="img" aria-label="第一息，共三息" data-dots>
+    <div class="dots" role="img" aria-label={t("第一息，共三息")} data-dots>
       <span></span><span></span><span></span>
     </div>
   </div>
   <footer>
-    <button class="skip" data-skip>跳过</button>
+    <button class="skip" data-skip>{t("跳过")}</button>
   </footer>
 </section>
 

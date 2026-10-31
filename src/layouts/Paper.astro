@@ -62,7 +62,7 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
   </Fragment>
   <div class:list={['page', { index }]}>
     <header class="top">
-      <a class="brand" href="/" aria-label={t('六爻首页', '六爻首頁')}>
+      <a class="brand" href={hant ? '/zh-hant/' : '/'} aria-label={t('六爻首页', '六爻首頁')}>
         <span class="seal" aria-hidden="true">爻</span>
         <span class="name" aria-hidden="true">六爻</span>
       </a>
@@ -70,7 +70,7 @@ const license = `https://creativecommons.org/licenses/by-sa/4.0/deed.${hant ? 'z
           桌面不再有「起卦」线框按钮（M16-1），由栏目第一项「起卦」代替；页底的起卦块仍直达写下所问。 */}
       <Columns at={at} page={home} hant={hant} />
       <div class="tools">
-        <a class="past" href="/?history">往卦</a>
+        <a class="past" href={hant ? '/zh-hant/?history' : '/?history'}>往卦</a>
         {/* 语言切换（设计稿 14、D11，方案 B）：两页都是「简 | 繁」，当前那个不是链接。
             单字读屏只念一个字，各补一段视觉隐藏的「体中文」「體中文」；当前那个再说一声「当前」（繁体页「目前」）：
             Chrome 的无障碍树不暴露 aria-current，不能只靠它。 */}

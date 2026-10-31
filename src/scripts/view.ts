@@ -9,6 +9,9 @@ import { fontOf } from "../lib/gua.js";
 import type { CastResult } from "../lib/liuyao/najia.js";
 import { duan, tiYong } from "../lib/meihua-duan.js";
 import type { GuaText, Reading, Row } from "../lib/reading.js";
+import type { HomeRuntime } from '../lib/home-runtime';
+const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
+const hant = document.documentElement.lang === 'zh-Hant-TW';
 import {
 	ago,
 	canRemind,
@@ -42,7 +45,12 @@ function setText(el: HTMLElement, text: string, font: string) {
 }
 
 /** 成卦页的卦名。 */
-export const setName = (el: HTMLElement, name: string) => setText(el, name, fontOf(name));
+export async function setName(el:HTMLElement,name:string){
+	let font=hant?'--font-body':fontOf(name);
+	// 字体分包失败时仍能成卦，保留宋体。
+	if(hant)try{font=(await import('./hant-fonts')).register(name)}catch{}
+	setText(el,UI.names[name]??name,font);
+}
 
 const item = (mark: string, text: string) =>
 	`<li><span class="n" aria-hidden="true">${mark}</span><span>${text}</span></li>`;
@@ -52,7 +60,7 @@ const rowHtml = (w: Row) =>
 	`<td class="pos">${w.title}</td>` +
 	`<td class="god">${w.god}</td>` +
 	`<td class="ben">${w.qin} ${w.gz}${w.yong ? ' <span class="tag">用神</span>' : ""}</td>` +
-	`<td>${yaoHtml(w.yang, w.moving, `${w.yang ? "阳" : "阴"}${w.moving ? " 动" : ""}`)}</td>` +
+	`<td>${yaoHtml(w.yang, w.moving, `${w.yang ? UI.yang : UI.yin}${w.moving ? UI.moving : ""}`)}</td>` +
 	`<td class="sy${w.shiYing === "世" ? " shi" : ""}">${w.shiYing}</td>` +
 	`<td>${w.bian ? `${w.bian.qin} ${w.bian.gz}${w.bian.hua ? ` <span class="hua">${w.bian.hua}</span>` : ""}` : ""}</td>` +
 	"</tr>";
@@ -62,13 +70,15 @@ const rowHtml = (w: Row) =>
  * `at` is the moment of the cast, which finds its 往卦 record; `old`: opened from 往卦, not just cast.
  */
 export function render(root: HTMLElement, r: CastResult, x: Reading, question: string, at: string, old: boolean) {
+	// 字体分包失败时仍保留宋体结果，不影响这一卦。
+	if(hant)void import('./hant-fonts').then(({register})=>{register(r.gua.name);if(r.bian)register(r.bian.name);}).catch(()=>{});
 	const set = (sel: string, text: string, el: ParentNode = root) => {
 		$(sel, el).textContent = text;
 	};
 	set("[data-question]", question);
 	$<HTMLDetailsElement>("[data-panel]", root).open = matchMedia("(min-width: 1024px)").matches;
 	const g = r.ganzhi;
-	$("[data-lines]", root).innerHTML = benLines(r.params);
+	$("[data-lines]", root).innerHTML = benLines(r.params,(i,y)=>`${i===0?'初':i===5?'上':CN[i]}爻 ${UI.yao[y]}${y===6||y===9?UI.moving:''}`);
 	// 本卦、变卦的卦名链到卦页
 	const name = $<HTMLAnchorElement>("[data-name]", root);
 	const zhi = $<HTMLAnchorElement>("[data-zhi-name]", root);
@@ -77,12 +87,12 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	$("[data-zhi]", root).hidden = !x.bian;
 	zhi.textContent = x.bian?.name ?? "";
 	zhi.href = x.bian?.href ?? "";
-	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}时 · 旬空 ${g.xkong}`);
+	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}${UI.hour} · 旬空 ${g.xkong}`);
 
 	const duan = $("[data-duan]", root);
 	duan.textContent = x.verdict;
 	duan.dataset.verdict = x.verdict;
-	duan.setAttribute("aria-label", `断：${x.verdict}`);
+	duan.setAttribute("aria-label", `${UI.verdict}${x.verdict}`);
 	set("[data-conclusion]", x.conclusion);
 	set("[data-basis]", x.basis);
 	set("[data-note]", x.note);
@@ -99,8 +109,8 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 		setText($("[data-ci]", s), t.ci, t.ciFont);
 		set("[data-bh]", t.baihua, s);
 	};
-	text("ben", "卦辞", x.ben);
-	text("bian", "变卦", x.bian);
+	text("ben", UI.guaci, x.ben);
+	text("bian", UI.bian, x.bian);
 
 	set("[data-dong-heading]", x.dong.heading);
 	// 爻辞白话另起一行写在爻辞下面。
@@ -300,7 +310,7 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 			// 在看不见的框里打开服务端地址：负责人 iPhone 实测，当前页跳过去要先过一个下载页，框里打开直接弹「加入」，
 			// 页面也不动。上一次的框等到下一次点才拿掉，免得系统的加入界面还开着就被收走。
 			frame?.remove();
-			frame = Object.assign(document.createElement("iframe"), { src: icsPath(cast, shown.gua, start) });
+			frame = Object.assign(document.createElement("iframe"), { src: icsPath(cast, shown.gua, start, hant) });
 			frame.style.display = "none";
 			document.body.append(frame);
 		} else {
@@ -349,7 +359,8 @@ export async function list(root: HTMLElement, load: Load, open: (p: Past, r: Cas
 				const li = $("li", tpl.content).cloneNode(true) as HTMLElement;
 				$(".day", li).textContent = `${dayLabel(new Date(p.at))} · ${r.ganzhi.day}日`;
 				$(".mh", li).hidden = !meihua;
-				$(".gua", li).innerHTML = r.bian ? `${r.gua.name} <small>之</small> ${r.bian.name}` : r.gua.name;
+				const ben=UI.names[r.gua.name]??r.gua.name;
+				$(".gua", li).innerHTML = r.bian ? `${ben} <small>之</small> ${UI.names[r.bian.name]??r.bian.name}` : ben;
 				$(".q", li).textContent = p.question;
 				// 自记：没记、不想记的留空
 				const o = p.review?.outcome;
