@@ -37,8 +37,9 @@ const PATHS = [
 		...Array.from({length:9},(_,i)=>`${hant ? HANT : ''}/fengshui/minggua/${i+1}/`),
 		...YEARS.map(year=>`${hant ? HANT : ''}/fengshui/${year}-jiugong/`),
 	]),
-	// 梅花易数（M21）：先只有简体（M21-20）；起出的卦不进网址
+	// 梅花易数：起出的卦不进网址
 	'/meihua/',
+	'/zh-hant/meihua/',
 ];
 
 export const GET: APIRoute = ({ site }) =>

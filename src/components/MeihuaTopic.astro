@@ -1,7 +1,13 @@
 ---
+import { meihuaText } from '../lib/meihua-text';
+const hant = Astro.props.hant ?? false;
+const t = meihuaText(hant);
+
 // 自选类别（设计稿 41 ②）：Jev 不可用、超时、拿不准、没配 key 时才出现。梅花版不写用神（梅花不取用神），
 // 婚恋不问性别（M21-11）：类别只用来选断语与建议的说法（templates.ts），吉凶按体用生克判。
-import { ERRORS } from "../data/copy";
+import * as copyHans from '../data/copy';
+import copyHant from '../data/copy-hant.json';
+const {ERRORS}=hant?copyHant:copyHans;
 import MeihuaBar from "./MeihuaBar.astro";
 
 const cats = [
@@ -15,26 +21,26 @@ const cats = [
 ---
 
 <section class="screen topic" data-screen="topic" tabindex="-1" hidden>
-  <MeihuaBar />
+  <MeihuaBar hant={hant} />
   <div class="col">
     <div class="title">
-      <h1 tabindex="-1" data-autofocus>此事关乎</h1>
+      <h1 tabindex="-1" data-autofocus>{t("此事关乎")}</h1>
       <p>{ERRORS.topicFallback}</p>
-      <p class="why">梅花按体用生克断吉凶，类别只决定断语和建议的说法。</p>
+      <p class="why">{t("梅花按体用生克断吉凶，类别只决定断语和建议的说法。")}</p>
     </div>
-    <div class="grid" role="group" aria-label="问题类别">
+    <div class="grid" role="group" aria-label={t("问题类别")}>
       {cats.map((c) => (
         <button type="button" class="cat" data-topic={c.topic} aria-pressed="false">
-          <span class="head">{c.label}</span>
-          <span class="sub">{c.sub}</span>
+          <span class="head">{t(c.label)}</span>
+          <span class="sub">{t(c.sub)}</span>
         </button>
       ))}
       <button type="button" class="cat wide" data-topic="自身" aria-pressed="false">
-        <span class="head">自身</span>
-        <span class="sub">自己的运势</span>
+        <span class="head">{t("自身")}</span>
+        <span class="sub">{t("自己的运势")}</span>
       </button>
     </div>
-    <button class="btn solid done dock" data-topic-done disabled>定</button>
+    <button class="btn solid done dock" data-topic-done disabled>{t("定")}</button>
   </div>
 </section>
 

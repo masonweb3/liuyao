@@ -1,11 +1,11 @@
 ---
-interface Props { hant?: boolean }
-const {hant=false}=Astro.props;
+interface Props { hant?: boolean; path?: string }
+const {hant=false,path='/'}=Astro.props;
 ---
 <span class="lang" role="group" aria-label={hant ? '語言' : '语言'}>
-  {hant ? <a href="/" hreflang="zh-Hans" lang="zh-Hans">简<span class="sr">体中文</span></a> : <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文（当前）</span></span>}
+  {hant ? <a href={path} hreflang="zh-Hans" lang="zh-Hans">简<span class="sr">体中文</span></a> : <span aria-current="true" lang="zh-Hans">简<span class="sr">体中文（当前）</span></span>}
   <span class="bar" aria-hidden="true"></span>
-  {hant ? <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文（目前）</span></span> : <a href="/zh-hant/" hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>}
+  {hant ? <span aria-current="true" lang="zh-Hant">繁<span class="sr">體中文（目前）</span></span> : <a href={'/zh-hant'+path} hreflang="zh-Hant" lang="zh-Hant">繁<span class="sr">體中文</span></a>}
 </span>
 <style>
   .lang .sr{font-weight:400}

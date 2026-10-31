@@ -1,4 +1,8 @@
 ---
+import { meihuaText } from '../lib/meihua-text';
+const hant = Astro.props.hant ?? false;
+const t = meihuaText(hant);
+
 // 成卦（设计稿 37，M21-16）。梅花没有摇钱，起卦算式就是过程：
 // 1. 算式三行依次淡入；2. 下卦三爻写出，停一下，上卦三爻写出，体、用标签随各组淡入；
 // 3. 卦名墨晕浮现，动爻微亮，磬声；4. 变卦自右淡入，互卦与时刻随后，最后是按钮。
@@ -8,34 +12,34 @@ import MeihuaBar from "./MeihuaBar.astro";
 ---
 
 <section class="screen reveal" data-screen="reveal" tabindex="-1" hidden>
-  <MeihuaBar />
+  <MeihuaBar hant={hant} />
   <div class="center">
-    <h1 class="sr-only">成卦</h1>
+    <h1 class="sr-only">{t("成卦")}</h1>
     <div class="pair">
       <figure class="ben">
         <div class="lines" data-ben-lines></div>
         <figcaption>
           <span class="name" tabindex="-1" data-ben-name data-autofocus></span>
-          <span class="tag">本卦</span>
+          <span class="tag">{t("本卦")}</span>
         </figcaption>
       </figure>
-      <span class="zhi" aria-hidden="true">之</span>
+      <span class="zhi" aria-hidden="true">{t("之")}</span>
       <figure class="bian">
         <div class="lines" data-bian-lines></div>
         <figcaption>
           <span class="name" data-bian-name></span>
-          <span class="tag">变卦</span>
+          <span class="tag">{t("变卦")}</span>
         </figcaption>
       </figure>
     </div>
     <div class="calc">
-      <p class="hu"><span class="k">互卦</span><span class="hu-name" data-hu-name></span><span class="el" data-hu-el></span></p>
-      <p class="note" data-hu-note hidden>乾坤无互，取变卦之互</p>
+      <p class="hu"><span class="k">{t("互卦")}</span><span class="hu-name" data-hu-name></span><span class="el" data-hu-el></span></p>
+      <p class="note" data-hu-note hidden>{t("乾坤无互，取变卦之互")}</p>
       <div class="formula" data-formula></div>
     </div>
     <p class="when" data-reveal-when></p>
   </div>
-  <button class="btn read" data-read>展卷而读</button>
+  <button class="btn read" data-read>{t("展卷而读")}</button>
 </section>
 
 <style>

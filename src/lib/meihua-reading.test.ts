@@ -4,9 +4,46 @@ import { byNumbers, byTime } from "./meihua.js";
 import { duan, tiYong } from "./meihua-duan.js";
 import type { By } from "./meihua-page.js";
 import { compose } from "./meihua-reading.js";
+import guaciHant from '../data/guaci-hant.json';
+import baihuaHant from '../data/baihua-hant.json';
+import yaoHant from '../data/yao-baihua-hant.json';
 
 const at = (hhmm: string, day = "2026-10-01") => new Date(`${day}T${hhmm}:00+08:00`).toISOString();
 const view = (by: By, when: string, topic: Topic = "事业") => compose({ by, at: when, topic, lateZi: "day-stays" });
+
+it('繁体覆盖64卦六种动爻，规则与数字不因语言改变，经文白话取对应底本',()=>{
+	const seen=new Set<string>();
+	for(const hour of ['00:00','02:00'])for(let a=1;a<=24;a++)for(let b=1;b<=24;b++){
+		const req={by:{by:'num',nums:[a,b]} as By,at:at(hour),topic:'事业' as Topic,lateZi:'day-stays' as const};
+		const cn=compose(req),key=cn.ben.name+cn.dong.title;
+		if(seen.has(key))continue;seen.add(key);
+		const tw=compose({...req,hant:true});
+		expect([tw.params,tw.verdict,tw.nums,tw.hour,tw.by]).toEqual([cn.params,cn.verdict,cn.nums,cn.hour,cn.by]);
+		const data=(guaciHant as Record<string,string>)[cn.ben.name]!.split('\n');
+		expect(tw.ben.name).toBe(data[0]!.split(' ')[2]);
+		expect(tw.ben.ci).toBe(data[1]);
+		expect(tw.ben.baihua).toBe((baihuaHant as Record<string,string>)[cn.ben.name]);
+		expect(tw.ben.href).toBe('/zh-hant'+cn.ben.href);
+		expect(tw.dong.text).toBe(data.find(l=>l.startsWith(cn.dong.title+'：'))!.slice(cn.dong.title.length+1));
+		expect(tw.dong.baihua).toBe((yaoHant as Record<string,Record<string,string>>)[cn.ben.name]![cn.dong.title]);
+		expect(tw.formula.map(s=>s.replace(/\p{Script=Han}/gu,''))).toEqual(cn.formula.map(s=>s.replace(/\p{Script=Han}/gu,'')));
+		expect(JSON.stringify([tw.reasons,tw.rows,tw.when,tw.formula,tw.hu.say])).not.toMatch(/[兇矇佔鹹动为与两经变结顺时余闰腊这]/);
+		expect(tw.ben.font).toBe('--gua-'+tw.ben.href.split('/')[3]);
+	}
+	expect(seen.size).toBe(384);
+});
+
+it('繁体时间起卦保留农历与晚子时规则，月名和静态文案已校对',()=>{
+	const req={by:{by:'time'} as By,at:at('16:08'),topic:'事业' as Topic,lateZi:'day-stays' as const};
+	const tw=compose({...req,hant:true});
+	expect([tw.ben.name,tw.bian.name,tw.hu.name,tw.when]).toEqual(['雷風恆','雷水解','澤天夬','丙午年 八月廿一 申時']);
+	expect(tw.formula[2]).toBe('45 ÷6 餘 3，九三動');
+	for(const topic of ['财','事业','父母','子孙','兄弟','婚恋','自身'] as Topic[]){
+		const cn=compose({...req,topic}),hant=compose({...req,topic,hant:true});
+		expect(hant.params).toEqual(cn.params);expect(hant.verdict).toBe(cn.verdict);
+		expect(hant.conclusion).toBeTruthy();expect(hant.advice.length).toBe(cn.advice.length);
+	}
+});
 
 describe("设计稿的实算例子（docs/design-meihua.md）", () => {
 	it("此刻 2026-10-01 16:08 时间起卦：雷风恒之雷水解，九三动，互泽天夬，吉", () => {

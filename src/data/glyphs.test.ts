@@ -55,6 +55,8 @@ import fengshui from './fengshui.json';
 import fengshuiHant from './fengshui-hant.json';
 import feixing from './feixing.json';
 import feixingHant from './feixing-hant.json';
+import meihuaUiHant from './meihua-ui-hant.json';
+import meihuaReadingHant from './meihua-reading-hant.json';
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -202,7 +204,7 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 
 	it.each([
 		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), baziRizhu, quming, qumingShuli, fengshui, feixing, Object.entries(ziContent).map(([c,x]) => c+x.yi))],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant, fengshuiHant, feixingHant, Object.values(ziContent).map(x => x.hant+x.yi_hant))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant, fengshuiHant, feixingHant, meihuaUiHant, meihuaReadingHant, Object.values(ziContent).map(x => x.hant+x.yi_hant))],
 	])("%s：卦爻辞、两种白话、黄历、择日、八字、取名的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
@@ -216,6 +218,17 @@ it.each(["home", "meihua"])("首屏子集 %s-body 有栏目导航的每个字", 
 	const have = woff2Chars(readFileSync(new URL(`../fonts/${name}-body.woff2`, import.meta.url)));
 	const missing = [...COLUMNS.map((c) => c.hans).join("")].filter((ch) => !have.has(ch.codePointAt(0) as number));
 	expect(missing.join(""), "加了栏目要重跑 tools/subset-fonts.py").toBe("");
+});
+
+it('梅花繁体首屏与后续静态标题不缺字，后续标题不覆盖首屏竖排子集',()=>{
+	const body=woff2Chars(readFileSync(new URL('../fonts/meihua-hant-body.woff2',import.meta.url)));
+	const bodyText='六爻往卦梅花易數起卦一事問以時或數此刻（北京時間）怎樣↓繁體中文（目前）正二三四五六七八九十冬臘閏初廿'+COLUMNS.map(c=>c.hant).join('');
+	expect([...bodyText].filter(c=>!body.has(c.codePointAt(0)!))).toEqual([]);
+	const display=woff2Chars(readFileSync(new URL('../fonts/meihua-hant-display.woff2',import.meta.url)));
+	const flow=woff2Chars(readFileSync(new URL('../fonts/meihua-hant-flow.woff2',import.meta.url)));
+	const text='所問何事此事關乎以何起卦以此刻起卦報數起卦報一個數或兩個先停一停此問不占先顧眼前再說具體些梅花問爻子丑寅卯辰巳午未申酉戌亥吉平凶之再問一事，'+homeCopyHant.REVIEW.bless;
+	expect([...text].filter(c=>!display.has(c.codePointAt(0)!)&&!flow.has(c.codePointAt(0)!))).toEqual([]);
+	expect([...display].filter(c=>flow.has(c))).toEqual([]);
 });
 
 // 梅花页（M21）不引 paper-fonts.css：页面上的字（组件、页面脚本写进去的、Worker 拼的依据与算式）只能靠 fontsource 切片，不算补字。

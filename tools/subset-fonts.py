@@ -116,8 +116,10 @@ MEIHUA = {
     # 竖排标语「不动不占 / 不因事不占」、印章
     "display": "不动占因事爻",
     # 品牌、往卦、栏目、h1、起卦与提示、此刻的农历与时辰（北京时间）、跳到说明的链接
-    "body": "六爻往卦梅花易数起卦一事问以时或数此刻（北京时间）怎样↓" + GANZHI + LUNAR + COLUMNS + " ·　",
+    "body": "六爻往卦梅花易数起卦一事问以时或数此刻（北京时间）怎样↓简繁体中文（当前）" + GANZHI + LUNAR + COLUMNS + " ·　",
 }
+MEIHUA_HANT={"display":"不動占因事爻", "body":"六爻往卦梅花易數起卦一事問以時或數此刻（北京時間）怎樣↓繁體中文（目前）"+GANZHI+"正二三四五六七八九十冬臘閏初廿"+HANT_COLUMNS+" ·　"}
+MEIHUA_FLOW_HANT="所問何事此事關乎以何起卦以此刻起卦報數起卦報一個數或兩個先停一停此問不占先顧眼前再說具體些梅花問爻子丑寅卯辰巳午未申酉戌亥吉平凶之再問一事，"+json.load(open('src/data/copy-hant.json',encoding='utf-8'))['REVIEW']['bless']
 
 # 语言切换「简 | 繁」用的字：(补进哪个字体族, 字重) → 字，字形都取 Noto Serif SC。
 LANG = {
@@ -138,6 +140,7 @@ BODY["hant"][3].extend(["home-ui-hant.json", "copy-hant.json", "templates-hant.j
 BODY["hant"][3].append("bazi-rizhu-hant.json")
 BODY["hans"][3].extend(["fengshui.json", "feixing.json"])
 BODY["hant"][3].extend(["fengshui-hant.json", "feixing-hant.json"])
+BODY["hant"][3].extend(["meihua-ui-hant.json", "meihua-reading-hant.json"])
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
@@ -435,6 +438,11 @@ def main() -> None:
     with open("src/styles/home-hant-fonts.css", "a", encoding="utf-8") as f:
         f.write(face("Iansui", 400, "home-hant-flow", rng) + "\n")
     first_screen("meihua", MEIHUA, "src/styles/meihua-fonts.css")
+    first_screen("meihua-hant", MEIHUA_HANT, "src/styles/meihua-hant-fonts.css", HOME_HANT)
+    flow=''.join(c for c in MEIHUA_FLOW_HANT if c not in MEIHUA_HANT["display"])
+    rng,_=save(make_subset(load("iansui"),flow),"src/fonts/meihua-hant-flow.woff2")
+    with open("src/styles/meihua-hant-fonts.css","a",encoding="utf-8") as f:
+        f.write(face("Iansui",400,"meihua-hant-flow",rng)+"\n")
     paper_fonts()
     gua_hans(page_blocks("src/data/guaci.json", "hans"), "src/fonts/gua")
     gua_hant(page_blocks("src/data/guaci-hant.json", "hant"), "src/fonts/gua-hant")
