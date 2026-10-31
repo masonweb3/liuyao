@@ -14,7 +14,7 @@
   font-weight: 400;
   font-display: swap;
   src: url('../fonts/body-hant-sc.woff2') format('woff2');
-  unicode-range: U+2C029;
+  unicode-range: U+4ED1, U+9332, U+2C029;
 }
 @font-face {
   font-family: 'Noto Serif TC';

@@ -49,7 +49,7 @@ const groups = [['radical', t('同部首', '同部首')], ['sound', t('同音', 
         <h2>{t('名字里的用法', '名字裡的用法')}</h2>
         <p>{t(`Wikidata 的 71,442 个现代华人名字样本中，${x.ch}在名里出现 ${x.meta.given} 次，作姓 ${x.meta.surname} 次。`, `Wikidata 的 71,442 個現代華人名字樣本中，${x.ch}在名裡出現 ${x.meta.given} 次，作姓 ${x.meta.surname} 次。`)}</p>
         <div class="stats">{[...x.meta.pos, x.meta.surname].map((n,i) => <div><b>{n}</b><span>{[t('名的第一字','名的第一字'),t('名的第二字','名的第二字'),t('单名','單名'),t('作姓','作姓')][i]}</span></div>)}</div>
-        <p class="note">{t('统计偏向公众人物，男性、年长者较多，只看大概。', '統計偏向公眾人物，男性、年長者較多，只看大概。')}</p>
+        <p class="note">{t('样本先按简体字形合并计数，不区分原姓名的具体写法。统计偏向公众人物，男性、年长者较多，只看大概。', '樣本先按簡體字形合併計數，不區分原姓名的具體寫法。統計偏向公眾人物，男性、年長者較多，只看大概。')}</p>
       </section>
       <section><h2>{t('英文写法', '英文寫法')}</h2><dl>{english.map(([a,b]) => <div><dt>{a}</dt><dd>{b}</dd></div>)}</dl><p class="note">{t('单字的写法不代替全名连读检查；和别的字连起来怎么样，到测名里看。', '單字的寫法不代替全名連讀檢查；和別的字連起來怎麼樣，到測名裡看。')}</p></section>
       <section><h2>{t('相关的字', '相關的字')}</h2>{groups.map(([by,label]) => { const list = related(ch, by); return list.length > 0 && <div><h3>{label}</h3><div class="grid">{list.map(key => <a href={ziPath(hant ? content[key].hant : key,hant)}>{hant ? content[key].hant : key}</a>)}</div></div>; })}</section>
