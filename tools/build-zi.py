@@ -94,7 +94,8 @@ def main():
         assert given[c] == int(row[3]) and surnames[c] == int(row[4]), c
         text = content[c]
         forms = dictionary["g"][c].split(";")
-        form = forms[4][0] if len(forms) > 4 and forms[4] else c
+        choices = forms[4] if len(forms) > 4 and forms[4] else c
+        form = text["hant"] if text["hant"] in choices else choices[0]
         meta[c] = {"given": given[c], "surname": surnames[c], "rank": rank.get(c), "pos": [positions[c][k] for k in ["first", "second", "single"]],
                    "tgh": int(row[5]), "strokes": int(u[c]["kTotalStrokes"].split()[0]), "strokesHant": int(u[text["hant"]]["kTotalStrokes"].split()[0]),
                    "book": book(form), "bookHant": book(text["hant"]), "glyph": glyph(c, False), "glyphHant": glyph(text["hant"], True)}

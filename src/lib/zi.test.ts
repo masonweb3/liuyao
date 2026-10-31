@@ -3,13 +3,14 @@ import content from '../data/zi.json';
 import { initials, related, ZI, zi, ziPath } from './zi';
 
 describe('单字页', () => {
-	it('842 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
-		expect(ZI).toHaveLength(842);
-		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(842);
+	it('1092 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
+		expect(ZI).toHaveLength(1092);
+		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(1092);
 		for (const c of ZI) for (const hant of [false, true]) {
 			const x = zi(c,hant);
 			expect(x.form, c).toBeDefined();
 			expect(x.text.length, c).toBeGreaterThan(30);
+			expect(x.text.includes(x.ch), c).toBe(true);
 			expect(x.glyph.d, c).toMatch(/^[Mm]/);
 			expect(x.glyph.box.split(' ').map(Number).every(Number.isFinite),c).toBe(true);
 			expect(ziPath(x.ch,hant)).toBe(`${hant ? '/zh-hant' : ''}/zi/${x.ch}/`);
@@ -30,10 +31,17 @@ describe('单字页', () => {
 		expect(zi('台',true).ch).toBe('台');
 		expect(zi('征',true).ch).toBe('征');
 		expect(zi('里',true).ch).toBe('里');
+		expect([zi('艳').form.kx,zi('艳',true).form.kx]).toEqual([24,28]);
+		for (const hant of [false,true]) {
+			expect(zi('干',hant).form).toMatchObject({form:'干',kx:3});
+			expect(zi('干',hant).meta[hant ? 'bookHant' : 'book']).toEqual(zi('干',hant).meta.bookHant);
+		}
 		for (const c of ZI) for (const by of ['radical','sound'] as const) {
 			const list = related(c,by);
+			expect(list.length).toBeLessThanOrEqual(8);
 			expect(list).not.toContain(c);
 			expect(list.every(x => ZI.includes(x))).toBe(true);
+			expect(list.every(x => by === 'radical' ? zi(x).form.rad === zi(c).form.rad : zi(x).entry.readings.some(p => zi(c).entry.readings.includes(p)))).toBe(true);
 		}
 	});
 	it('字义只讲本义与用法，不作命运、家人或健康预测', () => {
