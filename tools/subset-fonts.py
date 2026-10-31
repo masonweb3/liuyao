@@ -36,6 +36,9 @@
 简体的干支只剩天干、地支页 h1 的那一个字（盘面、表格、格子里的干支用宋体，见 BaziKb.astro），每个字各算一块：
 「己」按小薇缺字处理，只有己页的 h1 用宋体，子集里不收它。
 
+取名（src/fonts/quming/、quming-hant/，M22a）：测名页 /quming/ 与八十一数页共用一份 index，只有 h1「取名」「八十一数」加纸面页都有的
+标题字。测名的输入框与结果用设备字体（M22-20），不进任何子集。
+
 站酷小薇按缺字处理的字（gua_hans 整块不收）从 src/lib/gua.ts 的 NO_XIAOWEI 读，规则只写在那里；
 它比 cmap 缺的字多一个「己」：小薇有这个码位，字形却和「巳」一样。
 
@@ -123,8 +126,8 @@ LANG = {
 
 # 正文补字：语言 → (字体族名, 完整字体, fontsource 包, 正文数据)
 BODY = {
-    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-baihua.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json"]),
-    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-baihua-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json"]),
+    "hans": ("Noto Serif SC", "serif-sc", "noto-serif-sc", ["guaci.json", "baihua.json", "yao-baihua.json", "huangli.json", "zeri.json", "bazi.json", "bazi-baihua.json", "bazi-tiangan.json", "bazi-dizhi.json", "bazi-pages.json", "quming.json", "quming-shuli.json"]),
+    "hant": ("Noto Serif TC", "serif-tc", "noto-serif-tc", ["guaci-hant.json", "baihua-hant.json", "yao-baihua-hant.json", "huangli-hant.json", "zeri-hant.json", "bazi-hant.json", "bazi-baihua-hant.json", "bazi-tiangan-hant.json", "bazi-dizhi-hant.json", "bazi-pages-hant.json", "bazi-names-hant.json", "quming-hant.json", "quming-shuli-hant.json"]),
 }
 # 八字知识页第二批：六十日柱的释义
 BODY["hans"][3].append("bazi-rizhu.json")
@@ -157,7 +160,7 @@ def cmap(key: str) -> dict[int, str]:
     return TTFont(io.BytesIO(load(key)), lazy=True).getBestCmap()
 
 
-def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False) -> TTFont:
+def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False, drop: tuple[str, ...] = ()) -> TTFont:
     # 不写入当前时间，重跑结果逐字节相同，git 里不出现无谓的改动。
     font = TTFont(io.BytesIO(raw), recalcTimestamp=False)
     if "fvar" in font:
@@ -173,6 +176,7 @@ def make_subset(raw: bytes, text: str, wght: int = 400, lean: bool = False) -> T
         # 让 Lighthouse 模拟的首页 LCP 慢了一个往返（约 145 ms），去掉这些就回到原样。
         options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14]
         options.drop_tables += ["STAT"]
+    options.drop_tables += list(drop)
     sub = subset.Subsetter(options)
     sub.populate(text=text)
     sub.subset(font)
@@ -226,6 +230,11 @@ def bazi_blocks(lang: str) -> dict[str, list[str]]:
     kb = ["十神", "納音", "十二長生"] if lang == "hant" else ["十神", "纳音", "十二长生"]
     # 第二批：日柱页的 h1「甲子日柱」（干支各字已收，补「日柱」一块；己的几页过 fontOf 用宋体）、目录页的「六十日柱」
     return {"index": [CHROME[lang], "八字", *GANZHI[:22], "0123456789", "乾造坤造", *kb, "十天干", "十二地支", "日柱", "六十日柱"]}
+
+
+def quming_blocks(lang: str) -> dict[str, list[str]]:
+    """取名（M22a）：测名页与八十一数页共用一份，h1 各一块。"""
+    return {"index": [CHROME[lang], "取名", "八十一數" if lang == "hant" else "八十一数", "名字裡的字" if lang == "hant" else "名字里的字"]}
 
 
 def city_chars(lang: str) -> str:
@@ -343,6 +352,8 @@ def paper_fonts() -> None:
     for lang, (family, src, pkg, files) in BODY.items():
         have, full = fontsource_chars(pkg), cmap(src)
         extra = (tyme4ts_chars() if lang == "hans" else "") + city_chars(lang)
+        zi = json.load(open("src/data/zi.json", encoding="utf-8"))
+        extra += "".join(c + x["yi"] if lang == "hans" else x["hant"] + x["yi_hant"] for c, x in zi.items())
         missing = "".join(sorted(c for c in data_chars(files, extra) if ord(c) not in have))
         lost = [c for c in missing if ord(c) not in full]
         if lost:
@@ -370,7 +381,13 @@ def first_screen(name: str, text: dict[str, str], out: str) -> None:
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
     for key, (family, src) in HOME.items():
-        font = make_subset(load(src), text[key], lean=True)
+        # 首页正文子集再去掉 GSUB、GPOS、BASE（M22）：栏目加「取名」后 home-body.woff2 从 9,852 涨到 10,140 字节，
+        # Lighthouse 模拟的首页 LCP 又慢了一个往返（约 130 ms，同 M21）；去掉这三张表是 9,856 字节，LCP 回到原样。
+        # 首页这份子集没有标点，GSUB 只剩 aalt、fwid、hwid、pwid（浏览器默认都不开），GPOS 只剩 kern、vpal，
+        # 首页首屏 390、1440 宽的截图与去掉之前逐像素相同。梅花页的子集有（）：↓，GSUB 有 vert、GPOS 有 halt、chws
+        # （标点挤压要用），不去。
+        lean_drop = ("GSUB", "GPOS", "BASE") if (name, key) == ("home", "body") else ()
+        font = make_subset(load(src), text[key], lean=True, drop=lean_drop)
         path = f"src/fonts/{name}-{key}.woff2"
         font.save(path)
         css.append(
@@ -398,6 +415,8 @@ def main() -> None:
     gua_hant(huangli_blocks("hant"), "src/fonts/huangli-hant")
     gua_hans(bazi_blocks("hans"), "src/fonts/bazi")
     gua_hant(bazi_blocks("hant"), "src/fonts/bazi-hant")
+    gua_hans(quming_blocks("hans"), "src/fonts/quming")
+    gua_hant(quming_blocks("hant"), "src/fonts/quming-hant")
 
 
 if __name__ == "__main__":

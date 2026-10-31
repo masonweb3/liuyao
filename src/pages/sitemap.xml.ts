@@ -4,6 +4,7 @@ import { KB_PAGES, kbPath } from '../lib/bazi-kb';
 import { months } from '../lib/huangli-card';
 import { dayPath, days, JIEQI, jieqiPath } from '../lib/huangli-days';
 import { ITEMS, zeriPath } from '../lib/zeri-rule';
+import zi from '../data/zi.json';
 
 // 可被收录的页面都登记在这里。带所问的解读结果没有自己的网址，也不该进来。
 // 简繁互指的 hreflang 只写在各页 <head> 里，这里不重复写 xhtml:link：Google 说三种写法等价，同时写没有额外好处，
@@ -26,6 +27,11 @@ const PATHS = [
 		`${hant ? HANT : ''}/bazi/`,
 		// 八字知识页（M19b）：十天干、十二地支（各带目录）、十神、纳音、十二长生，27 页
 		...KB_PAGES.map((p) => kbPath(p.path, hant)),
+		// 取名（M22a）：测名页与八十一数页；名字只在浏览器里算，不进网址
+		`${hant ? HANT : ''}/quming/`,
+		`${hant ? HANT : ''}/quming/81/`,
+		`${hant ? HANT : ''}/zi/`,
+		...Object.entries(zi).map(([ch, x]) => `${hant ? HANT : ''}/zi/${hant ? x.hant : ch}/`),
 	]),
 	// 梅花易数（M21）：先只有简体（M21-20）；起出的卦不进网址
 	'/meihua/',

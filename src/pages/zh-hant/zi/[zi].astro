@@ -1,0 +1,7 @@
+---
+import Zi from '../../../components/Zi.astro';
+import content from '../../../data/zi.json';
+import { ZI } from '../../../lib/zi';
+export const getStaticPaths = () => ZI.map(ch => ({ params: {zi: content[ch].hant}, props: {ch} }));
+---
+<Zi ch={Astro.props.ch} hant />
