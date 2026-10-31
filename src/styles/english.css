@@ -26,7 +26,6 @@ html:lang(en) .reading .gua{gap:28px;flex-wrap:wrap;justify-content:flex-start}
 html:lang(en) .reading .names{flex-direction:column;min-width:0;gap:12px;max-width:100%}
 html:lang(en) .reading h1{writing-mode:horizontal-tb;font-size:32px;line-height:1.4;overflow-wrap:normal}
 html:lang(en) .reading .zhi{padding-top:0;font-size:20px;letter-spacing:normal}
-html:lang(en) .reading .zhi a{margin-left:10px}
 html:lang(en) .reading .p-head{flex-wrap:wrap}
 html:lang(en) .reading .texts>.basis{grid-column:1/-1}
 html:lang(en) .reading .panel{overflow-x:auto}
