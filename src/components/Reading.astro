@@ -1,16 +1,18 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 import * as copyHans from "../data/copy";
+import copyEn from "../data/copy-en.json";
 import copyHant from "../data/copy-hant.json";
-const { DISCLAIMER, ERRORS, REMIND, REVIEW } = hant ? copyHant : copyHans;
+const { DISCLAIMER, ERRORS, REMIND, REVIEW } = en ? copyEn : hant ? copyHant : copyHans;
 import { DAYS, NOTE_MAX, OUTCOMES } from "../lib/revisit";
 import Slots from "./Slots.astro";
 
 // 内容由 src/scripts/view.ts 按 src/lib/reading.ts 的结果填入；回访卡、到时提醒见 src/lib/revisit.ts。
-const home = hant ? '/zh-hant/' : '/';
+const home = en ? '/en/' : hant ? '/zh-hant/' : '/';
 const history = Astro.site ? new URL(`${home}?history`, Astro.site).href : `${home}?history`;
 const facts = [
   [t("四柱"), "pillars"],
@@ -103,7 +105,7 @@ const facts = [
         <div class="lines" data-lines></div>
         <div class="names">
           <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
-          <span class="zhi" data-zhi>{t("之")}<a class="to-gua" data-zhi-name></a></span>
+          <span class="zhi" data-zhi>{t("之")}{en ? ' ' : ''}<a class="to-gua" data-zhi-name></a></span>
         </div>
       </section>
       <p class="gz" data-gz></p>
@@ -172,10 +174,11 @@ const facts = [
         </div>
       </section>
       <div class="texts">
+        {en && <p class="basis">Classical Chinese passages below are untranslated. The English overviews are original to Sixyao. Branch and stem characters are traditional chart notation.</p>}
         {["ben", "bian"].map((k) => (
           <section class="block text" data-text={k}>
             <h2 class="kicker" data-kicker></h2>
-            <p class="ci" data-ci></p>
+            <p class="ci" lang={en ? 'zh-Hans' : undefined} data-ci></p>
             <p class="bh" data-bh></p>
           </section>
         ))}
@@ -189,7 +192,7 @@ const facts = [
       <details class="panel" data-panel>
         <summary>
           <h2>{t("完整盘面")}</h2>
-          <span class="toggle" aria-hidden="true" data-open={hant ? '展開' : '展开'} data-close="收起"></span>
+          <span class="toggle" aria-hidden="true" data-open={en ? 'Expand' : hant ? '展開' : '展开'} data-close={en ? 'Collapse' : '收起'}></span>
         </summary>
         <dl class="facts">
           {facts.map(([dt, key]) => (

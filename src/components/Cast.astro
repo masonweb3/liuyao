@@ -1,7 +1,8 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 import { posName } from "../lib/flow";
 import Bar from "./Bar.astro";
@@ -10,13 +11,13 @@ const tilts = [-8, 14, 3];
 ---
 
 <section class="screen cast" data-screen="cast" tabindex="-1" hidden>
-  <Bar  hant={hant}/>
+  <Bar  hant={hant} en={en}/>
   <div class="stage">
     <h1 class="sr-only">{t("摇卦")}</h1>
     <ul class="lines" aria-label={t("已成之爻")}>
       {[5, 4, 3, 2, 1, 0].map((i) => (
         <li data-pos={i}>
-          <span class="pos" aria-hidden="true">{posName(i)}</span>
+          <span class="pos" aria-hidden="true">{en ? `Line ${i+1}` : posName(i)}</span>
           <div class="slot"></div>
         </li>
       ))}

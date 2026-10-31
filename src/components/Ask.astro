@@ -1,7 +1,8 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 const chips = [t("这次考试能过吗"), t("这段感情还有可能吗"), t("这笔生意值得做吗")];
 ---

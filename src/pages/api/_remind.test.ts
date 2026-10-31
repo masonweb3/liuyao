@@ -16,6 +16,17 @@ const query = (o: Record<string, string>) => `/api/remind.ics?${new URLSearchPar
 const good = { d: ymd(7), c: ymd(-1), g: GUA };
 
 describe("GET /api/remind.ics", () => {
+	it('English calendar allows only known English names and preserves its language',async()=>{
+		const res=await call(query({...good,g:'Heaven to Earth',l:'en'}));
+		expect(res.status).toBe(200);
+		const text=(await res.text()).replace(/\r\n /g,'');
+		expect(text).toContain('Heaven to Earth');
+		expect(text).toContain('https://sixyao.app/en/?history');
+		expect(text).toContain('SUMMARY:Sixyao · Revisit a cast');
+		for(const g of ['Heaven to unknown','Heaven\r\nSUMMARY:injection','Heaven之Earth','Heaven to Earth to Heaven'])expect((await call(query({...good,g,l:'en'}))).status).toBe(400);
+		expect((await call(query({...good,g:'Heaven'}))).status).toBe(400);
+		expect((await call(query({...good,g:'Heaven',l:'en'})+'&l=en')).status).toBe(400);
+	});
 	it("和浏览器里生成的 .ics 除 UID、DTSTAMP 外逐字相同，文件名也相同", async () => {
 		const now = new Date();
 		const start = remindAt(now, 7);

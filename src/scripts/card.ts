@@ -20,6 +20,7 @@ const CLOSING = "，。、；：！？）》」』”’…";
 
 /** `question` is empty unless the asker ticked 所问上卡. */
 export async function card(r: CastResult, ben: GuaText, question: string): Promise<string> {
+	if(document.documentElement.lang==='en')return (await import('./card-en')).card(r,ben,question);
 	const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
 	if(document.documentElement.lang==='zh-Hant-TW'){
 		const {register}=await import('./hant-fonts');

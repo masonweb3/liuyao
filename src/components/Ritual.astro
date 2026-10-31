@@ -1,10 +1,16 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 import homeBody from '../fonts/home-body.woff2?url';
 import homeDisplay from '../fonts/home-display.woff2?url';
+import enBody from '../fonts/home-en-body.woff2?url';
+import '../styles/english.css';
+import '../styles/home-en-fonts.css';
+import guaEn from '../data/gua-en.json';
+import wordsEn from '../data/home-runtime-en.json';
 import hantBody from '../fonts/home-hant-body.woff2?url';
 import hantDisplay from '../fonts/home-hant-display.woff2?url';
 import Page from '../layouts/Page.astro';
@@ -25,24 +31,25 @@ import * as copyHans from "../data/copy";
 import wordsHans from '../data/home-runtime.json';
 import wordsHant from '../data/home-runtime-hant.json';
 import guaciHant from '../data/guaci-hant.json';
+import copyEn from "../data/copy-en.json";
 import copyHant from "../data/copy-hant.json";
-const { EMERGENCY, INSINCERE } = hant ? copyHant : copyHans;
-const copy = hant ? copyHant : copyHans;
-const runtime = { ...(hant ? wordsHant : wordsHans), errors: copy.ERRORS, disclaimer: copy.DISCLAIMER,
-  names: hant ? Object.fromEntries(Object.entries(guaciHant).map(([name,text]) => [name,text.split('\n')[0]!.split(' ')[2]!])) : {} };
+const { EMERGENCY, INSINCERE } = en ? copyEn : hant ? copyHant : copyHans;
+const copy = en ? copyEn : hant ? copyHant : copyHans;
+const runtime = { ...(en ? wordsEn : hant ? wordsHant : wordsHans), errors: copy.ERRORS, disclaimer: copy.DISCLAIMER,
+  names: en ? Object.fromEntries(Object.entries(guaEn).map(([key,g])=>[key,g.name])) : hant ? Object.fromEntries(Object.entries(guaciHant).map(([name,text]) => [name,text.split('\n')[0]!.split(' ')[2]!])) : {} };
 
 // 已被搜索引擎收录，不要改。
 const title = t("六爻 · 在线摇卦起卦、纳甲排盘与白话解读");
 const description = t("心有所疑，不妨一问。写下所问，摇六次铜钱成卦，按纳甲法排盘断吉凶，附卦爻辞原文与白话解读。免费，无广告，不用登录。");
-const path = hant ? '/zh-hant/' : '/';
-const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSite', name: t("六爻"), url: new URL(path, Astro.site).href, inLanguage: hant ? 'zh-Hant-TW' : 'zh-CN', description };
+const path = en ? '/en/' : hant ? '/zh-hant/' : '/';
+const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSite', name: t("六爻"), url: new URL(path, Astro.site).href, inLanguage: en ? 'en' : hant ? 'zh-Hant-TW' : 'zh-CN', description };
 ---
 
-<Page title={title} description={description} path={path} alternate={hant ? '/' : '/zh-hant/'} hant={hant} ogTitle={t("六爻 · 心有所疑，不妨一问")} jsonLd={jsonLd}>
+<Page title={title} description={description} path={path} alternate={hant ? '/' : '/zh-hant/'} hant={hant} en={en} ogTitle={t("六爻 · 心有所疑，不妨一问")} jsonLd={jsonLd}>
   <Fragment slot="head">
     {/* 首屏的字，见 tools/subset-fonts.py（具名 slot 里的 HTML 注释不会输出，所以写成这样） */}
-    <link rel="preload" href={hant ? hantDisplay : homeDisplay} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={hant ? hantBody : homeBody} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={en ? enBody : hant ? hantDisplay : homeDisplay} as="font" type="font/woff2" crossorigin />
+    {!en && <link rel="preload" href={hant ? hantBody : homeBody} as="font" type="font/woff2" crossorigin />}
   </Fragment>
   <!-- 爻的墨边：笔触边缘轻微起毛 -->
   <svg class="defs" aria-hidden="true">
@@ -54,11 +61,11 @@ const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSi
 
   <!-- 一屏一件事：同一时刻只有一屏可见，它就是本页的主体。 -->
   <main data-runtime={JSON.stringify(runtime)}>
-    <Home  hant={hant}/>
-    <Manual  hant={hant}/>
-    <Ask  hant={hant}/>
+    <Home  hant={hant} en={en}/>
+    <Manual  hant={hant} en={en}/>
+    <Ask  hant={hant} en={en}/>
 
-    <Notice screen="guard" guard title={t("先停一停")} body={[t("从你写下的话里，我们感到你可能正经历很难熬的时刻。"), t("这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。")]} hant={hant}>
+    <Notice screen="guard" guard title={t("先停一停")} body={[t("从你写下的话里，我们感到你可能正经历很难熬的时刻。"), t("这件事不适合交给卦象。此刻，更值得有一个真实的人听你说。")]} hant={hant} en={en}>
       <a class="help" href="https://findahelpline.com" target="_blank" rel="noopener">{t("查找你所在地区的求助热线")}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"></path></svg>
       </a>
       <a class="tel" href="tel:12356"><span>{t("拨打 12356 心理援助热线")}</span><span class="where">{t("中国大陆")}</span></a>
@@ -66,7 +73,7 @@ const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSi
       <p class="note">{t("如果你正身处危险之中，请立即拨打当地紧急电话。")}</p>
     </Notice>
 
-    <Notice screen="decline" title={t("此问不占")} body={[t("彩票号码、赌局输赢，是概率之事，卦象给不出答案。"), t("卦为心中之疑而设。换一件真正让你犹豫的事，再来问。")]} hant={hant}>
+    <Notice screen="decline" title={t("此问不占")} body={[t("彩票号码、赌局输赢，是概率之事，卦象给不出答案。"), t("卦为心中之疑而设。换一件真正让你犹豫的事，再来问。")]} hant={hant} en={en}>
       <Fragment slot="extra">
         <svg class="stroke" viewBox="0 0 240 24" aria-hidden="true"><path d="M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z"></path></svg>
         <p class="quote">{t("善为《易》者不占。")}<span>{t("——《荀子·大略》")}</span></p>
@@ -74,22 +81,22 @@ const jsonLd = Astro.site && { '@context': 'https://schema.org', '@type': 'WebSi
       <button class="btn" style="--ls: 0.5em" data-go="ask" data-clear>{t("换一件事问")}</button>
     </Notice>
 
-    <Notice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body} hant={hant}>
+    <Notice screen="emergency" title={EMERGENCY.title} body={EMERGENCY.body} hant={hant} en={en}>
       <button class="btn" style="--ls: 0.5em" data-go="home" data-clear>{EMERGENCY.back}</button>
       <button class="quiet" data-proceed>{EMERGENCY.proceed}</button>
       <p class="note">{EMERGENCY.note}</p>
     </Notice>
 
-    <Notice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]} hant={hant}>
+    <Notice screen="insincere" title={INSINCERE.title} body={[INSINCERE.body]} hant={hant} en={en}>
       <button class="btn" style="--ls: 0.5em" data-go="ask">{INSINCERE.action}</button>
     </Notice>
 
-    <Topic  hant={hant}/>
-    <Calm  hant={hant}/>
-    <Cast  hant={hant}/>
-    <Reveal  hant={hant}/>
-    <Reading  hant={hant}/>
-    <History  hant={hant}/>
+    <Topic  hant={hant} en={en}/>
+    <Calm  hant={hant} en={en}/>
+    <Cast  hant={hant} en={en}/>
+    <Reveal  hant={hant} en={en}/>
+    <Reading  hant={hant} en={en}/>
+    <History  hant={hant} en={en}/>
   </main>
 
   <script>

@@ -1,0 +1,46 @@
+{
+  "TEMPLATES": {
+    "财": {
+      "吉":{"conclusion":"The traditional rules indicate support for this topic.","advice":["Clarify what you need and what you can contribute.","Put important terms and responsibilities in writing.","Treat this as reflection, not as a basis for an investment or borrowing decision."]},
+      "平":{"conclusion":"The traditional indicators are mixed.","advice":["Check the practical costs and unanswered questions.","Consider a small, reversible step instead of an all-or-nothing commitment.","For financial decisions, rely on evidence and qualified advice."]},
+      "凶":{"conclusion":"The traditional rules indicate obstacles around this topic.","advice":["Review your existing commitments before adding new ones.","Ask for clarification where terms are uncertain.","A hexagram cannot establish the outcome of a trade, investment or loan."]}
+    },
+    "事业": {
+      "吉":{"conclusion":"The traditional chart suggests room for constructive effort.","advice":["Prepare your work and explain your proposal clearly.","Agree on responsibilities before moving ahead.","For a dispute or legal matter, consult a qualified lawyer."]},
+      "平":{"conclusion":"The traditional indicators do not point strongly in one direction.","advice":["Concentrate on work you can complete reliably.","Listen to the people affected before deciding.","Do not use this reading to predict a legal outcome."]},
+      "凶":{"conclusion":"The traditional chart suggests friction rather than easy progress.","advice":["Check whether a different approach would be more practical.","Work on the preparation that remains within your control.","Let qualified legal advice guide any dispute or court matter."]}
+    },
+    "父母": {
+      "吉":{"conclusion":"This topic has supportive indicators in the traditional chart.","advice":["Prepare the documents or study material you need.","Communicate clearly with the people providing support.","Check details before signing or submitting anything."]},
+      "平":{"conclusion":"The traditional chart suggests a need for further preparation.","advice":["Leave room for a process to take longer than expected.","Review documents and requirements carefully.","Listen to elders without assuming you already know what they need."]},
+      "凶":{"conclusion":"The traditional rules highlight obstacles around support or preparation.","advice":["Clarify what is uncertain before making a commitment.","For an exam or application, return to practical preparation.","For anyone's health, rely on a clinician's assessment, never this chart."]}
+    },
+    "子孙": {
+      "吉":{"conclusion":"The symbolic indicators for this topic are supportive.","advice":["Give younger people room to explain their own views.","Keep useful daily routines going.","This is not a health assessment; follow professional medical advice."]},
+      "平":{"conclusion":"The symbolic indicators are mixed; patience may help reflection.","advice":["Listen before urging someone to act.","Set expectations that leave room for learning.","Use medical care, not a hexagram, for symptoms or treatment decisions."]},
+      "凶":{"conclusion":"The traditional chart marks difficulty in this topic, not a diagnosis.","advice":["Offer attention and practical support.","If someone is unwell, seek appropriate medical care.","Take one manageable task at a time without assigning blame."]}
+    },
+    "兄弟": {
+      "吉":{"conclusion":"The traditional chart is supportive of cooperation.","advice":["Start a clear conversation about the shared task.","Agree on contributions and responsibilities.","Allow others room even when you feel confident."]},
+      "平":{"conclusion":"The traditional indicators suggest differing priorities.","advice":["Learn what the other person actually wants.","Discuss disagreements directly and respectfully.","Agree on how a shared arrangement can end as well as begin."]},
+      "凶":{"conclusion":"The traditional chart highlights friction between participants.","advice":["Clarify expectations before deepening a commitment.","Avoid turning a disagreement into a test of pride.","Focus on the responsibilities you can fulfill."]}
+    },
+    "婚恋": {
+      "吉":{"conclusion":"The traditional indicators favor mutual engagement.","advice":["Express your feelings honestly without demanding agreement.","Make room for the other person's boundaries.","Discuss longer-term expectations together."]},
+      "平":{"conclusion":"The traditional indicators are mixed; the relationship remains for you to understand.","advice":["Allow time for a freely given response.","Pay attention to actions rather than guessing thoughts.","Keep your own routines and sources of support."]},
+      "凶":{"conclusion":"The traditional chart suggests tension, not a fixed relationship outcome.","advice":["Avoid pressure and respect a clear refusal.","Give yourself time before deciding while distressed.","Talk with someone you trust if the situation feels difficult."]}
+    },
+    "自身": {
+      "吉":{"conclusion":"The traditional chart suggests room to act with confidence.","advice":["Choose a concrete task you can begin.","Keep a sustainable pace.","Use favorable circumstances to be helpful to others."]},
+      "平":{"conclusion":"The traditional indicators suggest a measured approach.","advice":["Attend to ordinary tasks within your control.","Use your own circumstances rather than comparison as your measure.","Try a small, reversible step with a new idea."]},
+      "凶":{"conclusion":"The traditional chart suggests slowing down and reviewing your approach.","advice":["Give major decisions the practical consideration they need.","Make room for rest and ordinary routines.","Speak with someone you trust instead of carrying every concern alone."]}
+    }
+  },
+  "SPECIAL":{
+    "jingGua":"No lines are moving. In this reading method, begin with the primary hexagram's overview.",
+    "fuCang":"The focal relationship is represented by a hidden line rather than appearing directly in the primary chart.",
+    "quanDong":"All six lines move. This method gives attention to the changed hexagram's overview.",
+    "yongJiu":"All six lines of Heaven move. The classical text includes a separate passage called Yong Jiu (using the nines).",
+    "yongLiu":"All six lines of Earth move. The classical text includes a separate passage called Yong Liu (using the sixes)."
+  }
+}

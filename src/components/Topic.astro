@@ -1,7 +1,8 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 import Bar from "./Bar.astro";
 
@@ -17,7 +18,7 @@ const cats = [
 ---
 
 <section class="screen topic" data-screen="topic" tabindex="-1" hidden>
-  <Bar  hant={hant}/>
+  <Bar  hant={hant} en={en}/>
   <div class="col">
     <div class="title">
       <h1 tabindex="-1" data-autofocus>{t("此事关乎")}</h1>

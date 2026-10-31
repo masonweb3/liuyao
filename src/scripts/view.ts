@@ -12,6 +12,7 @@ import type { GuaText, Reading, Row } from "../lib/reading.js";
 import type { HomeRuntime } from '../lib/home-runtime';
 const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
 const hant = document.documentElement.lang === 'zh-Hant-TW';
+const en = document.documentElement.lang === 'en';
 import {
 	ago,
 	canRemind,
@@ -37,6 +38,7 @@ import {
 const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode) => root.querySelector(sel) as T;
 
 const CN = "一二三四五六七八九十";
+const englishDay=(d:Date)=>new Intl.DateTimeFormat("en",{timeZone:"Asia/Shanghai",year:"numeric",month:"short",day:"numeric"}).format(d);
 
 /** 卦名、卦辞、爻辞的字体：`font` 是 fontOf 给的变量名，含站酷小薇缺字的整块用宋体。 */
 function setText(el: HTMLElement, text: string, font: string) {
@@ -46,10 +48,14 @@ function setText(el: HTMLElement, text: string, font: string) {
 
 /** 成卦页的卦名。 */
 export async function setName(el:HTMLElement,name:string){
-	let font=hant?'--font-body':fontOf(name);
+	let font=hant||en?'--font-body':fontOf(name);
 	// 字体分包失败时仍能成卦，保留宋体。
 	if(hant)try{font=(await import('./hant-fonts')).register(name)}catch{}
 	setText(el,UI.names[name]??name,font);
+}
+
+export function setGanzhi(el:HTMLElement,g:CastResult['ganzhi']){
+	el.innerHTML=en ? `UTC+8 · Year ${g.year} · Month ${g.month} · Day ${g.day}<span class="hour"> · Hour ${g.hour}</span> · Void ${g.xkong}` : `${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}${UI.hour}</span> · 旬空 ${g.xkong}`;
 }
 
 const item = (mark: string, text: string) =>
@@ -59,9 +65,9 @@ const rowHtml = (w: Row) =>
 	`<tr${w.yong ? ' class="yong"' : ""}>` +
 	`<td class="pos">${w.title}</td>` +
 	`<td class="god">${w.god}</td>` +
-	`<td class="ben">${w.qin} ${w.gz}${w.yong ? ' <span class="tag">用神</span>' : ""}</td>` +
+	`<td class="ben">${w.qin} ${w.gz}${w.yong ? ` <span class="tag">${UI.focal}</span>` : ""}</td>` +
 	`<td>${yaoHtml(w.yang, w.moving, `${w.yang ? UI.yang : UI.yin}${w.moving ? UI.moving : ""}`)}</td>` +
-	`<td class="sy${w.shiYing === "世" ? " shi" : ""}">${w.shiYing}</td>` +
+	`<td class="sy${w.shiYing === "世" || w.shiYing === "Self" ? " shi" : ""}">${w.shiYing}</td>` +
 	`<td>${w.bian ? `${w.bian.qin} ${w.bian.gz}${w.bian.hua ? ` <span class="hua">${w.bian.hua}</span>` : ""}` : ""}</td>` +
 	"</tr>";
 
@@ -78,7 +84,7 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	set("[data-question]", question);
 	$<HTMLDetailsElement>("[data-panel]", root).open = matchMedia("(min-width: 1024px)").matches;
 	const g = r.ganzhi;
-	$("[data-lines]", root).innerHTML = benLines(r.params,(i,y)=>`${i===0?'初':i===5?'上':CN[i]}爻 ${UI.yao[y]}${y===6||y===9?UI.moving:''}`);
+	$("[data-lines]", root).innerHTML = benLines(r.params,(i,y)=>`${UI.positions[i]} ${UI.yao[y]}${y===6||y===9?UI.moving:''}`);
 	// 本卦、变卦的卦名链到卦页
 	const name = $<HTMLAnchorElement>("[data-name]", root);
 	const zhi = $<HTMLAnchorElement>("[data-zhi-name]", root);
@@ -87,18 +93,18 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	$("[data-zhi]", root).hidden = !x.bian;
 	zhi.textContent = x.bian?.name ?? "";
 	zhi.href = x.bian?.href ?? "";
-	set("[data-gz]", `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}${UI.hour} · 旬空 ${g.xkong}`);
+	set("[data-gz]", en ? `UTC+8 · Year ${g.year} · Month ${g.month} · Day ${g.day} · Hour ${g.hour} · Void ${g.xkong}` : `${g.year}年 ${g.month}月 ${g.day}日 ${g.hour}${UI.hour} · 旬空 ${g.xkong}`);
 
 	const duan = $("[data-duan]", root);
-	duan.textContent = x.verdict;
+	duan.textContent = UI.verdicts[x.verdict];
 	duan.dataset.verdict = x.verdict;
-	duan.setAttribute("aria-label", `${UI.verdict}${x.verdict}`);
+	duan.setAttribute("aria-label", `${UI.verdict}${UI.verdicts[x.verdict]}`);
 	set("[data-conclusion]", x.conclusion);
 	set("[data-basis]", x.basis);
 	set("[data-note]", x.note);
 	$("[data-note]", root).hidden = !x.note;
 
-	$("[data-reasons]", root).innerHTML = x.reasons.map((s, i) => item(CN[i] ?? String(i + 1), s)).join("");
+	$("[data-reasons]", root).innerHTML = x.reasons.map((s, i) => item(en ? String(i+1) : CN[i] ?? String(i + 1), s)).join("");
 	$("[data-advice]", root).innerHTML = x.advice.map((s) => item("·", s)).join("");
 
 	const text = (key: string, label: string, t: GuaText | null) => {
@@ -117,8 +123,8 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	$("[data-dong-lines]", root).innerHTML = x.dong.lines
 		.map(
 			(l) =>
-				`<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? " · 主" : ""}</span>` +
-				`<p style="font-family: var(${x.dong.font})">${l.text}</p>${l.baihua ? `<p class="ybh">${l.baihua}</p>` : ""}</div>`,
+				`<div class="yc"><span class="t${l.main ? " main" : ""}">${l.title}${l.main ? UI.main : ""}</span>` +
+				`<p${en ? ' lang="zh-Hans"' : ''} style="font-family: var(${x.dong.font})">${l.text}</p>${l.baihua ? `<p class="ybh">${l.baihua}</p>` : ""}</div>`,
 		)
 		.join("");
 	set("[data-dong-note]", x.dong.note);
@@ -128,7 +134,7 @@ export function render(root: HTMLElement, r: CastResult, x: Reading, question: s
 	$('[data-fact="bian"]', root).hidden = !p.bian;
 	$("[data-rows]", root).innerHTML = p.rows.map(rowHtml).join("");
 
-	shown = { at, old, question, gua: x.bian ? `${x.ben.name}之${x.bian.name}` : x.ben.name };
+	shown = { at, old, question, gua: x.bian ? `${x.ben.name}${UI.zhi}${x.bian.name}` : x.ben.name };
 	const past = store ? find(store, at) : undefined;
 	visit(root, past, x.verdict === "凶");
 	drawRemind(past);
@@ -206,7 +212,7 @@ function visit(root: HTMLElement, p: Past | undefined, bad: boolean) {
 	}
 	// 凶卦的回访以一句「愿你安好」收尾
 	$("[data-visit-bless]", card).hidden = !bad;
-	fill(card, { ago: ago(new Date(p.at), new Date()) });
+	fill(card, { ago: ago(new Date(p.at), new Date(), en) });
 	for (const el of card.querySelectorAll("[data-slot=q]")) quote(el, p.question);
 	state(p.review);
 }
@@ -223,7 +229,7 @@ function state(review: Review | undefined, editing = false): HTMLElement {
 		for (const r of form.querySelectorAll<HTMLInputElement>("input[type=radio]")) r.checked = r.value === review?.outcome;
 		noteInput.value = review?.note ?? "";
 	} else if (review && part === told) {
-		fill(told, { at: dayLabel(new Date(review.at)), outcome: labels[review.outcome], note: review.note });
+		fill(told, { at: en ? englishDay(new Date(review.at)) : dayLabel(new Date(review.at)), outcome: labels[review.outcome], note: review.note });
 		$("[data-visit-note]", told).hidden = !review.note;
 	}
 	return title;
@@ -269,7 +275,7 @@ function drawRemind(p: Past | undefined) {
 	const today = new Date();
 	for (const r of remind.querySelectorAll<HTMLInputElement>("input[type=radio]")) r.checked = r.defaultChecked;
 	for (const el of remind.querySelectorAll<HTMLElement>("[data-due]"))
-		el.textContent = monthDay(remindAt(today, Number(el.dataset.due)));
+		el.textContent = monthDay(remindAt(today, Number(el.dataset.due)), en);
 }
 
 toggle.addEventListener("click", () => {
@@ -302,7 +308,7 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 		const start = remindAt(now, days);
 		const cast = new Date(shown.at);
 		const { summary = "", body = "", url = "" } = remind.dataset;
-		const copy = { summary, body, url };
+		const copy = { summary, body, url, en };
 		if (kind === "google") {
 			const web = googleUrl(cast, shown.gua, start, now, copy);
 			go(intentOk ? { href: intent(web) } : { href: web, target: "_blank", rel: "noopener" });
@@ -310,7 +316,7 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 			// 在看不见的框里打开服务端地址：负责人 iPhone 实测，当前页跳过去要先过一个下载页，框里打开直接弹「加入」，
 			// 页面也不动。上一次的框等到下一次点才拿掉，免得系统的加入界面还开着就被收走。
 			frame?.remove();
-			frame = Object.assign(document.createElement("iframe"), { src: icsPath(cast, shown.gua, start, hant) });
+			frame = Object.assign(document.createElement("iframe"), { src: icsPath(cast, shown.gua, start, en ? "en" : hant) });
 			frame.style.display = "none";
 			document.body.append(frame);
 		} else {
@@ -321,7 +327,7 @@ for (const b of remind.querySelectorAll<HTMLElement>("[data-remind-get]"))
 		}
 		const kept = keep({ remind: { days, at: now.toISOString() } });
 		const msg = $<HTMLTemplateElement>(`[data-remind-done=${kind}]`, remind).content.cloneNode(true) as DocumentFragment;
-		fill(msg, { due: monthDay(start) });
+		fill(msg, { due: monthDay(start, en) });
 		// 日历照样加了，但往卦里没记上提醒：说清楚，不说「本次结果不会留下记录」（旧卦本来就在往卦里）
 		if (!kept) msg.lastElementChild?.append(remind.dataset.unsaved ?? "");
 		got.replaceChildren(msg);
@@ -357,16 +363,16 @@ export async function list(root: HTMLElement, load: Load, open: (p: Past, r: Cas
 				const x = meihua ? null : compose(r, p.ask);
 				const verdict = x ? x.verdict : ty ? duan(ty.rel) : "";
 				const li = $("li", tpl.content).cloneNode(true) as HTMLElement;
-				$(".day", li).textContent = `${dayLabel(new Date(p.at))} · ${r.ganzhi.day}日`;
+				$(".day", li).textContent = en ? `${englishDay(new Date(p.at))} · Day ${r.ganzhi.day}` : `${dayLabel(new Date(p.at))} · ${r.ganzhi.day}日`;
 				$(".mh", li).hidden = !meihua;
 				const ben=UI.names[r.gua.name]??r.gua.name;
-				$(".gua", li).innerHTML = r.bian ? `${ben} <small>之</small> ${UI.names[r.bian.name]??r.bian.name}` : ben;
+				$(".gua", li).innerHTML = r.bian ? `${ben} <small>${UI.zhi}</small> ${UI.names[r.bian.name]??r.bian.name}` : ben;
 				$(".q", li).textContent = p.question;
 				// 自记：没记、不想记的留空
 				const o = p.review?.outcome;
 				$(".v", li).textContent = o && o !== "skip" ? names[o] : "";
 				const d = $(".duan", li);
-				d.textContent = verdict;
+				d.textContent = UI.verdicts[verdict as keyof typeof UI.verdicts] ?? verdict;
 				d.dataset.verdict = verdict;
 				$("button", li).addEventListener("click", () =>
 					x ? open(p, r, x) : location.assign(`${hant?'/zh-hant':''}/meihua/?at=${encodeURIComponent(p.at)}`),

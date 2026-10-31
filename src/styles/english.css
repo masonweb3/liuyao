@@ -1,0 +1,47 @@
+/* English uses the existing serif, with horizontal headings and ordinary word spacing. */
+:root:lang(en){--font-body:'Sixyao English','Noto Serif SC',serif;--font-display:var(--font-body)}
+html:lang(en) :is(h1,h2,h3,button,a,p,label,legend,.name,.hint,.sub,.kind,.no,.mark,.keys,.title,.pos,.kicker,.label){letter-spacing:normal}
+html:lang(en) :is(.btn,.quiet,.tag,.past,.pro){letter-spacing:normal;padding-inline:16px;white-space:normal}
+html:lang(en) .home{animation:none}
+html:lang(en) .home .motto{writing-mode:horizontal-tb;font-size:clamp(25px,4.2vw,54px);line-height:1.5;text-align:center}
+html:lang(en) .home .motto>span{display:block}
+html:lang(en) .home .aside{display:none}
+html:lang(en) .home .cast{min-width:220px}
+html:lang(en) .home .center{gap:32px}
+html:lang(en) .home .brand .name{display:none;font-size:14px}
+html:lang(en) .home header{gap:0}
+html:lang(en) .home .acts{gap:0}
+html:lang(en) .home .past{padding-inline:6px}
+html:lang(en) :is(.reading,.history) .brand .name{display:none}
+html:lang(en) .topic .cat .head{flex-wrap:wrap;gap:5px}
+html:lang(en) .topic .cat .yong{font-size:11px}
+html:lang(en) .reading .duan,html:lang(en) .history .duan{writing-mode:horizontal-tb;width:auto;min-width:0;height:auto;font-size:13px;line-height:1.5;padding:6px 10px}
+html:lang(en) .reveal :is(.name,.zhi){writing-mode:horizontal-tb;max-width:80vw;font-size:clamp(24px,5vw,48px);line-height:1.4}
+html:lang(en) .reveal .pair{flex-wrap:wrap;justify-content:center}
+html:lang(en) .reveal .name{padding:0;max-width:220px;text-align:center;overflow-wrap:normal}
+html:lang(en) .reveal .gz{max-width:90vw;overflow-wrap:anywhere}
+html:lang(en) .reveal .zhi{letter-spacing:normal}
+html:lang(en) .reading :is(.name,.zhi){writing-mode:horizontal-tb;font-size:clamp(24px,4vw,42px);line-height:1.4;word-break:normal}
+html:lang(en) .reading .gua{gap:28px;flex-wrap:wrap;justify-content:flex-start}
+html:lang(en) .reading .names{flex-direction:column;min-width:0;gap:12px;max-width:100%}
+html:lang(en) .reading h1{writing-mode:horizontal-tb;font-size:32px;line-height:1.4;overflow-wrap:normal}
+html:lang(en) .reading .zhi{padding-top:0;font-size:20px;letter-spacing:normal}
+html:lang(en) .reading .p-head{flex-wrap:wrap}
+html:lang(en) .reading .texts>.basis{grid-column:1/-1}
+html:lang(en) .reading .panel{overflow-x:auto}
+html:lang(en) .reading table{min-width:700px}
+html:lang(en) .gua .names h1{font-size:clamp(28px,4vw,46px);letter-spacing:normal;writing-mode:horizontal-tb}
+html:lang(en) .page>.top .past{padding-inline:0;letter-spacing:normal}
+html:lang(en) .page .gua .row{flex-wrap:wrap;gap:20px}
+html:lang(en) .page .gua .names{flex-direction:column;gap:12px;max-width:100%}
+html:lang(en) .page .gua .tri{writing-mode:horizontal-tb;padding-top:0;letter-spacing:normal;line-height:1.5}
+html:lang(en) .page .cards{grid-template-columns:1fr}
+html:lang(en) .page .cards :is(.kind,.n){letter-spacing:normal;overflow-wrap:anywhere}
+html:lang(en) .list .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+html:lang(en) .list .grid .short{max-width:100%;font-size:17px;line-height:1.5;letter-spacing:normal;text-align:center;overflow-wrap:anywhere}
+html:lang(en) .list .grid a{min-height:120px;padding:12px 6px}
+@media(min-width:1024px){html:lang(en) .home .brand .name{display:block}}
+@media(min-width:768px){html:lang(en) .list .grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:1024px){html:lang(en) .list .grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(max-width:359px){.home .brand .name,.page>.top .brand .name{display:none}}
+@media(min-width:1024px){html:lang(en) .history :is(.thead,.rec){grid-template-columns:150px 220px minmax(0,1fr) 120px 110px}}

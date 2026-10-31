@@ -103,11 +103,11 @@ TEXT = {
     # 竖排标语、印章
     "display": "心有所疑不妨一问爻",
     # 品牌、往卦、起卦、提示、手动排盘、桌面竖排小字、干支日期、栏目
-    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通简繁体中文（当前）" + GANZHI + COLUMNS + " ·　",
+    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通简繁体中文（当前）EN" + GANZHI + COLUMNS + " ·　",
 }
 HOME_HANT = {"display": ("Iansui", "iansui"), "body": ("Noto Serif TC", "serif-tc")}
 HANT_COLUMNS = "".join(re.findall(r'hant: "(.+?)"', open("src/data/columns.ts", encoding="utf-8").read()))
-TEXT_HANT = {"display": "心有所疑不妨一問爻", "body": "六爻往卦起一事問次搖手動排盤寂然不感而遂通繁體中文（目前）" + GANZHI + HANT_COLUMNS + " ·　"}
+TEXT_HANT = {"display": "心有所疑不妨一問爻", "body": "六爻往卦起一事問次搖手動排盤寂然不感而遂通繁體中文（目前）EN" + GANZHI + HANT_COLUMNS + " ·　"}
 
 # 梅花页（/meihua/，M21）的首屏，同首页的做法：另一组小文件 src/fonts/meihua-{display,body}.woff2
 # 与 src/styles/meihua-fonts.css，只由梅花页引入、预加载。改了梅花首屏的文案就重跑。
@@ -431,6 +431,9 @@ def first_screen(name: str, text: dict[str, str], out: str, fonts=HOME) -> None:
 
 def main() -> None:
     first_screen("home", TEXT, "src/styles/fonts.css")
+    # English uses one shared Latin subset for the home and knowledge pages.
+    english = ''.join(chr(n) for n in range(32,127)) + '爻简繁体體中文·—–’“”…' + GANZHI
+    first_screen("home-en", {"body": english}, "src/styles/home-en-fonts.css", {"body": ("Sixyao English", "serif-sc")})
     first_screen("home-hant", TEXT_HANT, "src/styles/home-hant-fonts.css", HOME_HANT)
     make_subset(load("serif-tc"), "六爻搖卦成卦納甲排盤白話解讀 ·").save("src/fonts/og-hant-body.woff2")
     flow = ''.join(c for c in "手動排盤所問何事此事關乎靜心搖卦成卦先停一停此問不占先顧眼前再說具體些往卦問開元通寶吸呼" if c not in TEXT_HANT["display"])

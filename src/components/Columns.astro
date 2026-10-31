@@ -10,21 +10,22 @@ interface Props {
   /** 本页就是这一栏的首页（首页、目录页），aria-current="page"；栏目里的其他页（卦页）是 "true"，点它回栏目首页 */
   page?: boolean;
   hant?: boolean;
+  en?: boolean;
   /** 首页的暗场配色 */
   dark?: boolean;
 }
 
-const { at, page = false, hant = false, dark = false } = Astro.props;
+const { at, page = false, hant = false, en = false, dark = false } = Astro.props;
 ---
 
 {/* 当前项另补 aria-label（以可见文字开头）：Chromium 的无障碍树里看不到链接的 aria-current，读屏未必念「当前」。
     不用视觉隐藏的字：首页上看不见的字也会触发字体下载（首屏字形子集里没有「当前」）。 */}
-<nav class:list={['cols', { dark }]} aria-label={hant ? '欄目' : '栏目'}>
-  {COLUMNS.map((c) => {
-    const name = hant ? c.hant : c.hans;
+<nav class:list={['cols', { dark }]} aria-label={en ? 'Sections' : hant ? '欄目' : '栏目'}>
+  {COLUMNS.filter(c=>!en || c.enPath).map((c) => {
+    const name = en ? c.en : hant ? c.hant : c.hans;
     const cur = c.path === at;
     return (
-      <a href={hant ? (c.hantPath ?? c.path) : c.path} aria-current={cur ? (page ? 'page' : 'true') : undefined} aria-label={cur ? `${name}，${hant ? '目前欄目' : '当前栏目'}` : undefined}>{name}</a>
+      <a href={en ? c.enPath : hant ? (c.hantPath ?? c.path) : c.path} aria-current={cur ? (page ? 'page' : 'true') : undefined} aria-label={cur ? en ? `${name}, current section` : `${name}，${hant ? '目前欄目' : '当前栏目'}` : undefined}>{name}</a>
     );
   })}
 </nav>
