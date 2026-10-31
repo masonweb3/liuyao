@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import content from '../data/zi.json';
 import { initials, related, ZI, zi, ziPath } from './zi';
 
-describe('单字页第一批', () => {
-	it('342 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
-		expect(ZI).toHaveLength(342);
-		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(342);
+describe('单字页', () => {
+	it('592 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
+		expect(ZI).toHaveLength(592);
+		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(592);
 		for (const c of ZI) for (const hant of [false, true]) {
 			const x = zi(c,hant);
 			expect(x.form, c).toBeDefined();
@@ -22,6 +22,10 @@ describe('单字页第一批', () => {
 		expect(zi('乐',true).ch).toBe('樂');
 		expect([zi('乐').strokes, zi('乐',true).strokes, zi('乐').form.kx]).toEqual([5,15,15]);
 		expect(zi('荣').strokes).toBe(10); // Unihan 18 的总画数，不冒称规范笔顺的笔画。
+		expect(zi('怀',true).ch).toBe('懷');
+		expect(zi('儿',true).ch).toBe('兒');
+		expect(zi('致',true).ch).toBe('致');
+		expect(zi('涂',true).ch).toBe('涂');
 		for (const c of ZI) for (const by of ['radical','sound'] as const) {
 			const list = related(c,by);
 			expect(list).not.toContain(c);

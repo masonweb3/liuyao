@@ -1,4 +1,4 @@
-"""单字页第一批的数据与标题字轮廓；在测试服务器运行。
+"""单字页已审定批次的数据与标题字轮廓；在测试服务器运行。
 
 python tools/build-zi.py --batch docs/review-m22/zi/batch1.tsv \
   --content docs/review-m22/zi/content/zi.json --research /path/to/m22-research
@@ -28,7 +28,7 @@ def main():
     args = p.parse_args()
     rows = [line.split("\t") for line in Path(args.batch).read_text().splitlines() if not line.startswith("#")]
     content = json.loads(Path(args.content).read_text())
-    assert len(rows) == len(content) == 342
+    assert 342 <= len(rows) == len(content) <= 2015
     assert [r[2] for r in rows] == list(content)
     spec = importlib.util.spec_from_file_location("fonts", "tools/subset-fonts.py")
     fonts = importlib.util.module_from_spec(spec)
@@ -93,17 +93,6 @@ def main():
         c = row[2]
         assert given[c] == int(row[3]) and surnames[c] == int(row[4]), c
         text = content[c]
-        # 审查建议：保留本义，不把字义写成对使用者的预言。
-        for key in ["yi", "yi_hant"]:
-            text[key] = text[key].replace("寶重", "珍重").replace("宝重", "珍重").replace("旭日東昇", "旭日東升")
-            text[key] = text[key].replace("数目与姓的万", "数目的万").replace("數目與姓的萬", "數目的萬")
-            text[key] = text[key].replace("称赞女子品德好", "称赞品德好").replace("稱讚女子品德好", "稱讚品德好")
-            if c in "培祥之颜有程":
-                text[key] = text[key].replace("原指", "指").replace("本义是", "有一义是").replace("本義是", "有一義是")
-            if c == "珍":
-                text[key] = text[key].replace("取的是被人爱惜、珍视", "取珍爱、珍视之意").replace("取的是被人愛惜、珍視", "取珍愛、珍視之意")
-            if c == "韩":
-                text[key] = text[key].replace("今河南中部", "今河南中部和山西东南部" if key == "yi" else "今河南中部和山西東南部")
         forms = dictionary["g"][c].split(";")
         form = forms[4][0] if len(forms) > 4 and forms[4] else c
         meta[c] = {"given": given[c], "surname": surnames[c], "rank": rank.get(c), "pos": [positions[c][k] for k in ["first", "second", "single"]],
