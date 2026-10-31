@@ -1,0 +1,170 @@
+---
+import elements from '../data/qiming-wuxing.json';
+import cities from '../data/cities.json';
+interface Props { hant?: boolean }
+const { hant = false } = Astro.props;
+const t = (s: string, h: string) => hant ? h : s;
+---
+
+<section id="qiming" class="naming" data-naming data-hant={hant ? '1' : undefined} data-timezones={JSON.stringify(cities.zones)} data-private aria-labelledby="qn-title">
+  <h2 id="qn-title">起名</h2>
+  <p class="lead">{t('从诗经、楚辞的 34 组摘句里找名字。先看本盘五行个数，再按自己喜欢的意象浏览；不据个数判断该用什么字。', '從詩經、楚辭的 34 組摘句裡找名字。先看本盤五行個數，再按自己喜歡的意象瀏覽；不據個數判斷該用什麼字。')}</p>
+  <div class="naming-body">
+    <div>
+      <form method="dialog" autocomplete="off" data-naming-form aria-labelledby="qn-title">
+        <label for="qn-surname">姓</label>
+        <input id="qn-surname" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder={t('如：林、欧阳', '如：林、歐陽')} aria-describedby="qn-error" required />
+        <label for="qn-gender">{t('性别', '性別')}</label>
+        <select id="qn-gender" required><option value="">{t('请选择', '請選擇')}</option><option value="女">女</option><option value="男">男</option></select>
+        <label for="qn-date">{t('出生日期（公历）', '出生日期（國曆）')}</label>
+        <input id="qn-date" type="date" min="1901-01-01" max="2100-12-31" required />
+        <label for="qn-time">{t('出生时刻', '出生時刻')}</label>
+        <input id="qn-time" type="time" required />
+        <label for="qn-zone">{t('出生地时区', '出生地時區')}</label>
+        <select id="qn-zone" required><option value="Asia/Taipei">{t('台北 · Asia/Taipei', '臺北 · Asia/Taipei')}</option></select>
+        <p class="fine">{t('按出生地当时的钟表时间输入。年、月按精确交节；日、时按当地标准时，23 点换日。此处不校正真太阳时。', '按出生地當時的鐘錶時間輸入。年、月按精確交節；日、時按當地標準時，23 點換日。此處不校正真太陽時。')}</p>
+        <p class="fine">{t('沿用八字页的时区规则：夏令时跳过的时段按拨快前算，重复的时段取先到的一次。', '沿用八字頁的時區規則：日光節約時間跳過的時段按撥快前算，重複的時段取先到的一次。')}</p>
+        <div class="actions"><button type="button" data-naming-go disabled>起名</button><button type="button" data-naming-clear>清空</button><button type="button" data-naming-retry hidden>{t('重新载入', '重新載入')}</button></div>
+        <p id="qn-error" role="alert" data-naming-error></p>
+        <p role="status" data-naming-status></p>
+        <p class="fine">{t('姓氏、性别、生辰和结果只在这台设备上计算，不上传、不存、不进网址；离页清空。', '姓氏、性別、生辰和結果只在這台裝置上計算，不上傳、不存、不進網址；離頁清空。')}</p>
+        <noscript><p>{t('请启用 JavaScript，才能在本机计算。', '請啟用 JavaScript，才能在本機計算。')}</p></noscript>
+      </form>
+      <details class="rules">
+        <summary>{t('字五行与筛选规则', '字五行與篩選規則')}</summary>
+        <p>{t('字表为本站原创，只给候选池里的自然意象归类，不是统一的字五行标准。其余抽象用字不强行归类。', '字表為本站原創，只給候選池裡的自然意象歸類，不是統一的字五行標準。其餘抽象用字不強行歸類。')}</p>
+        <ul>{Object.entries(elements).map(([el, x]) => <li><strong>{el} · {hant ? x.charsHant : x.chars}</strong>：{hant ? x.reasonHant : x.reason}</li>)}</ul>
+        <p>{t('八字只数八个字的五行，不算藏干，不从个数推强弱、喜用或选字要求。所有候选都与完整姓氏连读，筛查字表收录的普通话多音，以及拼音、威妥玛、粤拼的有限不雅词表；不能覆盖所有方言、口音和语境，正式使用前仍请向家人和当地使用者核实读法。', '八字只數八個字的五行，不算藏干，不從個數推強弱、喜用或選字要求。所有候選都與完整姓氏連讀，篩查字表收錄的國語多音，以及拼音、威妥瑪、粵拼的有限不雅詞表；不能涵蓋所有方言、口音和語境，正式使用前仍請向家人和當地使用者核實讀法。')}</p>
+        <p>{t('英语名字仅作近似音节联想，不是译名；不同口音听感会变。', '英語名字僅作近似音節聯想，不是譯名；不同口音聽感會變。')}</p>
+        <p>{t('诗句取自', '詩句取自')} <a href="https://github.com/chinese-poetry/chinese-poetry/tree/b8594f81a89752241442f2ce267d6f66f96704ee" rel="noopener noreferrer">chinese-poetry</a>（MIT），{t('摘句去掉原标点。候选说明与字五行归类为本站原创；引用只作文字出处，不把原篇人物、经历或宗教意涵套到使用者。', '摘句去掉原標點。候選說明與字五行歸類為本站原創；引用只作文字出處，不把原篇人物、經歷或宗教意涵套到使用者。')}</p>
+      </details>
+    </div>
+    <div data-naming-result class="naming-result" role="region" aria-label={t('起名结果', '起名結果')} tabindex="-1" hidden></div>
+  </div>
+</section>
+
+<script>
+  import type { NamingInput, NamingResult, Element } from '../lib/qiming';
+
+  const root = document.querySelector<HTMLElement>('[data-naming]')!;
+  const hant = root.dataset.hant === '1';
+  const t = (s: string, h: string) => hant ? h : s;
+  const form = root.querySelector<HTMLFormElement>('[data-naming-form]')!;
+  const surname = root.querySelector<HTMLInputElement>('#qn-surname')!;
+  const gender = root.querySelector<HTMLSelectElement>('#qn-gender')!;
+  const date = root.querySelector<HTMLInputElement>('#qn-date')!;
+  const time = root.querySelector<HTMLInputElement>('#qn-time')!;
+  const zone = root.querySelector<HTMLSelectElement>('#qn-zone')!;
+  const go = root.querySelector<HTMLButtonElement>('[data-naming-go]')!;
+  const retry = root.querySelector<HTMLButtonElement>('[data-naming-retry]')!;
+  const error = root.querySelector<HTMLElement>('[data-naming-error]')!;
+  const status = root.querySelector<HTMLElement>('[data-naming-status]')!;
+  const result = root.querySelector<HTMLElement>('[data-naming-result]')!;
+  // 本机 IANA 列表涵盖海外出生地；显示通用时区名，历史偏移在计算时按出生日期查。
+  const zones = ['UTC', ...(Intl.supportedValuesOf?.('timeZone') ?? JSON.parse(root.dataset.timezones!) as string[])];
+  zone.replaceChildren(...zones.map(z => {
+    const option = document.createElement('option');
+    option.value = z;
+    const name = new Intl.DateTimeFormat(hant ? 'zh-Hant' : 'zh-Hans', {timeZone:z,timeZoneName:'longGeneric'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value ?? z;
+    option.textContent = `${name} · ${z}`;
+    option.defaultSelected = z === 'Asia/Taipei';
+    return option;
+  }));
+  let worker: Worker | undefined;
+  let ready = false, id = 0, saved: NamingResult | undefined, fullSurname = '', filter: Element | undefined;
+  const clearResult = () => { id++; saved = undefined; result.hidden = true; result.replaceChildren(); error.textContent = ''; go.disabled = !ready; };
+  const clear = () => { clearResult(); form.reset(); fullSurname = ''; status.textContent = ''; };
+  const fail = () => { id++; ready = false; worker?.terminate(); worker = undefined; go.disabled = true; retry.hidden = false; status.textContent = ''; error.textContent = t('计算文件未能载入，请重新载入。已填内容仍在本页。','計算檔案未能載入，請重新載入。已填內容仍在本頁。'); };
+  function warm() {
+    if (worker) return;
+    status.textContent = t('正在载入本地计算…','正在載入本機計算…');
+    retry.hidden = true;
+    error.textContent = '';
+    worker = new Worker(new URL('../scripts/qiming-worker.ts',import.meta.url),{type:'module'});
+    worker.onerror = fail;
+    worker.onmessage = (e: MessageEvent<{ready?:boolean;id?:number;result?:NamingResult;error?:string}>) => {
+      if (e.data.ready) { ready = true; go.disabled = false; status.textContent = t('已载入，计算不再取网络资源。','已載入，計算不再取網路資源。'); return; }
+      if (e.data.id !== id) return;
+      go.disabled = false;
+      status.textContent = '';
+      if (e.data.result) { saved = e.data.result; filter = undefined; draw(true); }
+      else error.textContent = e.data.error === 'surname' ? t('请填字表内一至两个汉字的姓氏，不填全名。','請填字表內一至兩個漢字的姓氏，不填全名。') : e.data.error === 'timezone' ? t('这个时区暂不可用，请重新选择。','這個時區暫不可用，請重新選擇。') : t('请核对出生日期、时刻与性别后重试。','請核對出生日期、時刻與性別後重試。');
+    };
+  }
+  function run() {
+    if (!ready || !worker || !form.reportValidity()) return;
+    clearResult();
+    fullSurname = surname.value.trim();
+    const [year,month,day] = date.value.split('-').map(Number);
+    const [hour,minute] = time.value.split(':').map(Number);
+    const input: NamingInput = {surname:fullSurname,birth:{calendar:'solar',year:year!,month:month!,day:day!,hour:hour!,minute:minute!,gender:gender.value as '男'|'女'},timezone:zone.value,hant};
+    go.disabled = true;
+    status.textContent = t('正在本机排盘、筛选…','正在本機排盤、篩選…');
+    worker.postMessage({id,input});
+  }
+  function text(tag: string, value: string, parent: HTMLElement) { const e = document.createElement(tag); e.textContent = value; parent.append(e); return e; }
+  function draw(focus: boolean) {
+    if (!saved) return;
+    result.replaceChildren(); result.hidden = false;
+    text('h3',t('本盘与名字意象','本盤與名字意象'),result);
+    text('p',saved.pillars.join(' · '),result);
+    text('p',t('八个字的个数。点标签只筛选同类意象，0 不表示应该用这一类字。','八個字的個數。點標籤只篩選同類意象，0 不表示應該用這一類字。'),result);
+    const filters = document.createElement('div'); filters.className = 'filters'; result.append(filters);
+    for (const el of [undefined,...Object.keys(saved.counts) as Element[]]) {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = el ? `${el} ${saved.counts[el]}` : t('全部','全部'); button.setAttribute('aria-pressed',String(filter === el)); button.onclick = () => { filter = el; draw(false); }; filters.append(button);
+    }
+    const candidates = saved.candidates.filter(c => !filter || c.tags.includes(filter));
+    text('p',t(`${candidates.length} 组候选 · 已按本页词表筛查完整姓名`,`${candidates.length} 組候選 · 已按本頁詞表篩查完整姓名`),result);
+    if (!candidates.length) text('p',t('这组没有合适的候选，可以看其他意象。','這組沒有合適的候選，可以看其他意象。'),result);
+    for (const c of candidates) {
+      const card = document.createElement('article'); result.append(card);
+      text('h3',fullSurname+c.given,card);
+      text('p',c.read,card);
+      text('p',`${t('拼音','拼音')} ${c.roman.py} · ${t('威妥玛','威妥瑪')} ${c.roman.wg}`,card);
+      text('p',`${t('粤拼','粵拼')} ${c.roman.jp}`,card);
+      text('p',c.tags.length ? `${t('意象','意象')} · ${c.tags.join('／')}` : t('这组用字未归五行意象。','這組用字未歸五行意象。'),card);
+      text('blockquote',hant ? c.source.quoteHant : c.source.quote,card);
+      text('p',`《${hant ? c.source.bookHant : c.source.book}·${hant ? c.source.titleHant : c.source.title}》`,card);
+      text('p',hant ? c.source.noteHant : c.source.note,card);
+      if (c.echo.length) text('p',t(`近似英语音节联想：${c.echo.join('、')}；不是译名。`,`近似英語音節聯想：${c.echo.join('、')}；不是譯名。`),card);
+    }
+    if (focus) result.focus();
+    else filters.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus({preventScroll:true});
+  }
+  form.addEventListener('focusin',warm);
+  form.addEventListener('input',clearResult);
+  form.addEventListener('submit',e=>{e.preventDefault();run();});
+  form.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229&&e.target instanceof HTMLInputElement){e.preventDefault();run();}});
+  go.addEventListener('click',run);
+  retry.addEventListener('click',warm);
+  root.querySelector('[data-naming-clear]')!.addEventListener('click',clear);
+  window.addEventListener('pagehide',()=>{clear();ready=false;worker?.terminate();worker=undefined;go.disabled=true;});
+</script>
+
+<style>
+  .naming { margin:80px 0 0; padding-top:48px; border-top:1px solid var(--rule); scroll-margin-top:24px; }
+  .naming,.naming :global(*),.naming :global(*::before),.naming :global(*::after) { font-family:var(--font-private)!important; }
+  h2 { font-size:24px; font-weight:400; letter-spacing:.18em; }
+  .lead { max-width:720px; line-height:2; color:var(--ink-2); }
+  .naming-body { display:grid; grid-template-columns:minmax(0,1fr); gap:32px; margin-top:32px; }
+  form { display:grid; gap:10px; }
+  label { margin-top:10px; font-size:14px; }
+  input,select { box-sizing:border-box; width:100%; min-width:0; min-height:44px; padding:10px; background:transparent; color:var(--ink); border:1px solid var(--rule); border-radius:0; font-size:16px; }
+  button { min-height:44px; padding:10px 16px; background:transparent; color:var(--ink); border:1px solid var(--rule); cursor:pointer; font-size:14px; }
+  button:disabled { opacity:.5; cursor:wait; }
+  button[aria-pressed=true],[data-naming-go] { border-color:var(--ink); }
+  .actions,.naming-result :global(.filters) { display:flex; flex-wrap:wrap; gap:10px; }
+  .fine,.rules { font-size:13px; line-height:1.9; color:var(--ink-2); }
+  .rules { margin-top:24px; }
+  .rules summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
+  .rules li { margin-bottom:12px; }
+  a { color:inherit; text-underline-offset:4px; }
+  [role=alert] { margin:0; color:var(--seal); }
+  .naming-result :global(p) { line-height:1.9; overflow-wrap:anywhere; }
+  .naming-result :global(article) { padding:24px 0; border-top:1px solid var(--rule); }
+  .naming-result :global(h3) { font-weight:400; font-size:20px; letter-spacing:.08em; }
+  .naming-result :global(blockquote) { margin:20px 0 8px; padding-left:16px; border-left:2px solid var(--rule); line-height:2; }
+  :focus-visible { outline:2px solid var(--seal); outline-offset:3px; }
+  [hidden] { display:none!important; }
+  @media(min-width:1024px) { .naming-body { grid-template-columns:360px minmax(0,1fr); gap:80px; } }
+</style>

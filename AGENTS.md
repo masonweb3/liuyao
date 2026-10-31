@@ -75,6 +75,7 @@ src/
   lib/zeri-rule.ts  择日的六个事项、命中规则、冲的生肖、月页网址（零依赖、不 import 任何模块：择日首页脚本也用它，见 §6「择日」）
   lib/zeri.ts       择日的构建时部分（引 huangli.ts）：每月吉日、月页逐日一行、按当月数据写的一句
   lib/bazi.ts       八字排盘引擎（零 DOM，引 tyme4ts）：四柱、十神藏干、十二长生、纳音空亡、神煞、刑冲合会、胎元命宫身宫、起运大运流年；只在 Worker 里跑（见 §6「八字」）
+  lib/qiming.ts     本地起名（引 bazi.ts、quming.ts）：34 组古文候选、完整姓名的多音及中英文词表筛查、五行意象与英语音节联想；只在独立 Worker 里跑
   lib/bazi-baihua.ts 八字白话（M20，零 DOM，引 bazi.ts 的 guanXi）：把盘面说成日主、五行与十神、大运时间轴三块，只填句式的空位；在 Worker 里拼（见 §6「八字」）
   lib/bazi-time.ts  八字的时刻换算（零依赖、不 import 任何模块：/bazi/ 页面脚本也用它）：均时差、按 IANA 时区算出生那一刻的 UTC 偏移与夏令时
   lib/bazi-kb.ts    八字知识页的数据（构建时，引 tyme4ts 与 bazi.ts）：十天干、十二地支、十神表、三十组纳音、十二长生表、六十日柱、网址与小节名（见 §6「八字知识页」）
@@ -102,6 +103,7 @@ src/
   scripts/huangli-worker.ts 今日页在时间窗外的回退：Web Worker 里用 tyme4ts 现算当天
   scripts/meihua.ts 梅花页的状态机（只 import meihua-page.ts，不用动态 import）；scripts/meihua-worker.ts 在 Worker 里起卦、备好解读
   scripts/bazi-worker.ts /bazi/ 的排盘：Web Worker 里跑 bazi.ts（生辰只在这里算），白话（bazi-baihua.ts）也在这里拼
+  scripts/qiming-worker.ts /quming/ 的起名：字表和排盘依赖一次载入，姓名与生辰只走本机消息；Qiming.astro 的输入、结果、提示全部使用设备字体，离页清空
   data/guaci.json   卦爻辞原文（维基文库转录，CC BY-SA 4.0，保持原文件和原协议）
   data/guaci-hant.json 卦爻辞繁体原文（维基文库同一底本，结构与 guaci.json 逐行对应，见 NOTICE）
   data/baihua.json  64 条卦辞白话（本项目原创，CC BY-NC-SA 4.0）
@@ -121,6 +123,8 @@ src/
   data/bazi-tiangan.json、bazi-dizhi.json、bazi-pages.json 八字知识页的释义：天干、地支各导语与「怎么读」三段，十神、纳音、十二长生页，两个目录页的导语（本项目原创，经独立审查，CC BY-NC-SA 4.0）；各带 -hant 繁体（逐条校对）
   data/bazi-rizhu.json 六十日柱的释义：目录导语一句，60 柱各导语一句与「怎么读这一柱」三段，键即网址 slug（本项目原创，两组写作，经独立审查：必须改 81 处，建议采纳 5 条；CC BY-NC-SA 4.0）；-hant 繁体（逐条校对）
   data/cities.json  出生地名单（tools/build-cities.py 生成）：城市简繁名、所属、经度、IANA 时区；经度取自 Natural Earth（公有领域），/bazi/ 点进出生地才下载
+  data/qiming-names.json 34 组起名候选及简繁说明；古文摘句来自 chinese-poetry 固定 MIT 版本（NOTICE），去掉其标点，说明本站原创
+  data/qiming-wuxing.json 候选摘句中 23 字的原创五行意象表与规则；不是统一传统标准，抽象字不强行归类，不按八字个数推喜用或选字要求
   data/quming-zi.json 测名的字表（tools/build-quming.py 由 Unihan 18.0.0 生成，Unicode License v3；谐音词表改编自 LDNOOBW，CC BY 4.0）：8105 字加 Big5 的字形、康熙笔画、读音、异体，姓氏读音、复姓、港式姓氏；/quming/ 第一次点进输入框才整份下载
   data/quming.json  测名页的导语、提示句、怎么算（本项目原创，CC BY-NC-SA 4.0）；quming-hant.json 是繁体（s2twp 转换后逐条校对）
   data/quming-shuli.json 八十一数：/quming/81/ 的导语、来历与 81 条（本项目原创，经独立审查后入库）；-hant 是繁体

@@ -14,6 +14,7 @@ import copyHans from '../data/quming.json';
 import characters from '../data/zi.json';
 import Paper from '../layouts/Paper.astro';
 import Invite from './Invite.astro';
+import Qiming from './Qiming.astro';
 
 interface Props {
   hant?: boolean;
@@ -32,6 +33,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
     <section class="intro">
       <h1>取名</h1>
       <p>{c.lead}</p>
+      <p><a href="#qiming">起名 ↓</a></p>
     </section>
 
     <div class="body">
@@ -86,10 +88,12 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
         </section>
       </div>
     </div>
+    <Qiming hant={hant} />
   </main>
   <Invite hant={hant} />
   <Fragment slot="foot">
     <p>{t('字形、读音、部首笔画取自', '字形、讀音、部首筆畫取自')} <a href="https://www.unicode.org/reports/tr38/" rel="noopener">Unicode Unihan</a>（<a href="https://www.unicode.org/license.txt" rel="license noopener">Unicode License v3</a>）；{t('部分字按《康熙字典》同文书局本核对；英文不雅词表改编自', '部分字按《康熙字典》同文書局本核對；英文不雅詞表改編自')} <a href="https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words" rel="noopener">LDNOOBW</a>（<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>）；{t('八十一数与说明为本站原创', '八十一數與說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('起名的诗句取自', '起名的詩句取自')} <a href="https://github.com/chinese-poetry/chinese-poetry/tree/b8594f81a89752241442f2ce267d6f66f96704ee" rel="noopener">chinese-poetry</a>（MIT）；{t('字五行意象与候选说明为本站原创', '字五行意象與候選說明為本站原創')}<span class="stop">。</span></p>
     <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
   </Fragment>
 </Paper>
