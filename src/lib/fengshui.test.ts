@@ -37,6 +37,8 @@ describe('本地八宅与方位',()=>{
 		expect(diagonal.height).toBeCloseTo(diagonal.width);
 		expect(()=>rotatedSize(10000,10000,0)).toThrow('image');
 		expect(()=>rotatedSize(0,800,0)).toThrow('image');
+		for(const [w,h] of [[20001,1],[1,20001]])expect(()=>rotatedSize(w!,h!,0)).toThrow('image');
+		expect(()=>rotatedSize(20000,1,0)).not.toThrow();
 	});
 	it('格式签名不凭扩展名，拒绝SVG与空文件',()=>{
 		expect(imageType(new Uint8Array([137,80,78,71,13,10,26,10]))).toBe('png');
