@@ -63,6 +63,8 @@ src/
   lib/liuyao/       纯 TS 排盘引擎，零 DOM，浏览器和测试都能直接跑
   lib/flow.ts       起卦流程的屏幕跳转表、Jev 结果的分流顺序、爻与铜钱的文字（零 DOM）
   lib/reading.ts    根据排盘结果和模板组装解读
+  lib/reading-hant.ts 繁体解读：共用排盘规则，取繁体原文、白话与完整技术句式，不做逐字转换
+  lib/home-text.ts  首页构建时的静态简繁文案查表；copy-hant、home-runtime、templates-hant 与技术句式均校对入库
   lib/today.ts      首屏的今日干支（零 DOM）：不等 tyme4ts，临近交节才回退到 calendar.ts；是首页的 LCP，单独成包
   lib/history.ts    往卦的存取与「一事一占」判重（只存起卦输入，回看时重新排盘；在首屏包里）
   lib/revisit.ts    往卦复盘（零 DOM）：回访、提醒两个字段的校验与写回、复盘计数、回访卡何时出现、.ics 与 Google 日历链接的生成
@@ -122,7 +124,8 @@ src/
   data/quming-zi.json 测名的字表（tools/build-quming.py 由 Unihan 18.0.0 生成，Unicode License v3；谐音词表改编自 LDNOOBW，CC BY 4.0）：8105 字加 Big5 的字形、康熙笔画、读音、异体，姓氏读音、复姓、港式姓氏；/quming/ 第一次点进输入框才整份下载
   data/quming.json  测名页的导语、提示句、怎么算（本项目原创，CC BY-NC-SA 4.0）；quming-hant.json 是繁体（s2twp 转换后逐条校对）
   data/quming-shuli.json 八十一数：/quming/81/ 的导语、来历与 81 条（本项目原创，经独立审查后入库）；-hant 是繁体
-  pages/index.astro 首屏加完整起卦流程（单页）
+  components/Ritual.astro 首屏加完整起卦流程（简繁共用）；HomeLanguage 只在首屏显示语言切换
+  pages/index.astro、pages/zh-hant/index.astro 首页简繁路由，传 hant 给 Ritual
   pages/gua/        六十四卦目录 /gua/ 与 64 个卦页 /gua/{slug}/（预渲染，不加载起卦脚本）
   pages/zh-hant/gua/ 同上的繁体版 /zh-hant/gua/…（不用 Astro i18n，路由文件只传 hant）
   pages/huangli/    今日黄历 /huangli/、逐日页 /huangli/{YYYY-MM-DD}/、按月数据 /huangli/data/{YYYY-MM}.json（都预渲染）
@@ -269,7 +272,8 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - 网址一律带尾斜杠（`/gua/di-tian-tai/`）：canonical、sitemap、站内链接都用 `guaPath()`。不带斜杠的由 Cloudflare 307 到带斜杠的。
   - 乾用九、坤用六排在六爻之后，不配爻画；乾没有上一卦，未济没有下一卦。
   - 解读页上本卦、变卦的卦名链到卦页。
-  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。首页还没有繁体，不加 hreflang；繁体页上的起卦、往卦仍去简体首页（栏目「六十四卦」去 `/zh-hant/gua/`）。
+  - 繁体版 `/zh-hant/gua/`：同一套组件传 `hant`，文字取 `guaci-hant.json`、`baihua-hant.json`、`yao-baihua-hant.json`。简繁两页 hreflang 互指（`zh-Hans`、`zh-Hant`，x-default 指简体），只写在 `<head>`，sitemap 不重复写。页头右侧工具区最后是语言切换「简 | 繁」（设计稿 14、D11，方案 B）：两页都显示、顺序固定，当前语言墨色 600、不是链接（`aria-current`），另一个是次要色的链接；每个字点击区手机 44×44、桌面 34×44；外包 `role=group`「语言／語言」，读屏补字「体中文」「體中文」视觉隐藏，当前那个再补「（当前）」「（目前）」（Chrome 不把 `aria-current` 交给读屏），链接带 `hreflang`、文字带 `lang`。不按浏览器语言自动跳转。M12b 起首页也有简繁与 hreflang；繁体页上的起卦、往卦去 `/zh-hant/?ask`、`/zh-hant/?history`。
+  - **首页繁体（M12b）**：同一套 Ritual 组件，静态文案只在构建时查表，动态字由 `main[data-runtime]` 取本语言；`reading-hant.ts` 按完整技术句式填空，不把所问交给转换。两版共用排盘、判重和往卦存储；分享卡默认不放所问。首屏芫荽与 Noto Serif TC 子集另生成，其他流程标题延后使用 `home-hant-flow.woff2`；卦名与经文由 `hant-fonts.ts` 在成卦后注册该卦既有的芫荽／文楷子集。正文补字由 Ritual 引入 paper-fonts；不让繁体全文进入首屏脚本。
 - **栏目导航（M16，设计稿第九行 19–21、D16–D18）：** 栏目表只写在 `src/data/columns.ts`，首页和纸面页头共用 `Columns.astro`。纯 HTML 加 CSS，不带脚本，当前项在构建时写定：首页入口包不能因为它变大。
   - 现在六栏：起卦（`/`）、六十四卦（`/gua/`，目录和 64 个卦页都算这一栏）、黄历（`/huangli/`，今日页、逐日页、节气页与目录、择日首页与事项月页都算这一栏；繁体叫「農民曆」，M16-6）、八字（`/bazi/`，M19-17；排盘页与知识页都算这一栏）、梅花（`/meihua/`，M21-21；先只有简体，繁体页上也链简体页）、取名（`/quming/`，M22-7；测名页与八十一数页都算这一栏，M23 的起名也进这一栏）。六项在 390 宽一行刚好放下（末项文字右缘 367，右端渐隐从 366 起）；320 宽从第五项起要横滑，/quming/ 上当前项「取名」在屏外，Chromium 133 起由 `scroll-initial-target` 滚进来，Safari、Firefox 停在最左（M16-4，不改）；繁体 390 宽「農民曆」多一字，「取名」一半在渐隐里。照下面「栏目多了」的零 JS 做法。还没上线的栏目不出现，不做「即将上线」。往卦不是栏目，是本机记录，留在页头右侧工具区。
   - **加栏目**：栏目表末尾加一行，按上线先后排，已有的位置不动（M16-8）；有繁体版就填 `hantPath`，没有就链简体页；重跑 `tools/subset-fonts.py`。新栏目的页用 `Paper.astro` 时传 `at`（本页属于哪一栏）、`home`（是不是这一栏的首页）、`group`（标题字体子集的目录），数据来源与许可写进 `slot="foot"`。梅花上线后第一栏仍叫「起卦」（M16-9）。
@@ -434,5 +438,6 @@ ssh $STAGE 'cd ~/liuyao && docker compose run --rm app pnpm test'
 ## 9. 文案与代码风格
 
 - **界面文案**：简体中文，文雅、克制、短句。不堆砌术语。专业信息折叠在「完整盘面」里。繁体版用台湾用语，从简体转写、逐条校对（见 §6「繁体」）。
+- M12b 的日历接口新增可选 `l=zh-hant`：只收这一种值、每键一次，卦名白名单同时包含 64 个简体与繁体全名。繁体提醒描述与回访链接使用 `/zh-hant/?history`；其他日期、隐私与响应头规则不变。
 - **代码**：TypeScript strict 模式。注释只解释「为什么」。命名用英文。六爻术语在代码里用拼音或英文，第一次出现时注上中文，例如 `yongShen // 用神`。
 - **测试**：引擎和解读组装必须有测试；纯展示组件不写测试。

@@ -1,35 +1,40 @@
 ---
-import { DISCLAIMER, ERRORS, REMIND, REVIEW } from "../data/copy";
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
+import * as copyHans from "../data/copy";
+import copyHant from "../data/copy-hant.json";
+const { DISCLAIMER, ERRORS, REMIND, REVIEW } = hant ? copyHant : copyHans;
 import { DAYS, NOTE_MAX, OUTCOMES } from "../lib/revisit";
 import Slots from "./Slots.astro";
 
 // 内容由 src/scripts/view.ts 按 src/lib/reading.ts 的结果填入；回访卡、到时提醒见 src/lib/revisit.ts。
-const history = Astro.site ? new URL("/?history", Astro.site).href : "/?history";
+const home = hant ? '/zh-hant/' : '/';
+const history = Astro.site ? new URL(`${home}?history`, Astro.site).href : `${home}?history`;
 const facts = [
-  ["四柱", "pillars"],
-  ["月建", "yue"],
-  ["日辰", "ri"],
-  ["旬空", "kong"],
-  ["本卦", "ben"],
-  ["变卦", "bian"],
+  [t("四柱"), "pillars"],
+  [t("月建"), "yue"],
+  [t("日辰"), "ri"],
+  [t("旬空"), "kong"],
+  [t("本卦"), "ben"],
+  [t("变卦"), "bian"],
 ];
 ---
 
 <section class="screen reading" data-screen="reading" tabindex="-1" hidden>
   <header class="top">
-    <a class="back" href="/" aria-label="回到首屏" data-back>
+    <a class="back" href={home} aria-label={t("回到首屏")} data-back>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
     </a>
-    <a class="brand" href="/" aria-label="六爻，回到首屏">
-      <span class="seal" aria-hidden="true">爻</span>
-      <span class="name" aria-hidden="true">六爻</span>
+    <a class="brand" href={home} aria-label={t("六爻，回到首屏")}>
+      <span class="seal" aria-hidden="true">{t("爻")}</span>
+      <span class="name" aria-hidden="true">{t("六爻")}</span>
     </a>
     <nav class="acts">
-      <button class="to-history" data-go="history">往卦</button>
+      <button class="to-history" data-go="history">{t("往卦")}</button>
       <button class="share-btn" data-share>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1"></rect><path d="M9 8h6M9 12h6"></path></svg>
-        分享卡
-      </button>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1"></rect><path d="M9 8h6M9 12h6"></path></svg>{t("分享卡")}</button>
     </nav>
   </header>
 
@@ -91,18 +96,18 @@ const facts = [
   <div class="layout">
     <div class="lead">
       <section class="asked">
-        <span class="label">所问</span>
+        <span class="label">{t("所问")}</span>
         <p data-question></p>
       </section>
-      <section class="gua" aria-label="卦象">
+      <section class="gua" aria-label={t("卦象")}>
         <div class="lines" data-lines></div>
         <div class="names">
           <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
-          <span class="zhi" data-zhi>之<a class="to-gua" data-zhi-name></a></span>
+          <span class="zhi" data-zhi>{t("之")}<a class="to-gua" data-zhi-name></a></span>
         </div>
       </section>
       <p class="gz" data-gz></p>
-      <section class="verdict" aria-label="结论">
+      <section class="verdict" aria-label={t("结论")}>
         <span class="duan" role="img" data-duan></span>
         <div class="said">
           <p class="conclusion" data-conclusion></p>
@@ -114,11 +119,11 @@ const facts = [
 
     <div class="main">
       <section class="block">
-        <h2 class="head">依据</h2>
+        <h2 class="head">{t("依据")}</h2>
         <ol class="list" data-reasons></ol>
       </section>
       <section class="block">
-        <h2 class="head">建议</h2>
+        <h2 class="head">{t("建议")}</h2>
         <ul class="list advice" data-advice></ul>
       </section>
       <!-- 到时提醒我：收在答的末尾（设计稿 16、D13）。不收邮箱、不推送；日历里只有日期和卦名，不写所问。 -->
@@ -183,8 +188,8 @@ const facts = [
 
       <details class="panel" data-panel>
         <summary>
-          <h2>完整盘面</h2>
-          <span class="toggle" aria-hidden="true"></span>
+          <h2>{t("完整盘面")}</h2>
+          <span class="toggle" aria-hidden="true" data-open={hant ? '展開' : '展开'} data-close="收起"></span>
         </summary>
         <dl class="facts">
           {facts.map(([dt, key]) => (
@@ -197,38 +202,38 @@ const facts = [
         <table>
           <thead>
             <tr>
-              <th class="pos">爻位</th>
-              <th>六神</th>
-              <th>本卦</th>
-              <th>爻象</th>
-              <th>世应</th>
-              <th>变卦</th>
+              <th class="pos">{t("爻位")}</th>
+              <th>{t("六神")}</th>
+              <th>{t("本卦")}</th>
+              <th>{t("爻象")}</th>
+              <th>{t("世应")}</th>
+              <th>{t("变卦")}</th>
             </tr>
           </thead>
           <tbody data-rows></tbody>
         </table>
-        <p class="fu">伏神：<span data-p="fu"></span></p>
+        <p class="fu">{t("伏神：")}<span data-p="fu"></span></p>
       </details>
     </div>
   </div>
 
   <footer class="end">
-    <a class="again" href="/?ask" data-again>再问一事</a>
-    <p>同一件事，一卦为定</p>
+    <a class="again" href={`${home}?ask`} data-again>{t("再问一事")}</a>
+    <p>{t("同一件事，一卦为定")}</p>
     <p class="warn" data-storage hidden>{ERRORS.storage}</p>
     <p>{DISCLAIMER[0]}<br />{DISCLAIMER[1]}</p>
   </footer>
 
   <!-- 分享卡：设计稿只有卡面，没有这一层；按简单弹层做。 -->
-  <dialog class="share" aria-label="分享卡" data-share-dialog>
-    <div class="frame"><img alt="分享卡" data-card /></div>
+  <dialog class="share" aria-label={t("分享卡")} data-share-dialog>
+    <div class="frame"><img alt={t("分享卡")} data-card /></div>
     <p class="error" role="alert" data-card-error></p>
     <div class="row">
-      <label data-with-q-label><input type="checkbox" data-with-q /> 所问上卡</label>
-      <span class="hint">长按图片保存</span>
-      <a class="save" href="#" download data-save>保存图片</a>
+      <label data-with-q-label><input type="checkbox" data-with-q />{t("所问上卡")}</label>
+      <span class="hint">{t("长按图片保存")}</span>
+      <a class="save" href="#" download data-save>{t("保存图片")}</a>
     </div>
-    <form method="dialog"><button class="close">关闭</button></form>
+    <form method="dialog"><button class="close">{t("关闭")}</button></form>
   </dialog>
 </section>
 
@@ -627,13 +632,13 @@ const facts = [
     letter-spacing: 0.3em;
   }
   .toggle::after {
-    content: "展开";
+    content: attr(data-open);
     font-size: 13px;
     letter-spacing: 0.2em;
     color: var(--ink-2);
   }
   .panel[open] .toggle::after {
-    content: "收起";
+    content: attr(data-close);
   }
   .facts {
     margin: 8px 0 14px;

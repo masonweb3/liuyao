@@ -103,8 +103,11 @@ TEXT = {
     # 竖排标语、印章
     "display": "心有所疑不妨一问爻",
     # 品牌、往卦、起卦、提示、手动排盘、桌面竖排小字、干支日期、栏目
-    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通" + GANZHI + COLUMNS + " ·　",
+    "body": "六爻往卦起一事问次摇手动排盘寂然不感而遂通简繁体中文（当前）" + GANZHI + COLUMNS + " ·　",
 }
+HOME_HANT = {"display": ("Iansui", "iansui"), "body": ("Noto Serif TC", "serif-tc")}
+HANT_COLUMNS = "".join(re.findall(r'hant: "(.+?)"', open("src/data/columns.ts", encoding="utf-8").read()))
+TEXT_HANT = {"display": "心有所疑不妨一問爻", "body": "六爻往卦起一事問次搖手動排盤寂然不感而遂通繁體中文（目前）" + GANZHI + HANT_COLUMNS + " ·　"}
 
 # 梅花页（/meihua/，M21）的首屏，同首页的做法：另一组小文件 src/fonts/meihua-{display,body}.woff2
 # 与 src/styles/meihua-fonts.css，只由梅花页引入、预加载。改了梅花首屏的文案就重跑。
@@ -131,6 +134,7 @@ BODY = {
 }
 # 八字知识页第二批：六十日柱的释义
 BODY["hans"][3].append("bazi-rizhu.json")
+BODY["hant"][3].extend(["home-ui-hant.json", "copy-hant.json", "templates-hant.json", "home-runtime-hant.json"])
 BODY["hant"][3].append("bazi-rizhu-hant.json")
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
@@ -352,6 +356,9 @@ def paper_fonts() -> None:
     for lang, (family, src, pkg, files) in BODY.items():
         have, full = fontsource_chars(pkg), cmap(src)
         extra = (tyme4ts_chars() if lang == "hans" else "") + city_chars(lang)
+        if lang == "hant":
+            messages = json.load(open("src/data/liuyao-messages-hant.json", encoding="utf-8"))
+            extra += "".join(messages["terms"].values()) + "".join(x[1] for x in messages["formats"])
         zi = json.load(open("src/data/zi.json", encoding="utf-8"))
         extra += "".join(c + x["yi"] if lang == "hans" else x["hant"] + x["yi_hant"] for c, x in zi.items())
         missing = "".join(sorted(c for c in data_chars(files, extra) if ord(c) not in have))
@@ -375,12 +382,12 @@ def paper_fonts() -> None:
         f.write("\n".join(css) + "\n")
 
 
-def first_screen(name: str, text: dict[str, str], out: str) -> None:
+def first_screen(name: str, text: dict[str, str], out: str, fonts=HOME) -> None:
     """首屏字形子集：src/fonts/{name}-{display,body}.woff2 与它们的 @font-face（out）。"""
     css = [
         "/* 生成文件，勿手改：tools/subset-fonts.py。首屏的字走这里的小文件，须在 fontsource 之后引入。 */"
     ]
-    for key, (family, src) in HOME.items():
+    for key, (family, src) in fonts.items():
         # 首页正文子集再去掉 GSUB、GPOS、BASE（M22）：栏目加「取名」后 home-body.woff2 从 9,852 涨到 10,140 字节，
         # Lighthouse 模拟的首页 LCP 又慢了一个往返（约 130 ms，同 M21）；去掉这三张表是 9,856 字节，LCP 回到原样。
         # 首页这份子集没有标点，GSUB 只剩 aalt、fwid、hwid、pwid（浏览器默认都不开），GPOS 只剩 kern、vpal，
@@ -407,6 +414,12 @@ def first_screen(name: str, text: dict[str, str], out: str) -> None:
 
 def main() -> None:
     first_screen("home", TEXT, "src/styles/fonts.css")
+    first_screen("home-hant", TEXT_HANT, "src/styles/home-hant-fonts.css", HOME_HANT)
+    make_subset(load("serif-tc"), "六爻搖卦成卦納甲排盤白話解讀 ·").save("src/fonts/og-hant-body.woff2")
+    flow = ''.join(c for c in "手動排盤所問何事此事關乎靜心搖卦成卦先停一停此問不占先顧眼前再說具體些往卦問開元通寶吸呼" if c not in TEXT_HANT["display"])
+    rng, _ = save(make_subset(load("iansui"), flow), "src/fonts/home-hant-flow.woff2")
+    with open("src/styles/home-hant-fonts.css", "a", encoding="utf-8") as f:
+        f.write(face("Iansui", 400, "home-hant-flow", rng) + "\n")
     first_screen("meihua", MEIHUA, "src/styles/meihua-fonts.css")
     paper_fonts()
     gua_hans(page_blocks("src/data/guaci.json", "hans"), "src/fonts/gua")

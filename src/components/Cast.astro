@@ -1,4 +1,8 @@
 ---
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
 import { posName } from "../lib/flow";
 import Bar from "./Bar.astro";
 
@@ -6,10 +10,10 @@ const tilts = [-8, 14, 3];
 ---
 
 <section class="screen cast" data-screen="cast" tabindex="-1" hidden>
-  <Bar />
+  <Bar  hant={hant}/>
   <div class="stage">
-    <h1 class="sr-only">摇卦</h1>
-    <ul class="lines" aria-label="已成之爻">
+    <h1 class="sr-only">{t("摇卦")}</h1>
+    <ul class="lines" aria-label={t("已成之爻")}>
       {[5, 4, 3, 2, 1, 0].map((i) => (
         <li data-pos={i}>
           <span class="pos" aria-hidden="true">{posName(i)}</span>
@@ -20,20 +24,20 @@ const tilts = [-8, 14, 3];
     <div class="rule" aria-hidden="true"></div>
     <div class="throw">
       <div class="toss">
-        <p class="nth" data-nth>第一爻</p>
+        <p class="nth" data-nth>{t("第一爻")}</p>
         <div class="coins" aria-hidden="true" data-coins>
-          {tilts.map((t) => (
-            <div class="coin" style={`--tilt:${t}deg`}>
+          {tilts.map((tilt) => (
+            <div class="coin" style={`--tilt:${tilt}deg`}>
               <div class="spin">
                 <svg class="face" viewBox="0 0 72 72">
                   <circle class="body" cx="36" cy="36" r="34"></circle>
                   <circle class="rim" cx="36" cy="36" r="30.5"></circle>
                   <rect class="hole" x="28" y="28" width="16" height="16"></rect>
                   <g class="wen">
-                    <text x="36" y="22">开</text>
-                    <text x="36" y="59">元</text>
-                    <text x="53" y="40">通</text>
-                    <text x="19" y="40">宝</text>
+                    <text x="36" y="22">{t("开")}</text>
+                    <text x="36" y="59">{t("元")}</text>
+                    <text x="53" y="40">{t("通")}</text>
+                    <text x="19" y="40">{t("宝")}</text>
                   </g>
                 </svg>
                 <svg class="face back" viewBox="0 0 72 72">
@@ -50,17 +54,17 @@ const tilts = [-8, 14, 3];
       </div>
       <div class="act dock">
         <div class="press" data-press>
-          <button class="shake" aria-label="摇卦：按住摇动，松开掷出" data-shake data-autofocus>摇</button>
+          <button class="shake" aria-label={t("摇卦：按住摇动，松开掷出")} data-shake data-autofocus>{t("摇")}</button>
           <!-- iOS Safari has no Vibration API. Since iOS 26.5 the one haptic a page can get
                is a finger landing on a native switch, so an invisible one covers the button. -->
           <input class="tick" type="checkbox" switch tabindex="-1" aria-hidden="true" />
         </div>
         <p class="hint">
-          <span class="touch">长按摇动 · 松手掷出</span>
-          <span class="keys">按住<kbd>空格</kbd>或鼠标摇动，松开掷出</span>
+          <span class="touch">{t("长按摇动 · 松手掷出")}</span>
+          <span class="keys">{t("按住")}<kbd>{t("空格")}</kbd>{t("或鼠标摇动，松开掷出")}</span>
         </p>
         <!-- 摇一摇: shown by ritual.ts only where motion sensors can be read -->
-        <button class="motion" hidden data-motion>改用摇手机</button>
+        <button class="motion" hidden data-motion>{t("改用摇手机")}</button>
       </div>
     </div>
   </div>

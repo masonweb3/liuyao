@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant-TW"><meta charset="utf-8"><title>六爻繁體分享預覽圖</title>
+<style>body{margin:0;background:#131824;color:#f8f4ed;font-family:serif}canvas{display:block;max-width:100%;height:auto}button,p{margin:16px}</style>
+<canvas width="1200" height="630" aria-label="六爻：心有所疑，不妨一問"></canvas>
+<p role="status">字型載入中</p><button disabled>下載 PNG</button>
+<script type="module">
+  const canvas=document.querySelector('canvas'),c=canvas.getContext('2d');
+  const fonts=[new FontFace('OG Display',"url('/fonts/display.woff2')"),new FontFace('OG Body',"url('/fonts/body.woff2')")];
+  await Promise.all(fonts.map(async f=>document.fonts.add(await f.load())));
+  c.fillStyle='#131824';c.fillRect(0,0,1200,630);
+  c.save();c.translate(600,290);c.scale(1,.75);
+  const gradient=c.createRadialGradient(0,0,0,0,0,570);gradient.addColorStop(0,'#1c2938');gradient.addColorStop(1,'#131824');c.fillStyle=gradient;c.fillRect(-700,-500,1400,1000);c.restore();
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillStyle='#ab372f';c.fillRect(64,52,40,40);
+  c.fillStyle='#f8f4ed';c.font='26px "OG Display"';c.fillText('爻',84,73);
+  c.fillStyle='rgba(248,244,237,.8)';c.font='20px "OG Body"';c.fillText('六',132,73);c.fillText('爻',160,73);
+  c.font='58px "OG Display"';
+  [...'心有所疑'].forEach((ch,i)=>c.fillText(ch,660,98+i*80));
+  c.fillStyle='rgba(248,244,237,.86)';[...'不妨一問'].forEach((ch,i)=>c.fillText(ch,556,168+i*80));
+  c.save();c.translate(480,474);c.fillStyle='#c09351';c.fill(new Path2D('M5 12.5C3 7.5 8 4.5 17 5L122 6.5L229 8.5C236 8.8 239 11.5 236.5 14.5C233 17.8 225 16.8 215 16.8L120 17.6L19 19.5C9 20.2 6.5 16.5 5 12.5Z'));c.restore();
+  c.fillStyle='rgba(248,244,237,.62)';c.font='20px "OG Body"';
+  const sub='搖卦成卦 · 納甲排盤 · 白話解讀',step=26;
+  [...sub].forEach((ch,i)=>c.fillText(ch,600-(sub.length-1)*step/2+i*step,552));
+  document.querySelector('[role=status]').textContent='已就緒 · 1200 × 630';
+  const button=document.querySelector('button');button.disabled=false;
+  button.onclick=()=>canvas.toBlob(blob=>{const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='og-hant.png';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)},'image/png');
+</script></html>

@@ -6,7 +6,10 @@
  * {@link NEXT}, so nothing leads back once 静心 starts. Durations live in
  * tokens.css; the script waits on the CSS animations instead of repeating them.
  */
-import { ERRORS } from "../data/copy.js";
+import type { HomeRuntime } from '../lib/home-runtime';
+const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
+const ERRORS = UI.errors;
+const hant = document.documentElement.lang === 'zh-Hant-TW';
 import {
 	afterJudge,
 	benLines,
@@ -23,8 +26,6 @@ import {
 	settled,
 	stack,
 	toBeijingInput,
-	tossCaption,
-	YAO_NAME,
 	yaoHtml,
 	yaoTitle,
 } from "../lib/flow.js";
@@ -57,7 +58,7 @@ function lazy<T>(load: () => Promise<T>): () => Promise<T> {
 // The engine pulls in tyme4ts (~80KB gzip) and the reading all 64 卦's text:
 // keep both out of the first screen.
 const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
-const loadReading = lazy(() => import("../lib/reading.js"));
+const loadReading = lazy(() => hant ? import('../lib/reading-hant.js') : import("../lib/reading.js"));
 // 解读页的渲染和卦名字体规则也按需加载，不进首屏包；页面 load、首屏入场动画播完之后预热（见文件末尾）。
 const loadView = lazy(() => import("./view.js"));
 type View = Awaited<ReturnType<typeof loadView>>;
@@ -269,7 +270,7 @@ const ring = $("[data-ring]", calmEl);
 
 function breath(n: number) {
 	$$("span", dots).forEach((d, i) => d.classList.toggle("on", i <= n));
-	dots.setAttribute("aria-label", `第${"一二三"[n]}息，共三息`);
+	dots.setAttribute("aria-label", UI.breaths[n]!);
 }
 
 async function calm() {
@@ -393,7 +394,7 @@ motionBtn.addEventListener("click", async () => {
 		return;
 	}
 	addEventListener("devicemotion", onMotion);
-	$(".touch", castEl).textContent = "摇动手机 · 停下掷出";
+	$(".touch", castEl).textContent = UI.shake;
 });
 
 /** How hard the phone is moving, in m/s², gravity left out. */
@@ -424,7 +425,7 @@ function onMotion(e: DeviceMotionEvent) {
 	}, MOTION_QUIET_MS);
 }
 
-const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${YAO_NAME[y]}${isMoving(y) ? " 动" : ""}`;
+const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${UI.yao[y]}${isMoving(y) ? UI.moving : ""}`;
 
 /** Resolves once the coins land; the yao is written in the background (`written`). */
 async function throwCoins() {
@@ -448,7 +449,7 @@ async function throwCoins() {
 	coinsEl.classList.remove("flipping");
 	coinsSound();
 	navigator.vibrate?.(LAND_BUZZ);
-	caption.textContent = tossCaption(yao);
+	caption.textContent = `${UI.coins[yao]} · ${UI.yao[yao]}`;
 	written = writeYao(i, yao);
 }
 
@@ -492,20 +493,20 @@ async function reveal() {
 	const [{ cast }, { setName }] = await Promise.all([loadEngine(), loadView()]);
 	const r = formed(cast(session.params, castOptions()));
 
-	$("[data-ben-lines]", revealEl).innerHTML = benLines(r.params);
-	setName($("[data-ben-name]", revealEl), r.gua.name);
+	$("[data-ben-lines]", revealEl).innerHTML = benLines(r.params, yaoLabel);
+	await setName($("[data-ben-name]", revealEl), r.gua.name);
 
 	for (const el of $$("[data-bian]", revealEl)) el.hidden = r.bian === null;
 	if (r.bian) {
 		$("[data-bian-lines]", revealEl).innerHTML = stack(
 			[...r.bian.mark].map((bit, i) => yaoHtml(bit === "1", false, yaoTitle(i, bit === "1"))),
 		);
-		setName($("[data-bian-name]", revealEl), r.bian.name);
+		await setName($("[data-bian-name]", revealEl), r.bian.name);
 	}
 
 	const g = r.ganzhi;
 	$("[data-ganzhi]", revealEl).innerHTML =
-		`${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}时</span> · 旬空 ${g.xkong}`;
+		`${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}${UI.hour}</span> · 旬空 ${g.xkong}`;
 	go("reveal");
 	qingSound();
 }
@@ -560,9 +561,9 @@ async function drawCard() {
 		const url = await card(r, x.ben, withQ.checked ? question : "");
 		if (n !== draws) return;
 		cardImg.src = url;
-		cardImg.alt = `分享卡：${r.gua.name}${r.bian ? `之${r.bian.name}` : ""}`;
+		cardImg.alt = `${UI.share}${x.ben.name}${x.bian ? `之${x.bian.name}` : ""}`;
 		save.href = url;
-		save.download = `六爻-${r.gua.name}.png`;
+		save.download = `六爻-${x.ben.name}.png`;
 	} catch {
 		cardError.textContent = ERRORS.share;
 	}
@@ -599,7 +600,7 @@ async function showHistory() {
 		const view = await loadView();
 		await view.list(historyEl, () => Promise.all([loadEngine(), loadReading()]), (e, r, x) => {
 			fromHistory = true;
-			back.setAttribute("aria-label", "回到往卦");
+			back.setAttribute("aria-label", UI.backHistory);
 			show(view, r, x, e.question, e.at);
 			go("reading");
 		});
@@ -669,7 +670,7 @@ $("[data-manual]", manualEl).addEventListener("submit", async (e) => {
 const soundBtn = $<HTMLButtonElement>("[data-sound]");
 function showSound() {
 	soundBtn.setAttribute("aria-pressed", String(soundOn()));
-	soundBtn.setAttribute("aria-label", `音效：${soundOn() ? "已开启" : "已关闭"}`);
+	soundBtn.setAttribute("aria-label", soundOn() ? UI.soundOn : UI.soundOff);
 }
 soundBtn.addEventListener("click", () => {
 	setSound(!soundOn());

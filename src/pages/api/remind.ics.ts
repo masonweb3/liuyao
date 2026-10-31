@@ -10,12 +10,14 @@
  */
 import type { APIRoute } from "astro";
 import { REMIND } from "../../data/copy.js";
+import copyHant from '../../data/copy-hant.json';
+import guaciHant from '../../data/guaci-hant.json';
 import { GUA } from "../../data/gua-slugs.js";
 import { newUid, reminder } from "../../lib/revisit.js";
 
 export const prerender = false;
 
-const NAMES = new Set(GUA.map(([name]) => name));
+const NAMES = new Set([...GUA.map(([name]) => name),...Object.values(guaciHant).map(s=>s.split('\n')[0]!.split(' ')[2]!)]);
 const DAY = 86_400_000;
 /** 本站 2026 年上线，往卦不会更早。 */
 const FIRST_CAST = Date.UTC(2026, 0, 1);
@@ -36,6 +38,8 @@ function day(v: string | null): number | null {
  * `g` one 卦 or 本卦之变卦. Each key once; other keys are ignored.
  */
 export function parse(q: URLSearchParams, now: Date): { cast: Date; gua: string; start: Date } | null {
+	const langs=q.getAll('l');
+	if(langs.length>1 || langs.length===1 && langs[0]!=='zh-hant')return null;
 	const one = (k: string) => (q.getAll(k).length === 1 ? q.get(k) : null);
 	const d = day(one("d"));
 	const c = day(one("c"));
@@ -63,8 +67,9 @@ export const GET: APIRoute = ({ url, site }) => {
 	// Nothing from the request is echoed back.
 	if (!r) return new Response("Bad request\n", { status: 400, headers: { ...HEADERS, "Content-Type": "text/plain; charset=utf-8" } });
 	// site, not the request's origin: the link is the same as in the file the browser makes.
-	const link = new URL("/?history", site ?? url).href;
-	const ics = reminder(r.cast, r.gua, r.start, now, newUid(), { ...REMIND.ics, url: link });
+	const hant=url.searchParams.get('l')==='zh-hant';
+	const link = new URL(hant?'/zh-hant/?history':"/?history", site ?? url).href;
+	const ics = reminder(r.cast, r.gua, r.start, now, newUid(), { ...(hant?copyHant.REMIND.ics:REMIND.ics), url: link });
 	return new Response(ics.text, {
 		headers: {
 			...HEADERS,

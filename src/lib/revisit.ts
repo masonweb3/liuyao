@@ -235,5 +235,5 @@ const beijingDay = (d: Date) => new Date(d.getTime() + 8 * 3_600_000).toISOStrin
  * page to the Calendar app, where a downloaded blob stops at a download prompt.
  * `d` is the local day of `start` (the server fixes 20:00), `c` the day of the cast, `g` the 卦.
  */
-export const icsPath = (cast: Date, gua: string, start: Date) =>
-	`/api/remind.ics?d=${floating(start).slice(0, 8)}&c=${beijingDay(cast)}&g=${encodeURIComponent(gua)}`;
+export const icsPath = (cast: Date, gua: string, start: Date, hant = false) =>
+	`/api/remind.ics?d=${floating(start).slice(0, 8)}&c=${beijingDay(cast)}&g=${encodeURIComponent(gua)}${hant?'&l=zh-hant':''}`;

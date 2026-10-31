@@ -1,31 +1,35 @@
 ---
+import { homeText } from "../lib/home-text";
+const hant = Astro.props.hant ?? false;
+const t = homeText(hant);
+
 import Bar from "./Bar.astro";
 ---
 
 <section class="screen reveal" data-screen="reveal" tabindex="-1" hidden>
-  <Bar />
+  <Bar  hant={hant}/>
   <div class="center">
-    <h1 class="sr-only">成卦</h1>
+    <h1 class="sr-only">{t("成卦")}</h1>
     <div class="pair">
       <figure class="ben">
         <div class="lines" data-ben-lines></div>
         <figcaption>
           <span class="name" tabindex="-1" data-ben-name data-autofocus></span>
-          <span class="tag">本卦</span>
+          <span class="tag">{t("本卦")}</span>
         </figcaption>
       </figure>
-      <span class="zhi" aria-hidden="true" data-bian>之</span>
+      <span class="zhi" aria-hidden="true" data-bian>{t("之")}</span>
       <figure class="bian" data-bian>
         <div class="lines" data-bian-lines></div>
         <figcaption>
           <span class="name" data-bian-name></span>
-          <span class="tag">变卦</span>
+          <span class="tag">{t("变卦")}</span>
         </figcaption>
       </figure>
     </div>
     <div class="end">
       <p class="gz" data-ganzhi></p>
-      <button class="btn read" data-read>展卷而读</button>
+      <button class="btn read" data-read>{t("展卷而读")}</button>
     </div>
   </div>
 </section>

@@ -121,11 +121,11 @@ export function yaoHtml(yang: boolean, moving: boolean, label: string): string {
 export const stack = (html: string[]) => html.reverse().join("");
 
 /** 本卦六爻，动爻带标记，上爻在上。 */
-export const benLines = (params: readonly Yao[]) =>
+export const benLines = (params: readonly Yao[], label?: (i:number, y:Yao)=>string) =>
 	stack(
 		params.map((y, i) => {
 			const title = yaoTitle(i, isYang(y));
-			return yaoHtml(isYang(y), isMoving(y), isMoving(y) ? `${title} ${YAO_NAME[y]} 动` : title);
+			return yaoHtml(isYang(y), isMoving(y), label ? label(i,y) : isMoving(y) ? `${title} ${YAO_NAME[y]} 动` : title);
 		}),
 	);
 
