@@ -89,7 +89,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
   </main>
   <Invite hant={hant} />
   <Fragment slot="foot">
-    <p>{t('字形、读音、部首笔画取自', '字形、讀音、部首筆畫取自')} <a href="https://www.unicode.org/reports/tr38/" rel="noopener">Unicode Unihan</a>（<a href="https://www.unicode.org/license.txt" rel="license noopener">Unicode License v3</a>）；{t('康熙笔画按《康熙字典》同文书局本核对；英文不雅词表改编自', '康熙筆畫按《康熙字典》同文書局本核對；英文不雅詞表改編自')} <a href="https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words" rel="noopener">LDNOOBW</a>（<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>）；{t('八十一数与说明为本站原创', '八十一數與說明為本站原創')}<span class="stop">。</span></p>
+    <p>{t('字形、读音、部首笔画取自', '字形、讀音、部首筆畫取自')} <a href="https://www.unicode.org/reports/tr38/" rel="noopener">Unicode Unihan</a>（<a href="https://www.unicode.org/license.txt" rel="license noopener">Unicode License v3</a>）；{t('部分字按《康熙字典》同文书局本核对；英文不雅词表改编自', '部分字按《康熙字典》同文書局本核對；英文不雅詞表改編自')} <a href="https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words" rel="noopener">LDNOOBW</a>（<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>）；{t('八十一数与说明为本站原创', '八十一數與說明為本站原創')}<span class="stop">。</span></p>
     <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}<span class="stop">。</span></p>
   </Fragment>
 </Paper>
@@ -284,7 +284,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
       const same = seen.get(f);
       if (!same) seen.set(f, LABEL[k]);
       const over = f !== n ? `<span class="over">${t(`（超过 81，按 ${f} 查）`, `（超過 81，按 ${f} 查）`)}</span>` : '';
-      const text = same ? `<span class="same">${t(`同${same}，见上。`, `同${same}，見上。`)}</span>` : `<span class="txt">${esc(N81[f] ?? '')}</span>`;
+      const text = same ? `<span class="same">${t(`同${same}`, `同${same}`)}</span>` : `<span class="txt">${esc(N81[f] ?? '')}</span>`;
       return `<li><span class="ge"><span class="lb">${LABEL[k]}</span><span class="num">${n}</span></span><span class="rows"><span class="fx">${esc(formula(r, k))}${over}</span>${text}</span></li>`;
     });
     const w = r.wuge;
