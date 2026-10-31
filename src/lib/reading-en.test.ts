@@ -55,7 +55,7 @@ it('English covers all 4096 line combinations and eight topic rules without chan
 it('English dates respect the original time zones and calendar files contain no question',async()=>{
  const at=new Date('2026-10-28T04:00:00Z'),now=new Date('2026-10-31T04:00:00Z');
  expect(ago(at,now,true)).toBe('3 days ago');
- expect(monthDay(now,true)).toBe('Oct 31');
+ expect(monthDay(new Date(2026,9,31,12),true)).toBe('Oct 31');
  expect(await todayText(new Date('2025-02-03T14:20:00Z'),'en')).toBe('UTC+8 · Year 乙巳 · Month 戊寅 · Day 癸卯');
  const text=reminder(at,'Heaven',now,now,'x',{...copy.REMIND.ics,en:true,url:'https://sixyao.app/en/?history'}).text.replace(/\r\n /g,'');
  expect(text).toContain('Cast on Oct 28\\, 2026: Heaven.');

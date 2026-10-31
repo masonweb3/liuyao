@@ -36,7 +36,7 @@ const trigrams:Record<string,string>={乾:'Heaven',坤:'Earth',震:'Thunder',巽
 const number=GUA.findIndex(([n])=>n===name)+1;
 const g = en ? {...original,name:entry.name,no:`Hexagram ${number}`,upper:trigrams[original.upper]!,lower:trigrams[original.lower]!} : original;
 // 繁体的卦名、简称取首行（遯；無妄、恆见 build-guaci-hant.py）；简体的简称用 shortName（遁，不用首行的「遯」）。
-const short = en ? name : hant ? g.short : shortName(name);
+const short = en ? entry.name : hant ? g.short : shortName(name);
 const bh = en ? entry.text : BAIHUA[name]!;
 const yaoBh = en ? {} : YAO_BAIHUA[name] ?? {};
 const mark = markOf(name);
