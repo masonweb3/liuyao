@@ -7,7 +7,7 @@ interface Props { hant?: boolean }
 const { hant = false } = Astro.props;
 const t = (s: string, h: string) => hant ? h : s;
 const title = t('名字里的字', '名字裡的字');
-const intro = t(`${ZI.length} 个常用于名字和姓氏的字，按拼音排列。点开看读音、康熙笔画与字义。`, `${ZI.length} 個常用於名字和姓氏的字，按拼音排列。點開看讀音、康熙筆畫與字義。`);
+const intro = t(`${ZI.length} 个名字与姓氏用字，按拼音排列。点开看读音、康熙笔画与字义。`, `${ZI.length} 個名字與姓氏用字，按拼音排列。點開看讀音、康熙筆畫與字義。`);
 const groups = new Map<string, typeof ZI>();
 for (const ch of [...ZI].sort((a,b) => initials(a).localeCompare(initials(b),'en'))) {
   const key = initials(ch).charAt(0).toUpperCase();

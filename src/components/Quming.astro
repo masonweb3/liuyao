@@ -80,7 +80,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
         <section class="kb" aria-labelledby="qm-kb">
           <h2 class="head" id="qm-kb">{t('名字里的字', '名字裡的字')}</h2>
           <ul role="list">
-            <li><a href={hant ? '/zh-hant/zi/' : '/zi/'}><span><span class="kt">{t('常用字目录', '常用字目錄')}</span><span class="ks">{t(`${Object.keys(characters).length} 字的读音、康熙笔画与字义`, `${Object.keys(characters).length} 字的讀音、康熙筆畫與字義`)}</span></span><span aria-hidden="true">›</span></a></li>
+            <li><a href={hant ? '/zh-hant/zi/' : '/zi/'}><span><span class="kt">{t('名字用字目录', '名字用字目錄')}</span><span class="ks">{t(`${Object.keys(characters).length} 字的读音、康熙笔画与字义`, `${Object.keys(characters).length} 字的讀音、康熙筆畫與字義`)}</span></span><span aria-hidden="true">›</span></a></li>
             <li><a href={`${home}81/`}><span><span class="kt">{t('八十一数', '八十一數')}</span><span class="ks">{c.more81}</span></span><span aria-hidden="true">›</span></a></li>
           </ul>
         </section>
