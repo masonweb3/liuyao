@@ -1,0 +1,74 @@
+{
+  "yao": {
+    "6": "moving yin",
+    "7": "yang",
+    "8": "yin",
+    "9": "moving yang"
+  },
+  "coins": {
+    "6": "three inscribed faces",
+    "7": "one reverse, two inscribed faces",
+    "8": "two reverses, one inscribed face",
+    "9": "three reverses"
+  },
+  "moving": "",
+  "breaths": [
+    "Breath 1 of 3",
+    "Breath 2 of 3",
+    "Breath 3 of 3"
+  ],
+  "shake": "Shake the phone · Stop to cast",
+  "hour": " hour",
+  "share": "Share card: ",
+  "backHistory": "Back to History",
+  "soundOn": "Sound on",
+  "soundOff": "Sound off",
+  "yang": "yang",
+  "yin": "yin",
+  "verdict": "Reading: ",
+  "guaci": "Hexagram text",
+  "bian": "Changed hexagram",
+  "asked": "Question",
+  "positions": [
+    "Line 1",
+    "Line 2",
+    "Line 3",
+    "Line 4",
+    "Line 5",
+    "Line 6"
+  ],
+  "throws": [
+    "Line 1 of 6",
+    "Line 2 of 6",
+    "Line 3 of 6",
+    "Line 4 of 6",
+    "Line 5 of 6",
+    "Line 6 of 6"
+  ],
+  "titles": [
+    [
+      "Six at line 1",
+      "Six at line 2",
+      "Six at line 3",
+      "Six at line 4",
+      "Six at line 5",
+      "Six at line 6"
+    ],
+    [
+      "Nine at line 1",
+      "Nine at line 2",
+      "Nine at line 3",
+      "Nine at line 4",
+      "Nine at line 5",
+      "Nine at line 6"
+    ]
+  ],
+  "verdicts": {
+    "吉": "Favorable",
+    "平": "Mixed",
+    "凶": "Caution"
+  },
+  "zhi": " to ",
+  "focal": "Focus",
+  "main": " · primary"
+}

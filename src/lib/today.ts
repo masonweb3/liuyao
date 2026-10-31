@@ -51,7 +51,7 @@ export function quickGanzhi(date: Date): Pick<Ganzhi, "year" | "month" | "day"> 
 }
 
 /** 「乙巳年 乙酉月 甲子日」 */
-export async function todayText(now = new Date()): Promise<string> {
+export async function todayText(now = new Date(), lang = ''): Promise<string> {
 	const g = quickGanzhi(now) ?? (await import("./liuyao/calendar.js")).ganzhiFromDate(now);
-	return `${g.year}年 ${g.month}月 ${g.day}日`;
+	return lang==='en' ? `UTC+8 · Year ${g.year} · Month ${g.month} · Day ${g.day}` : `${g.year}年 ${g.month}月 ${g.day}日`;
 }

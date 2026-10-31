@@ -1,13 +1,14 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 import Bar from "./Bar.astro";
 ---
 
 <section class="screen reveal" data-screen="reveal" tabindex="-1" hidden>
-  <Bar  hant={hant}/>
+  <Bar  hant={hant} en={en}/>
   <div class="center">
     <h1 class="sr-only">{t("成卦")}</h1>
     <div class="pair">

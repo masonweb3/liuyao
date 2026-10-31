@@ -5,17 +5,19 @@ interface Props {
   aside?: boolean;
   /** 繁体页。 */
   hant?: boolean;
+  en?: boolean;
 }
-const { aside = false, hant = false } = Astro.props;
-const t = (hans: string, tw: string) => (hant ? tw : hans);
+const { aside = false, hant = false, en = false } = Astro.props;
+import englishUi from '../data/gua-ui-en.json';
+const t = (hans: string, tw: string) => {if(!en)return hant ? tw : hans;const word=(englishUi as Record<string,string>)[hans];if(word===undefined)throw new Error('Missing English label: '+hans);return word;};
 ---
 
-<section class:list={['invite', { aside }]} aria-label="起卦">
+<section class:list={['invite', { aside }]} aria-label={en ? "Cast coins" : "起卦"}>
   <p class="slogan">{t('心有所疑，不妨一问', '心有所疑，不妨一問')}</p>
   <p class="why">
     {t('卦是摇出来的，不是挑出来的。', '卦是搖出來的，不是挑出來的。')}{aside && <><br />{t('写下一件事，摇六次铜钱，看它落在哪一卦。', '寫下一件事，搖六次銅錢，看它落在哪一卦。')}</>}
   </p>
-  <a class="go" href={hant ? '/zh-hant/?ask' : '/?ask'}>起卦</a>
+  <a class="go" href={en ? '/en/?ask' : hant ? '/zh-hant/?ask' : '/?ask'}>{en ? 'Cast coins' : '起卦'}</a>
 </section>
 
 <style>

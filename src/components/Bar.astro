@@ -1,7 +1,8 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
 
 // 所问一直以小字悬在顶部；桌面版左侧再加品牌。文字由 ritual.ts 填入 [data-question]。
 ---

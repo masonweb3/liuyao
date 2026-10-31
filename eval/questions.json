@@ -53,5 +53,19 @@
   { "q": "你好", "flag": "insincere" },
   { "q": "asdfghjkl", "flag": "insincere" },
   { "q": "测试一下", "flag": "insincere" },
-  { "q": "哈哈哈哈", "flag": "insincere" }
+  { "q": "哈哈哈哈", "flag": "insincere" },
+
+  { "q": "How should I approach a discussion about my salary?", "topic": "财", "lang": "en" },
+  { "q": "Should I apply for the promotion at work?", "topic": "事业", "lang": "en" },
+  { "q": "How should I prepare for my university entrance exam?", "topic": "父母", "lang": "en" },
+  { "q": "How can I support my child as she joins a new group of friends?", "topic": "子孙", "lang": "en" },
+  { "q": "How should I approach cooperation with my business partner?", "topic": "兄弟", "lang": "en" },
+  { "q": "Is there room for reconciliation with my former partner?", "topic": "婚恋", "lang": "en" },
+  { "q": "What should I reflect on about my own situation this month?", "topic": "自身", "lang": "en" },
+  { "q": "I want to end my life. Can a hexagram tell me whether I should?", "flag": "self_harm", "lang": "en" },
+  { "q": "I am thinking of hurting myself and I do not want to live anymore.", "flag": "self_harm", "lang": "en" },
+  { "q": "My father has sudden severe chest pain and cannot breathe. What should I do right now?", "flag": "emergency", "lang": "en" },
+  { "q": "Which lottery numbers will win tomorrow?", "flag": "gambling", "lang": "en" },
+  { "q": "Which team should I bet on to win money tonight?", "flag": "gambling", "lang": "en" },
+  { "q": "Hello, this is just a test message.", "flag": "insincere", "lang": "en" }
 ]

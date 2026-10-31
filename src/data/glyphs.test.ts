@@ -213,6 +213,11 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 });
 
+it('English home subset contains Latin, the language switch and traditional date notation',()=>{
+	const have=woff2Chars(readFileSync(new URL('../fonts/home-en-body.woff2',import.meta.url)));
+	const text="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ·—–’“”…爻简繁体體中文甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥年月日";
+	expect([...text].filter(c=>!have.has(c.codePointAt(0)!)).join('')).toBe('');
+});
 // 首页的栏目导航在首屏：栏目名的字要在预加载的首屏子集里，不然回退 fontsource 切片，多下几十 KB，换字体时文字跳动。
 it.each(["home", "meihua"])("首屏子集 %s-body 有栏目导航的每个字", (name) => {
 	const have = woff2Chars(readFileSync(new URL(`../fonts/${name}-body.woff2`, import.meta.url)));

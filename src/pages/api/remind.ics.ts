@@ -10,6 +10,8 @@
  */
 import type { APIRoute } from "astro";
 import { REMIND } from "../../data/copy.js";
+import copyEn from '../../data/copy-en.json';
+import guaEn from '../../data/gua-en.json';
 import copyHant from '../../data/copy-hant.json';
 import guaciHant from '../../data/guaci-hant.json';
 import { GUA } from "../../data/gua-slugs.js";
@@ -18,6 +20,7 @@ import { newUid, reminder } from "../../lib/revisit.js";
 export const prerender = false;
 
 const NAMES = new Set([...GUA.map(([name]) => name),...Object.values(guaciHant).map(s=>s.split('\n')[0]!.split(' ')[2]!)]);
+const EN_NAMES = new Set(Object.values(guaEn).map(g=>g.name));
 const DAY = 86_400_000;
 /** 本站 2026 年上线，往卦不会更早。 */
 const FIRST_CAST = Date.UTC(2026, 0, 1);
@@ -39,7 +42,7 @@ function day(v: string | null): number | null {
  */
 export function parse(q: URLSearchParams, now: Date): { cast: Date; gua: string; start: Date } | null {
 	const langs=q.getAll('l');
-	if(langs.length>1 || langs.length===1 && langs[0]!=='zh-hant')return null;
+	if(langs.length>1 || langs.length===1 && !['zh-hant','en'].includes(langs[0]!))return null;
 	const one = (k: string) => (q.getAll(k).length === 1 ? q.get(k) : null);
 	const d = day(one("d"));
 	const c = day(one("c"));
@@ -47,8 +50,9 @@ export function parse(q: URLSearchParams, now: Date): { cast: Date; gua: string;
 	const today = Math.floor(now.getTime() / DAY) * DAY;
 	if (d === null || d < today - 2 * DAY || d > today + 40 * DAY) return null;
 	if (c === null || c < FIRST_CAST || c > d) return null;
-	const names = g?.split("之") ?? [];
-	if (names.length < 1 || names.length > 2 || !names.every((n) => NAMES.has(n))) return null;
+	const en=langs[0]==='en';
+	const names = g?.split(en ? " to " : "之") ?? [];
+	if (names.length < 1 || names.length > 2 || !names.every((n) => (en ? EN_NAMES : NAMES).has(n))) return null;
 	const at = new Date(d);
 	return {
 		// Noon in 北京时间: dayLabel then names the day of the cast, as 往卦 does.
@@ -68,8 +72,9 @@ export const GET: APIRoute = ({ url, site }) => {
 	if (!r) return new Response("Bad request\n", { status: 400, headers: { ...HEADERS, "Content-Type": "text/plain; charset=utf-8" } });
 	// site, not the request's origin: the link is the same as in the file the browser makes.
 	const hant=url.searchParams.get('l')==='zh-hant';
-	const link = new URL(hant?'/zh-hant/?history':"/?history", site ?? url).href;
-	const ics = reminder(r.cast, r.gua, r.start, now, newUid(), { ...(hant?copyHant.REMIND.ics:REMIND.ics), url: link });
+	const en=url.searchParams.get('l')==='en';
+	const link = new URL(en?'/en/?history':hant?'/zh-hant/?history':"/?history", site ?? url).href;
+	const ics = reminder(r.cast, r.gua, r.start, now, newUid(), { ...(en?copyEn.REMIND.ics:hant?copyHant.REMIND.ics:REMIND.ics), en, url: link });
 	return new Response(ics.text, {
 		headers: {
 			...HEADERS,

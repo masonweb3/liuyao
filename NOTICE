@@ -227,3 +227,11 @@ google/fonts（commit 23e54b5）上完整的 Noto Serif SC / TC 的子集，只�
 首页与梅花繁体子集 src/fonts/home-hant-*.woff2、meihua-hant-*.woff2 与分享预览图用的 og-hant-body.woff2
 同样由上述固定版本的芫荽、Noto Serif TC 截取，保留原字体版权与许可信息。
 首页、梅花的静态繁体文案、断语模板和技术句式均为本站文字的校对转写；不使用第三方现代译注。
+M26 English content
+-------------------
+src/data/gua-en.json, gua-ui-en.json, home-ui-en.json, home-runtime-en.json,
+copy-en.json, liuyao-messages-en.json and templates-en.json are original
+Sixyao content, licensed under CC BY-NC-SA 4.0 as the project's other original
+explanations. No Wilhelm translation or modern commentary was used.
+Classical Chinese passages retain the existing Wikisource attribution in this file.
+home-en-body.woff2 is a subset of the same OFL Noto Serif SC font already listed.

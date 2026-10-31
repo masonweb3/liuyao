@@ -1,12 +1,14 @@
 ---
 import { homeText } from "../lib/home-text";
 const hant = Astro.props.hant ?? false;
-const t = homeText(hant);
-const home = hant ? '/zh-hant/' : '/';
+const en = Astro.props.en ?? false;
+const t = homeText(hant, en);
+const home = en ? '/en/' : hant ? '/zh-hant/' : '/';
 
 import * as copyHans from "../data/copy";
+import copyEn from "../data/copy-en.json";
 import copyHant from "../data/copy-hant.json";
-const { HISTORY_EMPTY, HISTORY_FAIL, REVIEW, TALLY } = hant ? copyHant : copyHans;
+const { HISTORY_EMPTY, HISTORY_FAIL, REVIEW, TALLY } = en ? copyEn : hant ? copyHant : copyHans;
 import Slots from "./Slots.astro";
 
 // 条目由 src/scripts/view.ts 按 src/lib/history.ts 的记录重新排盘后填入；自记与复盘一行见 src/lib/revisit.ts。

@@ -7,9 +7,7 @@
  * tokens.css; the script waits on the CSS animations instead of repeating them.
  */
 import type { HomeRuntime } from '../lib/home-runtime';
-const UI: HomeRuntime = JSON.parse(document.querySelector<HTMLElement>('main')!.dataset.runtime!);
-const ERRORS = UI.errors;
-const hant = document.documentElement.lang === 'zh-Hant-TW';
+const lang = document.documentElement.lang;
 import {
 	afterJudge,
 	benLines,
@@ -19,15 +17,12 @@ import {
 	isYang,
 	type Judgement,
 	NEXT,
-	nthThrow,
 	parseYao,
-	posName,
 	type Screen,
 	settled,
 	stack,
 	toBeijingInput,
 	yaoHtml,
-	yaoTitle,
 } from "../lib/flow.js";
 import { asked, entries, forget, record } from "../lib/history.js";
 import type { LateZiSect } from "../lib/liuyao/calendar.js";
@@ -58,7 +53,7 @@ function lazy<T>(load: () => Promise<T>): () => Promise<T> {
 // The engine pulls in tyme4ts (~80KB gzip) and the reading all 64 卦's text:
 // keep both out of the first screen.
 const loadEngine = lazy(() => import("../lib/liuyao/najia.js"));
-const loadReading = lazy(() => hant ? import('../lib/reading-hant.js') : import("../lib/reading.js"));
+const loadReading = lazy(() => lang === 'en' ? import('../lib/reading-en.js') : lang === 'zh-Hant-TW' ? import('../lib/reading-hant.js') : import("../lib/reading.js"));
 // 解读页的渲染和卦名字体规则也按需加载，不进首屏包；页面 load、首屏入场动画播完之后预热（见文件末尾）。
 const loadView = lazy(() => import("./view.js"));
 type View = Awaited<ReturnType<typeof loadView>>;
@@ -92,6 +87,8 @@ const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = docu
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [
 	...root.querySelectorAll<T>(sel),
 ];
+const UI: HomeRuntime = JSON.parse($('main').dataset.runtime!);
+const ERRORS = UI.errors;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** A duration from tokens.css, in ms. */
@@ -123,7 +120,7 @@ function go(next: Screen) {
 	current = next;
 	const el = screen(next);
 	el.hidden = false;
-	window.scrollTo(0, 0);
+	scrollTo(0, 0);
 	(el.querySelector<HTMLElement>("[data-autofocus]") ?? el).focus({ preventScroll: true });
 	if (next === "manual") when.value ||= toBeijingInput(new Date());
 	if (next === "calm") void calm();
@@ -300,7 +297,7 @@ let buzz = 0;
 let written: Promise<void> = Promise.resolve();
 
 function showThrow(i: number) {
-	$("[data-nth]", castEl).textContent = nthThrow(i);
+	$("[data-nth]", castEl).textContent = UI.throws[i]!;
 	for (const li of $$("li", castEl)) li.classList.toggle("now", li.dataset.pos === String(i));
 }
 
@@ -425,7 +422,7 @@ function onMotion(e: DeviceMotionEvent) {
 	}, MOTION_QUIET_MS);
 }
 
-const yaoLabel = (i: number, y: Yao) => `${posName(i)} ${UI.yao[y]}${isMoving(y) ? UI.moving : ""}`;
+const yaoLabel = (i: number, y: Yao) => `${UI.positions[i]} ${UI.yao[y]}${isMoving(y) ? UI.moving : ""}`;
 
 /** Resolves once the coins land; the yao is written in the background (`written`). */
 async function throwCoins() {
@@ -490,7 +487,7 @@ function formed(r: CastResult): CastResult {
 }
 
 async function reveal() {
-	const [{ cast }, { setName }] = await Promise.all([loadEngine(), loadView()]);
+	const [{ cast }, { setName, setGanzhi }] = await Promise.all([loadEngine(), loadView()]);
 	const r = formed(cast(session.params, castOptions()));
 
 	$("[data-ben-lines]", revealEl).innerHTML = benLines(r.params, yaoLabel);
@@ -499,14 +496,12 @@ async function reveal() {
 	for (const el of $$("[data-bian]", revealEl)) el.hidden = r.bian === null;
 	if (r.bian) {
 		$("[data-bian-lines]", revealEl).innerHTML = stack(
-			[...r.bian.mark].map((bit, i) => yaoHtml(bit === "1", false, yaoTitle(i, bit === "1"))),
+			[...r.bian.mark].map((bit, i) => yaoHtml(bit === "1", false, UI.titles[bit === "1" ? 1 : 0]![i]!)),
 		);
 		await setName($("[data-bian-name]", revealEl), r.bian.name);
 	}
 
-	const g = r.ganzhi;
-	$("[data-ganzhi]", revealEl).innerHTML =
-		`${g.year}年 ${g.month}月 ${g.day}日<span class="hour"> ${g.hour}${UI.hour}</span> · 旬空 ${g.xkong}`;
+	setGanzhi($("[data-ganzhi]", revealEl),r.ganzhi);
 	go("reveal");
 	qingSound();
 }
@@ -561,9 +556,9 @@ async function drawCard() {
 		const url = await card(r, x.ben, withQ.checked ? question : "");
 		if (n !== draws) return;
 		cardImg.src = url;
-		cardImg.alt = `${UI.share}${x.ben.name}${x.bian ? `之${x.bian.name}` : ""}`;
+		cardImg.alt = `${UI.share}${x.ben.name}${x.bian ? `${UI.zhi}${x.bian.name}` : ""}`;
 		save.href = url;
-		save.download = `六爻-${x.ben.name}.png`;
+		save.download = `sixyao-${x.ben.name}.png`;
 	} catch {
 		cardError.textContent = ERRORS.share;
 	}
@@ -686,7 +681,7 @@ addEventListener("keydown", unlock);
 // The date is the page's LCP: today.ts is tiny and pulls in tyme4ts only near a 节, so it
 // starts now. Offline, the date simply stays blank.
 import("../lib/today.js")
-	.then((m) => m.todayText())
+	.then((m) => m.todayText(undefined,lang))
 	.then((text) => {
 		$("[data-today]").textContent = text;
 	}, () => {});
@@ -705,6 +700,6 @@ addEventListener("load", () =>
 // 卦页上的「起卦」「往卦」也是这样进来。
 const entry = new URLSearchParams(location.search);
 if (entry.has("ask") || entry.has("history")) {
-	window.history.replaceState(null, "", "/");
+	history.replaceState(null, "", location.pathname);
 	go(entry.has("ask") ? "ask" : "history");
 }

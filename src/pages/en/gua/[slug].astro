@@ -1,0 +1,6 @@
+---
+import Gua from '../../../components/Gua.astro';
+import { GUA } from '../../../data/gua-slugs';
+export function getStaticPaths(){return GUA.map(([name,slug])=>({params:{slug},props:{name,slug}}));}
+---
+<Gua {...(Astro.props as {name:string;slug:string})} en />

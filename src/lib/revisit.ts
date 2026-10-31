@@ -109,13 +109,14 @@ function cn(n: number): string {
 }
 
 /** How long ago the cast was, for the 回访卡: 七天前 within a month, otherwise its date (as in the 往卦 list). */
-export function ago(at: Date, now: Date): string {
+export function ago(at: Date, now: Date, en = false): string {
 	const n = localDay(now) - localDay(at);
+	if(en)return n >= FIRST_VISIT && n < 30 ? `${n} days ago` : new Intl.DateTimeFormat("en",{timeZone:"Asia/Shanghai",year:"numeric",month:"short",day:"numeric"}).format(at);
 	return n >= FIRST_VISIT && n < 30 ? `${cn(n)}天前` : dayLabel(at, now);
 }
 
 /** 10月3日, in local time: the reminder's day as the calendar will show it. */
-export const monthDay = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
+export const monthDay = (d: Date, en = false) => en ? new Intl.DateTimeFormat("en",{month:"short",day:"numeric"}).format(d) : `${d.getMonth() + 1}月${d.getDate()}日`;
 
 /** The reminder goes off `days` after `now`, at 20:00 local time. */
 export const remindAt = (now: Date, days: number) =>
@@ -155,6 +156,7 @@ const utc = (d: Date) => d.toISOString().replace(/[-:]|\.\d+/g, "");
 
 /** copy.ts REMIND.ics, with the link. `body` has {date} and {gua}. */
 export interface IcsCopy {
+	en?: boolean;
 	summary: string;
 	body: string;
 	url: string;
@@ -162,7 +164,7 @@ export interface IcsCopy {
 
 /** The description and the end, the same in the .ics and the Google 日历 link. */
 function event(cast: Date, gua: string, start: Date, now: Date, copy: IcsCopy) {
-	const body = copy.body.replace("{date}", dayLabel(cast, now)).replace("{gua}", gua);
+	const body = copy.body.replace("{date}", copy.en ? new Intl.DateTimeFormat("en",{timeZone:"Asia/Shanghai",year:"numeric",month:"short",day:"numeric"}).format(cast) : dayLabel(cast, now)).replace("{gua}", gua);
 	return { end: new Date(start.getTime() + 15 * 60_000), details: `${body}\n${copy.url}` };
 }
 
@@ -235,5 +237,5 @@ const beijingDay = (d: Date) => new Date(d.getTime() + 8 * 3_600_000).toISOStrin
  * page to the Calendar app, where a downloaded blob stops at a download prompt.
  * `d` is the local day of `start` (the server fixes 20:00), `c` the day of the cast, `g` the 卦.
  */
-export const icsPath = (cast: Date, gua: string, start: Date, hant = false) =>
-	`/api/remind.ics?d=${floating(start).slice(0, 8)}&c=${beijingDay(cast)}&g=${encodeURIComponent(gua)}${hant?'&l=zh-hant':''}`;
+export const icsPath = (cast: Date, gua: string, start: Date, hant: boolean | "en" = false) =>
+	`/api/remind.ics?d=${floating(start).slice(0, 8)}&c=${beijingDay(cast)}&g=${encodeURIComponent(gua)}${hant==='en'?'&l=en':hant?'&l=zh-hant':''}`;

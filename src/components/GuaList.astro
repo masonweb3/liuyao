@@ -1,5 +1,6 @@
 ---
 // 六十四卦目录：通行本卦序，上经三十卦、下经三十四卦。简体 /gua/ 与繁体 /zh-hant/gua/ 共用。
+import english from '../data/gua-en.json';
 import { GUA, guaPath } from '../data/gua-slugs';
 import guaciHant from '../data/guaci-hant.json';
 import guaci from '../data/guaci.json';
@@ -9,19 +10,21 @@ import Invite from './Invite.astro';
 
 interface Props {
   hant?: boolean;
+  en?: boolean;
 }
 
-const { hant = false } = Astro.props;
-const t = (hans: string, tw: string) => (hant ? tw : hans);
+const { hant = false, en = false } = Astro.props;
+import englishUi from '../data/gua-ui-en.json';
+const t = (hans: string, tw: string) => {if(!en)return hant ? tw : hans;const word=(englishUi as Record<string,string>)[hans];if(word===undefined)throw new Error('Missing English label: '+hans);return word;};
 const TEXT: Record<string, string> = hant ? guaciHant : guaci;
 const items = GUA.map(([name]) => {
   const g = parseGua(TEXT[name]!);
   return {
     name,
     // 繁体取首行（遯、無妄），简体用 shortName（遁）
-    short: hant ? g.short : shortName(name),
+    short: en ? (english as Record<string,{name:string}>)[name]!.name : hant ? g.short : shortName(name),
     // 第十一卦 → 第十一
-    no: g.no.slice(0, -1),
+    no: en ? String(GUA.findIndex(([n])=>n===name)+1) : g.no.slice(0, -1),
     // 上爻在上。格子不另设 aria-label：读屏直接读看得见的字「泰 第十一」，两边一致。
     lines: [...markOf(name)].reverse().map((b) => b === '1'),
   };
@@ -38,10 +41,10 @@ const description = t(
 );
 ---
 
-<Paper title={title} description={description} path="/gua/" index subset="index" hant={hant}>
+<Paper title={title} description={description} path="/gua/" index subset="index" hant={hant} en={en}>
   <main class="list">
     <section class="intro">
-      <h1>六十四卦</h1>
+      <h1>{en ? "The 64 I Ching Hexagrams" : "六十四卦"}</h1>
       <p>{t('按《周易》通行本卦序排列。每一卦都有卦辞、爻辞、彖传、象传原文，以及本站原创的白话。', '按《周易》通行本卦序排列。每一卦都有卦辭、爻辭、彖傳、象傳原文，以及本站原創的白話。')}</p>
     </section>
     {parts.map((part) => (
@@ -49,7 +52,7 @@ const description = t(
         <h2 id={part.id}>{part.title}</h2>
         <div class="grid">
           {part.items.map((g) => (
-            <a href={guaPath(g.name, hant)}>
+            <a href={en ? '/en'+guaPath(g.name) : guaPath(g.name, hant)}>
               <span class="lines" aria-hidden="true">
                 {g.lines.map((yang) => <span class:list={['yao', { yang }]} />)}
               </span>
@@ -60,7 +63,7 @@ const description = t(
         </div>
       </section>
     ))}
-    <Invite hant={hant} />
+    <Invite hant={hant} en={en} />
   </main>
 </Paper>
 

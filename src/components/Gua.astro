@@ -1,6 +1,8 @@
 ---
 // 卦页：一卦的卦象、卦辞、彖传、象传、爻辞原文，卦辞白话与爻辞白话。知识页，不带所问、不断吉凶。
 // 简体 /gua/{slug}/ 与繁体 /zh-hant/gua/{slug}/ 共用；界面文字两种写法并排写在 t() 里。
+import english from '../data/gua-en.json';
+import { GUA } from '../data/gua-slugs';
 import baihuaHant from '../data/baihua-hant.json';
 import baihua from '../data/baihua.json';
 import { guaPath } from '../data/gua-slugs';
@@ -18,24 +20,30 @@ interface Props {
   name: string;
   slug: string;
   hant?: boolean;
+  en?: boolean;
 }
 
-const { name, slug, hant = false } = Astro.props;
-const t = (hans: string, tw: string) => (hant ? tw : hans);
+const { name, slug, hant = false, en = false } = Astro.props;
+import englishUi from '../data/gua-ui-en.json';
+const t = (hans: string, tw: string) => {if(!en)return hant ? tw : hans;const word=(englishUi as Record<string,string>)[hans];if(word===undefined)throw new Error('Missing English label: '+hans);return word;};
 const KIND_HANT: Record<string, string> = { 错卦: '錯卦', 综卦: '綜卦', 互卦: '互卦' };
 const TEXT: Record<string, string> = hant ? guaciHant : guaci;
 const BAIHUA: Record<string, string> = hant ? baihuaHant : baihua;
 const YAO_BAIHUA: Record<string, Record<string, string>> = hant ? yaoBaihuaHant : yaoBaihua;
-const g = parseGua(TEXT[name]!);
+const original = parseGua(TEXT[name]!);
+const entry=(english as Record<string,{name:string;text:string}>)[name]!;
+const trigrams:Record<string,string>={乾:'Heaven',坤:'Earth',震:'Thunder',巽:'Wind',坎:'Water',离:'Fire',艮:'Mountain',兑:'Lake'};
+const number=GUA.findIndex(([n])=>n===name)+1;
+const g = en ? {...original,name:entry.name,no:`Hexagram ${number}`,upper:trigrams[original.upper]!,lower:trigrams[original.lower]!} : original;
 // 繁体的卦名、简称取首行（遯；無妄、恆见 build-guaci-hant.py）；简体的简称用 shortName（遁，不用首行的「遯」）。
-const short = hant ? g.short : shortName(name);
-const bh = BAIHUA[name]!;
-const yaoBh = YAO_BAIHUA[name] ?? {};
+const short = en ? name : hant ? g.short : shortName(name);
+const bh = en ? entry.text : BAIHUA[name]!;
+const yaoBh = en ? {} : YAO_BAIHUA[name] ?? {};
 const mark = markOf(name);
-const gong = gongOf(name, hant);
-const shown = (n: string) => parseGua(TEXT[n]!).name;
+const gong = en ? `Traditional palace notation: ${gongOf(name)}` : gongOf(name, hant);
+const shown = (n: string) => en ? (english as Record<string,{name:string}>)[n]!.name : parseGua(TEXT[n]!).name;
 // 第十一卦 → 第十一
-const near = (n?: string) => n && { name: n, shown: shown(n), no: parseGua(TEXT[n]!).no.slice(0, -1) };
+const near = (n?: string) => n && { name: n, shown: shown(n), no: en ? String(GUA.findIndex(([name])=>name===n)+1) : parseGua(TEXT[n]!).no.slice(0, -1) };
 const { prev, next } = neighbors(name);
 const before = near(prev);
 const after = near(next);
@@ -45,20 +53,20 @@ const yao = [
   ...g.yao.slice(0, 6).map((y, k) => ({ ...y, id: k + 1, yang: mark[k] === '1' })).reverse(),
   ...g.yao.slice(6).map((y) => ({ ...y, id: 7, yang: null })),
 ];
-const lines = [...mark].map((b, k) => ({ yang: b === '1', label: `${yaoTitle(k, b === '1')} ${b === '1' ? t('阳', '陽') : t('阴', '陰')}` })).reverse();
+const lines = [...mark].map((b, k) => ({ yang: b === '1', label: `${en ? `Line ${k+1}` : yaoTitle(k, b === '1')} ${b === '1' ? t('阳', '陽') : t('阴', '陰')}` })).reverse();
 // 字体按区块定：卦名、卦辞各一块，全部爻辞算一块（一行缺字，整组改宋体）。
 // 繁体不走这条规则（见 fontOf 的注释）：不写 style，一律用 CSS 里的标题字体。
-const font = (text: string) => (hant ? undefined : `font-family: var(${fontOf(text)})`);
+const font = (text: string) => (en ? 'font-family: var(--font-body)' : hant ? undefined : `font-family: var(${fontOf(text)})`);
 const yaoFont = font(g.yao.map((y) => y.text).join(''));
 
-const title = `${g.name}（${short}卦）${t('卦辞、爻辞原文与白话', '卦辭、爻辭原文與白話')} · 六爻`;
-const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t('附卦辞、彖传、象传与六爻爻辞原文。', '附卦辭、彖傳、象傳與六爻爻辭原文。')}`;
+const title = en ? `I Ching ${number} · ${entry.name} · Meaning & Classical Text · Sixyao` : `${g.name}（${short}卦）${t('卦辞、爻辞原文与白话', '卦辭、爻辭原文與白話')} · 六爻`;
+const description = en ? entry.text : `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t('附卦辞、彖传、象传与六爻爻辞原文。', '附卦辭、彖傳、象傳與六爻爻辭原文。')}`;
 ---
 
-<Paper title={title} description={description} path={guaPath(name)} subset={slug} hant={hant}>
+<Paper title={title} description={description} path={guaPath(name)} subset={slug} hant={hant} en={en}>
   <main class="layout">
     <div class="lead">
-      <section class="gua" aria-label="卦象">
+      <section class="gua" aria-label={en ? "Hexagram" : "卦象"}>
         <p class="no">{g.no} · {short}</p>
         <div class="row">
           <div class="lines">
@@ -70,7 +78,7 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
           </div>
           <div class="names">
             <h1 style={font(name)}>{g.name}</h1>
-            <span class="tri">{g.upper}上{g.lower}下</span>
+            <span class="tri">{en ? `${g.upper} above · ${g.lower} below` : `${g.upper}上${g.lower}下`}</span>
           </div>
         </div>
         <p class="gong">{gong}</p>
@@ -80,30 +88,30 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
         <h2 id="related" class="sub">{t('相关卦', '相關卦')}</h2>
         <div class="cards">
           {related(name).map(([kind, n]) => (
-            <a href={guaPath(n, hant)}><span class="kind">{hant ? KIND_HANT[kind] : kind}</span><span class="n">{shown(n)}</span></a>
+            <a href={en ? '/en'+guaPath(n) : guaPath(n, hant)}><span class="kind">{en ? ({错卦:'Complement',综卦:'Reversed',互卦:'Nuclear'} as Record<string,string>)[kind] : hant ? KIND_HANT[kind] : kind}</span><span class="n">{shown(n)}</span></a>
           ))}
         </div>
       </section>
-      <div class="cta"><Invite aside hant={hant} /></div>
+      <div class="cta"><Invite aside hant={hant} en={en} /></div>
     </div>
 
     <div class="main">
       <section class="ci-block">
         <h2 class="head">{t('卦辞', '卦辭')}</h2>
-        <p class="ci" style={font(g.ci)}>{g.ci}</p>
+        <p class="ci" lang={en ? "zh-Hans" : undefined} style={font(g.ci)}>{g.ci}</p>
       </section>
       <div class="zhuan">
         <section>
           <h2 class="sub">{t('彖传', '彖傳')}</h2>
-          <p class="prose">{g.tuan}</p>
+          <p class="prose" lang={en ? "zh-Hans" : undefined}>{g.tuan}</p>
         </section>
         <section>
           <h2 class="sub">{t('象传', '象傳')}</h2>
-          <p class="prose">{g.xiang}</p>
+          <p class="prose" lang={en ? "zh-Hans" : undefined}>{g.xiang}</p>
         </section>
       </div>
       <section class="yao">
-        <h2 class="head">六爻</h2>
+        <h2 class="head">{en ? "Six lines · Classical Chinese (untranslated)" : "六爻"}</h2>
         {yao.map((y) => (
           <article id={`yao-${y.id}`}>
             <div class="pos">
@@ -115,19 +123,19 @@ const description = `${bh}《周易》${g.no}，${g.upper}上${g.lower}下。${t
               )}
             </div>
             <div class="words">
-              <p class="ci" style={yaoFont}>{y.text}</p>
+              <p class="ci" lang={en ? "zh-Hans" : undefined} style={yaoFont}>{y.text}</p>
               {yaoBh[y.title] && <p class="ybh">{yaoBh[y.title]}</p>}
-              <p class="xiang">{y.xiang}</p>
+              <p class="xiang" lang={en ? "zh-Hans" : undefined}>{y.xiang}</p>
             </div>
           </article>
         ))}
       </section>
       <nav class="pager" aria-label={t('上一卦与下一卦', '上一卦與下一卦')}>
         {before ? (
-          <a href={guaPath(before.name, hant)}><span class="kind">上一卦 · {before.no}</span><span class="n">‹ {before.shown}</span></a>
+          <a href={en ? '/en'+guaPath(before.name) : guaPath(before.name, hant)}><span class="kind">{en ? "Previous" : "上一卦"} · {before.no}</span><span class="n">‹ {before.shown}</span></a>
         ) : <span />}
         {after && (
-          <a class="next" href={guaPath(after.name, hant)}><span class="kind">下一卦 · {after.no}</span><span class="n">{after.shown} ›</span></a>
+          <a class="next" href={en ? '/en'+guaPath(after.name) : guaPath(after.name, hant)}><span class="kind">{en ? "Next" : "下一卦"} · {after.no}</span><span class="n">{after.shown} ›</span></a>
         )}
       </nav>
     </div>
