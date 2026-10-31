@@ -326,10 +326,12 @@ describe("时辰不知道（M19-11）", () => {
 		expect(r.guanXi.map((g) => `${g.name}:${g.zhu.join("")}`)).toEqual(["辰戌相冲:12"]);
 		expect(r.pillars.map((p) => p.shenSha)).toEqual([0, 1, 2].map((k) => shenSha(["戊寅", "壬戌", "丙辰"], k)));
 		expect([r.qiYun.years, r.qiYun.months, r.qiYun.days]).toEqual([9, 2, 20]);
+		// 带交运那年（M20 白话写「起止年份可能差一年」）：中午估的是 2008 年
 		expect(r.qiYun.range).toEqual([
-			{ years: 9, months: 0, days: 20 },
-			{ years: 9, months: 4, days: 20 },
+			{ years: 9, months: 0, days: 20, startYear: 2007 },
+			{ years: 9, months: 4, days: 20, startYear: 2008 },
 		]);
+		expect(r.daYun[0]!.startYear).toBe(2008);
 		// 真太阳时、晚子时都不起作用
 		expect(bazi(noHour, { longitude: 104.07, lateZi: "day-stays" }).pillars).toEqual(r.pillars);
 	});
