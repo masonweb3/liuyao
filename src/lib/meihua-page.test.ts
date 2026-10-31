@@ -11,6 +11,13 @@ import * as page from "./meihua-page.js";
 import * as revisit from "./revisit.js";
 import { YEARS } from "./huangli-days.js";
 
+it('繁体农历名称只换预写文字，不改农历或时辰',()=>{
+	expect(page.monthName(12,true,true)).toBe('閏臘月');
+	expect(page.monthName(12,true)).toBe('闰腊月');
+	const table=lunarTable(2026,2026),at=new Date('2026-10-01T16:08:00+08:00');
+	expect(page.nowText(table,at,' ',true)).toBe('丙午年 八月廿一 申時');
+});
+
 const memory = (init?: unknown) => {
 	const m = new Map<string, string>();
 	if (init !== undefined) m.set("liuyao:history", JSON.stringify(init));

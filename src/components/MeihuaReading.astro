@@ -1,8 +1,14 @@
 ---
+import { meihuaText } from '../lib/meihua-text';
+const hant = Astro.props.hant ?? false;
+const t = meihuaText(hant);
+
 // 梅花解读（设计稿 38、D30，M21-5 A：给吉凶）。版式照六爻解读页 Reading.astro，梅花页另写一份（理由见 MeihuaAsk.astro）。
 // 内容由 scripts/meihua.ts 按 Worker 算好的结果填入（src/lib/meihua-reading.ts）；没有分享卡（M21-19）、没有到时提醒（M21-22）。
 // 回访卡同六爻（M14）：从往卦点开（/meihua/?at=…）、到了日子才出，记下的写进同一条往卦的 review 字段。
-import { DISCLAIMER, ERRORS, REVIEW } from "../data/copy";
+import * as copyHans from '../data/copy';
+import copyHant from '../data/copy-hant.json';
+const {DISCLAIMER,ERRORS,REVIEW}=hant?copyHant:copyHans;
 import Slots from "./Slots.astro";
 
 const OUTCOMES = Object.keys(REVIEW.outcomes) as (keyof typeof REVIEW.outcomes)[];
@@ -12,15 +18,15 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
 <section class="screen reading" data-screen="reading" tabindex="-1" hidden>
   <header class="top">
     <div class="left">
-      <a class="back" href="/meihua/" aria-label="回到梅花首屏" data-back>
+      <a class="back" href={hant?"/zh-hant/meihua/":"/meihua/"} aria-label={t("回到梅花首屏")} data-back>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
       </a>
-      <a class="brand" href="/" aria-label="六爻，回到首屏">
-        <span class="seal" aria-hidden="true">爻</span>
-        <span class="name" aria-hidden="true"><span class="six">六爻 · </span>梅花</span>
+      <a class="brand" href={hant?"/zh-hant/":"/"} aria-label={t("六爻，回到首屏")}>
+        <span class="seal" aria-hidden="true">{t("爻")}</span>
+        <span class="name" aria-hidden="true"><span class="six">{t("六爻 ·")} </span>{t("梅花")}</span>
       </a>
     </div>
-    <a class="to-history" href="/?history">往卦</a>
+    <a class="to-history" href={hant?"/zh-hant/?history":"/?history"}>{t("往卦")}</a>
   </header>
 
   <!-- 回访卡：从往卦点开、到了日子的卦（同六爻，设计稿 17、D14）。卡上没有起卦、重摇、再问的入口（一事一占）。 -->
@@ -81,26 +87,26 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
   <div class="layout">
     <div class="lead">
       <section class="asked">
-        <span class="label">所问</span>
+        <span class="label">{t("所问")}</span>
         <p data-question></p>
       </section>
-      <section class="gua" aria-label="卦象">
+      <section class="gua" aria-label={t("卦象")}>
         <div class="lines" data-lines></div>
         <div class="names">
           <h1 tabindex="-1" data-autofocus><a class="to-gua" data-name></a></h1>
-          <span class="zhi">之<a class="to-gua" data-zhi-name></a></span>
+          <span class="zhi">{t("之")}<a class="to-gua" data-zhi-name></a></span>
         </div>
       </section>
       <p class="gz">
-        <span data-by></span>（北京时间）<br />互卦 <span class="hu-n" data-hu-n></span><span data-hu-qk hidden> · 乾坤无互，取变卦之互</span>
+        <span data-by></span>{t("（北京时间）")}<br />{t("互卦")} <span class="hu-n" data-hu-n></span><span data-hu-qk hidden> {t("· 乾坤无互，取变卦之互")}</span>
       </p>
-      <section class="verdict" aria-label="结论">
+      <section class="verdict" aria-label={t("结论")}>
         <span class="duan" role="img" data-duan></span>
         <div class="said">
           <p class="conclusion" data-conclusion></p>
           {/* 发现第 4 条：同一时辰（同一组数）起出同一卦，吉凶也就相同，这是起法本身的性质，类别只换断语和建议的说法 */}
           <p class="basis">
-            <span data-basis="time">按体用生克断。同一天同一时辰起卦，卦与吉凶都相同，这是起法本身的性质；</span><span data-basis="num" hidden>按体用生克断。同一时辰报同样的数，卦与吉凶都相同，这是起法本身的性质；</span>所问属「<span data-topic-label></span>」，只决定断语和建议的说法。
+            <span data-basis="time">{t("按体用生克断。同一天同一时辰起卦，卦与吉凶都相同，这是起法本身的性质；")}</span><span data-basis="num" hidden>{t("按体用生克断。同一时辰报同样的数，卦与吉凶都相同，这是起法本身的性质；")}</span>{t("所问属「")}<span data-topic-label></span>{t("」，只决定断语和建议的说法。")}
           </p>
         </div>
       </section>
@@ -108,44 +114,44 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
 
     <div class="main">
       <section class="block">
-        <h2 class="head">依据 · 体用生克</h2>
+        <h2 class="head">{t("依据 · 体用生克")}</h2>
         <table class="rel">
-          <caption class="sr-only">体用生克</caption>
-          <thead class="sr-only"><tr><th scope="col">卦</th><th scope="col">经卦</th><th scope="col">对体卦</th></tr></thead>
+          <caption class="sr-only">{t("体用生克")}</caption>
+          <thead class="sr-only"><tr><th scope="col">{t("卦")}</th><th scope="col">{t("经卦")}</th><th scope="col">{t("对体卦")}</th></tr></thead>
           <tbody>
             {ROWS.map((r) => (
-              <tr><th scope="row">{r}</th><td data-row></td><td class="r" data-rel></td></tr>
+              <tr><th scope="row">{t(r)}</th><td data-row></td><td class="r" data-rel></td></tr>
             ))}
           </tbody>
         </table>
         <ol class="list" data-reasons></ol>
-        <p class="tail">体卦代表问事的人，用卦代表所问的事；互卦看经过，变卦看结局。本站分三步判：先看用卦，生体、比和、为体所克为吉，为体所生为平，克体为凶；再看变卦，与用卦一吉一凶断平，用卦为平就随变卦；最后四处合看，两处以上克体、又没有一处生体，断凶。不看卦气旺衰（体卦在当季是旺是衰），也不兼看卦辞、爻辞与外应（起卦时身边的见闻）。</p>
+        <p class="tail">{t("体卦代表问事的人，用卦代表所问的事；互卦看经过，变卦看结局。本站分三步判：先看用卦，生体、比和、为体所克为吉，为体所生为平，克体为凶；再看变卦，与用卦一吉一凶断平，用卦为平就随变卦；最后四处合看，两处以上克体、又没有一处生体，断凶。不看卦气旺衰（体卦在当季是旺是衰），也不兼看卦辞、爻辞与外应（起卦时身边的见闻）。")}</p>
       </section>
       <section class="block">
-        <h2 class="head">建议</h2>
+        <h2 class="head">{t("建议")}</h2>
         <ul class="list advice" data-advice></ul>
       </section>
       <div class="texts">
         <section class="block text" data-text="ben">
-          <h2 class="kicker">卦辞 · 本卦 <span data-short></span></h2>
+          <h2 class="kicker">{t("卦辞 · 本卦")} <span data-short></span></h2>
           <p class="ci" data-ci></p>
           <p class="bh" data-bh></p>
-          <a class="page" data-page><span class="pn" data-pn></span>卦页 ›</a>
+          <a class="page" data-page><span class="pn" data-pn></span>{t("卦页 ›")}</a>
         </section>
         <section class="block text">
-          <h2 class="kicker">动爻 · <span data-dong-title></span></h2>
+          <h2 class="kicker">{t("动爻 ·")} <span data-dong-title></span></h2>
           <div class="yc"><span class="t" data-dong-t></span><p data-dong-text></p></div>
           <p class="bh" data-dong-bh></p>
         </section>
         <section class="block text" data-text="bian">
-          <h2 class="kicker">变卦 · <span data-short></span></h2>
+          <h2 class="kicker">{t("变卦 ·")} <span data-short></span></h2>
           <p class="ci" data-ci></p>
           <p class="bh" data-bh></p>
-          <a class="page" data-page><span class="pn" data-pn></span>卦页 ›</a>
+          <a class="page" data-page><span class="pn" data-pn></span>{t("卦页 ›")}</a>
         </section>
         {/* 互卦只写卦名与两个经卦，不链卦页、不读卦辞（M21-9） */}
         <section class="block text hu">
-          <h2 class="kicker">互卦 · <span data-hu-short></span></h2>
+          <h2 class="kicker">{t("互卦 ·")} <span data-hu-short></span></h2>
           <div class="hu-row"><span class="hu-name" data-hu-name></span><div class="mini" data-hu-lines aria-hidden="true"></div></div>
           {/* 这一段随卦而变（上下同一经卦、乾坤取变卦之互），由 Worker 整句拼好（meihua-reading.ts 的 huSay） */}
           <p class="hu-say" data-hu-say></p>
@@ -154,19 +160,19 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
 
       <details class="panel" data-panel>
         <summary>
-          <h2>怎么起的</h2>
+          <h2>{t("怎么起的")}</h2>
           <span class="toggle" aria-hidden="true"></span>
         </summary>
-        <p class="o-head"><span data-origin></span>（北京时间）</p>
+        <p class="o-head"><span data-origin></span>{t("（北京时间）")}</p>
         <div class="formula" data-formula></div>
-        <p class="xian">先天数：乾一 兑二 离三 震四 巽五 坎六 艮七 坤八。上卦、下卦除以八，动爻除以六，取余数；余数为零时，卦作坤，爻作上爻。</p>
+        <p class="xian">{t("先天数：乾一 兑二 离三 震四 巽五 坎六 艮七 坤八。上卦、下卦除以八，动爻除以六，取余数；余数为零时，卦作坤，爻作上爻。")}</p>
       </details>
     </div>
   </div>
 
   <footer class="end">
-    <a class="again" href="/meihua/?ask" data-again>再问一事</a>
-    <p>同一件事，一卦为定</p>
+    <a class="again" href={hant?"/zh-hant/meihua/?ask":"/meihua/?ask"} data-again>{t("再问一事")}</a>
+    <p>{t("同一件事，一卦为定")}</p>
     <p class="warn" data-storage hidden>{ERRORS.storage}</p>
     <p>{DISCLAIMER[0]}<br />{DISCLAIMER[1]}</p>
   </footer>
@@ -666,6 +672,12 @@ const ROWS = ["体卦", "用卦", "互卦", "变卦"];
     color: var(--ink-2);
   }
   .panel[open] .toggle::after {
+    content: "收起";
+  }
+  .toggle:lang(zh-Hant)::after {
+    content: "展開";
+  }
+  .panel[open] .toggle:lang(zh-Hant)::after {
     content: "收起";
   }
   .o-head {

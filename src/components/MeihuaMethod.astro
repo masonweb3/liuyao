@@ -1,4 +1,8 @@
 ---
+import { meihuaText } from '../lib/meihua-text';
+const hant = Astro.props.hant ?? false;
+const t = meihuaText(hant);
+
 // 选起法与报数（设计稿 36、D29）。两屏都还没起卦：报数屏可以退回选起法；按下起卦那一刻才成卦、写进往卦。
 // 手机：两张卡都是按钮，「报数起卦」另开一屏报数。桌面（≥1024）：两卡并排，数直接填在右卡里，不另开报数屏。
 // 报数屏不预示卦名（免得挑卦），只写算法要加的时辰数。
@@ -13,72 +17,72 @@ const fields = (p: string) => [
 ---
 
 <section class="screen method" data-screen="method" tabindex="-1" hidden>
-  <MeihuaBar />
+  <MeihuaBar hant={hant} />
   <div class="col">
     <div class="title">
-      <h1 tabindex="-1" data-autofocus>以何起卦</h1>
-      <p>梅花不摇铜钱，以时或以数成卦。<br class="m" />卦一起就定下，同一件事只起这一次。</p>
+      <h1 tabindex="-1" data-autofocus>{t("以何起卦")}</h1>
+      <p>{t("梅花不摇铜钱，以时或以数成卦。")}<br class="m" />{t("卦一起就定下，同一件事只起这一次。")}</p>
     </div>
-    <div class="cards" role="group" aria-label="起卦方法">
+    <div class="cards" role="group" aria-label={t("起卦方法")}>
       <button type="button" class="card now" data-cast-time>
-        <span class="t">以此刻起卦</span>
-        <span class="when"><span data-now-card></span>（北京时间）</span>
-        <span class="s">年、月、日、时之数相加成卦<span class="d">。同一天的同一个时辰里起卦，得的都是同一卦。</span></span>
-        <span class="go" aria-hidden="true">以此刻起卦</span>
+        <span class="t">{t("以此刻起卦")}</span>
+        <span class="when"><span data-now-card></span>{t("（北京时间）")}</span>
+        <span class="s">{t("年、月、日、时之数相加成卦")}<span class="d">{t("。同一天的同一个时辰里起卦，得的都是同一卦。")}</span></span>
+        <span class="go" aria-hidden="true">{t("以此刻起卦")}</span>
       </button>
       <div class="card num">
         <button type="button" class="hit" data-go="num">
-          <span class="t">报数起卦</span>
-          <span class="when">报两个数，或一个数</span>
-          <span class="s">心里浮现的，或眼前所见的；再加此刻的时辰</span>
+          <span class="t">{t("报数起卦")}</span>
+          <span class="when">{t("报两个数，或一个数")}</span>
+          <span class="s">{t("心里浮现的，或眼前所见的；再加此刻的时辰")}</span>
         </button>
         <form class="desk" novalidate data-num-form aria-labelledby="num-desk">
-          <h2 class="t" id="num-desk">报数起卦</h2>
-          <p class="s">报两个数，或一个数，心里浮现的、眼前所见的都可以。起卦还要加上此刻的时辰数（<span data-hour-name></span>，<span data-hour-num></span>）。</p>
+          <h2 class="t" id="num-desk">{t("报数起卦")}</h2>
+          <p class="s">{t("报两个数，或一个数，心里浮现的、眼前所见的都可以。起卦还要加上此刻的时辰数（")}<span data-hour-name></span>，<span data-hour-num></span>）。</p>
           <div class="pair">
             {fields("d").map((f) => (
               <div class="field">
-                <label for={f.id}>{f.label}</label>
+                <label for={f.id}>{t(f.label)}</label>
                 <input id={f.id} type="text" inputmode="numeric" autocomplete="off" enterkeyhint="go" maxlength="6" aria-describedby={`${f.id}-e`} data-n />
                 <p class="err" id={`${f.id}-e`} role="alert" data-err></p>
               </div>
             ))}
           </div>
-          <p class="s rule">只收正整数，最多四位。</p>
-          <button class="btn line" type="submit">以数起卦</button>
+          <p class="s rule">{t("只收正整数，最多四位。")}</p>
+          <button class="btn line" type="submit">{t("以数起卦")}</button>
         </form>
       </div>
     </div>
     <p class="local" role="note" hidden data-local>
-      <Slots text="你那里是 {local}，{localHour}时；梅花按北京时间起卦，此刻是 {beijing} {beijingHour}时。" />
+      <Slots text={t("你那里是 {local}，{localHour}时；梅花按北京时间起卦，此刻是 {beijing} {beijingHour}时。")} />
     </p>
     <p class="fail" role="alert" data-cast-error></p>
-    <p class="foot">时辰按北京时间 · 同一件事，一卦为定</p>
+    <p class="foot">{t("时辰按北京时间 · 同一件事，一卦为定")}</p>
   </div>
 </section>
 
 <section class="screen num" data-screen="num" tabindex="-1" hidden>
-  <MeihuaBar>
-    <button class="back" data-go="method" aria-label="回到选起法">
+  <MeihuaBar hant={hant}>
+    <button class="back" data-go="method" aria-label={t("回到选起法")}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
     </button>
   </MeihuaBar>
   <form class="col" novalidate data-num-form>
     <div class="title">
-      <h1 tabindex="-1">报一个数，或两个</h1>
-      <p>不必多想，先浮现的那个就好。</p>
+      <h1 tabindex="-1">{t("报一个数，或两个")}</h1>
+      <p>{t("不必多想，先浮现的那个就好。")}</p>
     </div>
     {fields("n").map((f, i) => (
       <div class="field">
-        <label for={f.id}>{f.label}</label>
+        <label for={f.id}>{t(f.label)}</label>
         <input id={f.id} type="text" inputmode="numeric" autocomplete="off" enterkeyhint={i ? "go" : "next"} maxlength="6" aria-describedby={`${f.id}-e`} data-n data-autofocus={i ? undefined : ""} />
         <p class="err" id={`${f.id}-e`} role="alert" data-err></p>
       </div>
     ))}
-    <p class="s">只收正整数，最多四位。起卦还要加上此刻的时辰数：<span data-hour-name></span>，<span data-hour-num></span>。</p>
+    <p class="s">{t("只收正整数，最多四位。起卦还要加上此刻的时辰数：")}<span data-hour-name></span>，<span data-hour-num></span>。</p>
     <p class="fail" role="alert" data-cast-error></p>
     <footer class="dock">
-      <button class="btn solid" type="submit">起卦</button>
+      <button class="btn solid" type="submit">{t("起卦")}</button>
     </footer>
   </form>
 </section>

@@ -369,7 +369,7 @@ export async function list(root: HTMLElement, load: Load, open: (p: Past, r: Cas
 				d.textContent = verdict;
 				d.dataset.verdict = verdict;
 				$("button", li).addEventListener("click", () =>
-					x ? open(p, r, x) : location.assign(`/meihua/?at=${encodeURIComponent(p.at)}`),
+					x ? open(p, r, x) : location.assign(`${hant?'/zh-hant':''}/meihua/?at=${encodeURIComponent(p.at)}`),
 				);
 				return [li];
 			} catch {

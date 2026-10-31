@@ -2,7 +2,7 @@
  * 梅花页 —— 驱动 Meihua.astro：首屏 → 写下所问 →（拦截 | 择类）→ 选起法 →［报数］→ 成卦 → 解读；
  * 从往卦点开（/meihua/?at=…）直接是这一卦的解读和回访卡。
  *
- * 只 import 零依赖的 lib/meihua-page.ts 和类型，不用动态 import()：首页入口包不能因为这一页变（见那个文件的文件头）。
+ * 只 import 零依赖的 meihua-page.ts 和类型；繁体字体清单由 Worker 返回，避免拆出首页首屏共享依赖。
  * 起卦、卦辞、白话、断语在 Worker 里（scripts/meihua-worker.ts）。每一步都对照 NEXT，成卦之后回不到起卦前。
  */
 import type { Judgement } from "../lib/flow.js";
@@ -47,6 +47,9 @@ const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = docu
 const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => [...root.querySelectorAll<T>(sel)];
 
 const root = $("[data-meihua]");
+const hant=root.dataset.hant==='1';
+const MEIHUA_PATH=`${hant?'/zh-hant':''}/meihua/`;
+const UI:Record<string,string>=JSON.parse(root.dataset.ui!);
 const TABLE = root.dataset.lunar ?? "";
 const COPY: {
 	empty: string;
@@ -120,12 +123,21 @@ document.addEventListener("click", (e) => {
 
 let worker: Worker | undefined;
 let seq = 0;
+const registeredFonts=new Set<string>();
 const pending = new Map<number, { resolve: (v: MeihuaView | undefined) => void; reject: (e: unknown) => void }>();
 
 function warm(): Worker {
 	if (worker) return worker;
 	const w = new Worker(new URL("./meihua-worker.ts", import.meta.url), { type: "module" });
 	w.onmessage = (e: MessageEvent<{ id: number; view?: MeihuaView }>) => {
+		try{
+			for(const font of e.data.view?.fonts??[]){
+				if(registeredFonts.has(font.variable))continue;
+				for(const {url,range}of font.files)document.fonts.add(new FontFace(font.family,`url("${url}")`,{unicodeRange:range,display:'swap',weight:'400'}));
+				document.documentElement.style.setProperty(font.variable,`'${font.family}', 'Noto Serif TC', serif`);
+				registeredFonts.add(font.variable);
+			}
+		}catch{ /* 字体失败不应挡住已成之卦的读取，仍可用正文宋体。 */ }
 		pending.get(e.data.id)?.resolve(e.data.view);
 		pending.delete(e.data.id);
 	};
@@ -143,9 +155,9 @@ function warm(): Worker {
 function request(req?: Request): Promise<MeihuaView | undefined> {
 	const w = warm();
 	const id = ++seq;
-	return new Promise((resolve, reject) => {
+	return new Promise<MeihuaView | undefined>((resolve, reject) => {
 		pending.set(id, { resolve, reject });
-		w.postMessage({ id, ...req });
+		w.postMessage({ id, ...req,hant });
 	});
 }
 
@@ -162,8 +174,8 @@ function put(el: Element, text: string) {
 
 /** 首屏页脚、选起法卡片、报数提示里的「此刻」，与海外访客的那一句；在下一个时辰交界（untilNext）再写一次。 */
 function tick(now = new Date()) {
-	put(nowLine, `此刻　${nowText(TABLE, now, "　")}（北京时间）`);
-	for (const el of $$("[data-now-card]")) put(el, nowText(TABLE, now));
+	put(nowLine, `${UI.now}　${nowText(TABLE, now, "　",hant)}（${UI.beijing}）`);
+	for (const el of $$("[data-now-card]")) put(el, nowText(TABLE, now,' ',hant));
 	const h = hourOf(now);
 	for (const el of $$("[data-hour-name]")) put(el, h.name);
 	for (const el of $$("[data-hour-num]")) put(el, String(h.num));
@@ -367,7 +379,7 @@ function setText(el: HTMLElement, text: string, font: string) {
 }
 
 const byLine = (v: MeihuaView, full = false) =>
-	v.by === "time" ? `时间起卦 · ${v.when}` : `数字起卦 · ${full ? "报数 " : ""}${v.nums} · ${v.hour}时`;
+	v.by === "time" ? `${UI.time} · ${v.when}` : `${UI.num} · ${full ? UI.numbers+' ' : ""}${v.nums} · ${v.hour}${UI.hour}`;
 const formula = (v: MeihuaView) => v.formula.map((p) => `<p>${p}</p>`).join("");
 /** 「乾坤无互，取变卦之互」短注：乾、坤动在初爻、上爻时变卦之互仍是自身，看着像没取，不出（解读页互卦一段另有整句） */
 const huNote = (v: MeihuaView) => v.hu.fromBian && v.hu.name !== v.ben.name;
@@ -384,7 +396,7 @@ function reveal(view: MeihuaView, at: string) {
 	$("[data-hu-note]", revealEl).hidden = !huNote(view);
 	$("[data-formula]", revealEl).innerHTML = formula(view);
 	$("[data-reveal-when]", revealEl).textContent =
-		view.by === "time" ? `${view.when} · 时间起卦` : `报数 ${view.nums} · ${view.hour}时 · 数字起卦`;
+		view.by === "time" ? `${view.when} · ${UI.time}` : `${UI.numbers} ${view.nums} · ${view.hour}${UI.hour} · ${UI.num}`;
 	go("reveal");
 }
 
@@ -426,7 +438,7 @@ function read(v: MeihuaView, question: string, at: string, past: Past | undefine
 	const duan = $("[data-duan]", r);
 	duan.textContent = v.verdict;
 	duan.dataset.verdict = v.verdict;
-	duan.setAttribute("aria-label", `断：${v.verdict}`);
+	duan.setAttribute("aria-label", `${UI.verdict}${v.verdict}`);
 	set("[data-conclusion]", v.conclusion);
 	for (const el of $$("[data-basis]", r)) el.hidden = el.dataset.basis !== v.by;
 	set("[data-topic-label]", v.topic);
@@ -463,8 +475,8 @@ function read(v: MeihuaView, question: string, at: string, past: Past | undefine
 	$("[data-formula]", r).innerHTML = formula(v);
 
 	const back = $<HTMLAnchorElement>("[data-back]", r);
-	back.href = past ? "/?history" : "/meihua/";
-	back.setAttribute("aria-label", past ? "回到往卦" : "回到梅花首屏");
+	back.href = past ? `${hant?'/zh-hant':''}/?history` : MEIHUA_PATH;
+	back.setAttribute("aria-label", past ? UI.backHistory! : UI.backHome!);
 	shownAt = at;
 	visit(past, v.verdict === "凶");
 }
@@ -570,7 +582,7 @@ for (const b of card.querySelectorAll("[data-visit-edit]"))
 const soundBtn = $<HTMLButtonElement>("[data-sound]");
 function showSound() {
 	soundBtn.setAttribute("aria-pressed", String(soundOn()));
-	soundBtn.setAttribute("aria-label", `音效：${soundOn() ? "已开启" : "已关闭"}`);
+	soundBtn.setAttribute("aria-label", soundOn() ? UI.soundOn! : UI.soundOff!);
 }
 soundBtn.addEventListener("click", () => {
 	setSound(!soundOn());
@@ -601,7 +613,7 @@ async function openPast(at: string) {
 		read(view, p.question, p.at, p);
 		show("reading");
 	} catch {
-		window.history.replaceState(null, "", "/meihua/");
+		window.history.replaceState(null, "", MEIHUA_PATH);
 		home.hidden = false;
 		// 回到首屏时说一声为什么；焦点落在这一句上，读屏会念出来
 		lost.textContent = say;
@@ -620,6 +632,6 @@ const pastAt = entry.get("at");
 if (pastAt !== null) void openPast(pastAt);
 else if (entry.has("ask")) {
 	// 「再问一事」：进页就是写下所问，前一卦的什么都不带
-	window.history.replaceState(null, "", "/meihua/");
+	window.history.replaceState(null, "", MEIHUA_PATH);
 	go("ask");
 }

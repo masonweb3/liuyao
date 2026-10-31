@@ -170,8 +170,8 @@ export function hourOf(d: Date): { name: string; num: number } {
 }
 
 /** 正月 二月 …… 冬月 腊月，闰月前加「闰」。 */
-export const monthName = (m: number, leap = false) =>
-	`${leap ? "闰" : ""}${m === 1 ? "正" : m === 11 ? "冬" : m === 12 ? "腊" : CN[m - 1]}月`;
+export const monthName = (m: number, leap = false,hant=false) =>
+	`${leap ? (hant?'閏':'闰') : ""}${m === 1 ? "正" : m === 11 ? "冬" : m === 12 ? (hant?'臘':'腊') : CN[m - 1]}月`;
 
 /** 初一 …… 初十 十一 …… 二十 廿一 …… 三十 */
 export const dayName = (d: number) =>
@@ -216,10 +216,10 @@ export function lunarOf(table: string, d: Date): Lunar | null {
 }
 
 /** 丙午年 八月廿一 申时（选起法卡片；首屏用全角空格隔开）；表外的年份只写时辰。 */
-export function nowText(table: string, d: Date, gap = " "): string {
+export function nowText(table: string, d: Date, gap = " ",hant=false): string {
 	const l = lunarOf(table, d);
-	const h = `${hourOf(d).name}时`;
-	return l ? `${l.year}年${gap}${monthName(l.month, l.leap)}${dayName(l.day)}${gap}${h}` : h;
+	const h = `${hourOf(d).name}${hant?'時':'时'}`;
+	return l ? `${l.year}年${gap}${monthName(l.month, l.leap,hant)}${dayName(l.day)}${gap}${h}` : h;
 }
 
 /**

@@ -1,8 +1,13 @@
 ---
+import { meihuaText } from '../lib/meihua-text';
+const hant = Astro.props.hant ?? false;
+const t = meihuaText(hant);
+
 // 拦截、婉拒、紧急提示、请重写（设计稿 40）：版式同首页 Notice.astro，梅花页另写一份（理由见 MeihuaAsk.astro）。
 import MeihuaBar from "./MeihuaBar.astro";
 
 interface Props {
+  hant?: boolean;
   screen: string;
   title: string;
   body: readonly string[];
@@ -13,7 +18,7 @@ const { screen, title, body, guard } = Astro.props;
 ---
 
 <section class:list={["screen", "notice", { guard }]} data-screen={screen} tabindex="-1" hidden>
-  {guard ? <div class="gap" /> : <MeihuaBar />}
+  {guard ? <div class="gap" /> : <MeihuaBar hant={hant} />}
   <div class="col">
     <div class="center">
       <h1 tabindex="-1" data-autofocus>{title}</h1>
