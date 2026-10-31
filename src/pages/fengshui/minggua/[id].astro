@@ -1,0 +1,6 @@
+---
+import FengshuiPage from '../../../components/FengshuiPage.astro';
+import kb from '../../../data/fengshui.json';
+export const getStaticPaths=()=>Object.keys(kb).map(id=>({params:{id},props:{id}}));
+---
+<FengshuiPage id={Astro.props.id} />

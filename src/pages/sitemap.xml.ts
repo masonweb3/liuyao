@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { GUA, guaPath, HANT } from '../data/gua-slugs';
 import { KB_PAGES, kbPath } from '../lib/bazi-kb';
 import { months } from '../lib/huangli-card';
-import { dayPath, days, JIEQI, jieqiPath } from '../lib/huangli-days';
+import { dayPath, days, JIEQI, jieqiPath, YEARS } from '../lib/huangli-days';
 import { ITEMS, zeriPath } from '../lib/zeri-rule';
 import zi from '../data/zi.json';
 
@@ -33,6 +33,9 @@ const PATHS = [
 		`${hant ? HANT : ''}/quming/81/`,
 		`${hant ? HANT : ''}/zi/`,
 		...Object.entries(zi).map(([ch, x]) => `${hant ? HANT : ''}/zi/${hant ? x.hant : ch}/`),
+		`${hant ? HANT : ''}/fengshui/`,
+		...Array.from({length:9},(_,i)=>`${hant ? HANT : ''}/fengshui/minggua/${i+1}/`),
+		...YEARS.map(year=>`${hant ? HANT : ''}/fengshui/${year}-jiugong/`),
 	]),
 	// 梅花易数（M21）：先只有简体（M21-20）；起出的卦不进网址
 	'/meihua/',

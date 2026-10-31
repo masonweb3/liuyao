@@ -51,6 +51,10 @@ import homeCopyHant from './copy-hant.json';
 import homeRuntimeHant from './home-runtime-hant.json';
 import templatesHant from './templates-hant.json';
 import messagesHant from './liuyao-messages-hant.json';
+import fengshui from './fengshui.json';
+import fengshuiHant from './fengshui-hant.json';
+import feixing from './feixing.json';
+import feixingHant from './feixing-hant.json';
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -165,7 +169,7 @@ const shown = (data: unknown) => [
  */
 function componentText(hant: boolean): string[] {
 	const pair = /t\(\s*(['`])((?:(?!\1).)*)\1,\s*(['`])((?:(?!\3).)*)\3\s*,?\s*\)/g;
-	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb", "Quming", "QumingShuli", "Zi", "ZiList"].map((f) =>
+	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb", "Quming", "QumingShuli", "Zi", "ZiList", "Fengshui", "FengshuiPage"].map((f) =>
 		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8")
 			.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
 			.replace(pair, (...m: string[]) => (hant ? m[4]! : m[2]!)),
@@ -197,8 +201,8 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), baziRizhu, quming, qumingShuli, Object.entries(ziContent).map(([c,x]) => c+x.yi))],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant, Object.values(ziContent).map(x => x.hant+x.yi_hant))],
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), baziRizhu, quming, qumingShuli, fengshui, feixing, Object.entries(ziContent).map(([c,x]) => c+x.yi))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant, fengshuiHant, feixingHant, Object.values(ziContent).map(x => x.hant+x.yi_hant))],
 	])("%s：卦爻辞、两种白话、黄历、择日、八字、取名的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
@@ -262,6 +266,8 @@ it.each([
 it.each([
 	["quming", "取名八十一数名字里的字"],
 	["quming-hant", "取名八十一數名字裡的字"],
+	["fengshui", "风水九宫飞星图0123456789坎一坤二震三巽四中五乾六兑七艮八离九"],
+	["fengshui-hant", "風水九宮飛星圖0123456789坎一坤二震三巽四中五乾六兌七艮八離九"],
 ])("取名标题子集 %s/index 有两页的 h1", (dir, text) => {
 	const have = new Set<number>();
 	for (const f of ["index", "index-wk"]) {

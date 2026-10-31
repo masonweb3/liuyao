@@ -1,0 +1,6 @@
+---
+import FengshuiPage from '../../components/FengshuiPage.astro';
+import { YEARS } from '../../lib/huangli-days';
+export const getStaticPaths=()=>YEARS.map(year=>({params:{annual:`${year}-jiugong`},props:{year}}));
+---
+<FengshuiPage year={Astro.props.year} />
