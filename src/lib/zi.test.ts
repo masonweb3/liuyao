@@ -3,9 +3,9 @@ import content from '../data/zi.json';
 import { initials, related, ZI, zi, ziPath } from './zi';
 
 describe('单字页', () => {
-	it('1092 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
-		expect(ZI).toHaveLength(1092);
-		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(1092);
+	it('1342 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
+		expect(ZI).toHaveLength(1342);
+		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(1342);
 		for (const c of ZI) for (const hant of [false, true]) {
 			const x = zi(c,hant);
 			expect(x.form, c).toBeDefined();
