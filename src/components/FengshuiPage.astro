@@ -1,0 +1,42 @@
+---
+import { SolarTerm } from 'tyme4ts';
+import kb from '../data/fengshui.json';
+import kbHant from '../data/fengshui-hant.json';
+import { GRID, yearStars } from '../lib/feixing';
+import { YEARS } from '../lib/huangli-days';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+interface Props { hant?: boolean; id?: keyof typeof kb; year?: number }
+const { hant=false, id, year }=Astro.props;
+const t=(s:string,h:string)=>hant?h:s;
+const c=hant?kbHant:kb;
+const item=id?c[id]:undefined;
+const annual=year?yearStars(year):undefined;
+if(!item&&!annual)throw new Error('Missing trigram ID or annual year');
+const path=id?`/fengshui/minggua/${id}/`:`/fengshui/${year}-jiugong/`;
+const home=`${hant?'/zh-hant':''}/fengshui/`;
+const heading=item?item.title:`${year} ${t('九宫飞星图','九宮飛星圖')}`;
+const description=item?item.lead:t(`${year}年九宫飞星，按立春换年，北在上。列出数字与方位，只作传统方位资料，不替代房屋现场观察。`,`${year}年九宮飛星，按立春換年，北在上。列出數字與方位，只作傳統方位資料，不取代房屋現場觀察。`);
+const start=year?SolarTerm.fromName(year,'立春').getJulianDay().getSolarTime().toString():'';
+const end=year?SolarTerm.fromName(year+1,'立春').getJulianDay().getSolarTime().toString():'';
+---
+<Paper title={`${heading} · ${t('风水','風水')} · 六爻`} description={description} path={path} at="/fengshui/" group="fengshui" subset="index" hant={hant}>
+  <main class="article">
+    <a class="back" href={home}>{t('风水','風水')} ›</a><h1>{heading}</h1><p class="lead">{description}</p>
+    {item ? <>
+      <dl><div><dt>{t('方位','方位')}</dt><dd>{item.direction}</dd></div><div><dt>{t('五行意象','五行意象')}</dt><dd>{item.element}</dd></div><div><dt>{t('分组','分組')}</dt><dd>{id==='5'?t('中央，不属八方卦','中央，不屬八方卦'):`${item.group}${t('四卦','四卦')}`}</dd></div></dl>
+      <section><h2>{t('怎么读这个编号','怎麼讀這個編號')}</h2>{item.text.map(text=><p>{text}</p>)}</section>
+      <section><h2>{t('命卦与宅卦','命卦與宅卦')}</h2><p>{t('命卦按生年与传统男女表查，年以立春分界。宅卦按坐山，不按朝向；坐与向相差180°。它们是两套查表的编号，不据此断个人或房屋的好坏。','命卦按生年與傳統男女表查，年以立春分界。宅卦按坐山，不按朝向；坐與向相差180°。它們是兩套查表的編號，不據此斷個人或房屋的好壞。')}</p><a href={home}>{t('查命卦与宅卦','查命卦與宅卦')} ›</a></section>
+      <nav class="links" aria-label={t('其他编号','其他編號')}>{Object.entries(c).filter(([key])=>key!==id).map(([key,x])=><a href={`${home}minggua/${key}/`}>{x.title}</a>)}</nav>
+    </> : annual && <>
+      <p>{t('这张图从','這張圖從')} {start} {t('立春起，至','立春起，至')} {end} {t('下一次立春前使用，均为北京时间。不是元旦或春节换图。','下一次立春前使用，均為北京時間。不是元旦或春節換圖。')}</p>
+      <section><h2>{annual.name} · {t('年星入中','年星入中')} {annual.centre}</h2><p>{t('北在上，左西右东；每格标方位与年星数字。','北在上，左西右東；每格標方位與年星數字。')}</p><div class="nine" role="group" aria-label={heading}>{GRID.map(p=><div><span>{c[String(p) as keyof typeof c].direction}</span><strong>{annual.grid[p]}</strong></div>)}</div></section>
+      <section><h2>{t('年图与宅盘','年圖與宅盤')}</h2><p>{t('年星从这一干支年的九星数入中顺飞，所有房屋用同一张年图。宅盘另按入住年和具体坐向排运、山、向三盘；不能把年图当作一间房屋的完整盘面。','年星從這一干支年的九星數入中順飛，所有房屋用同一張年圖。宅盤另按入住年和具體坐向排運、山、向三盤；不能把年圖當作一間房屋的完整盤面。')}</p><p>{t('看空间时，仍以采光、物品摆放与通道是否顺畅为准。数字只作传统方位记录，不对生活结果作推论，也不指示购买或放置任何器物。','看空間時，仍以採光、物品擺放與通道是否順暢為準。數字只作傳統方位記錄，不對生活結果作推論，也不指示購買或放置任何器物。')}</p><a href={home}>{t('回到本地飞星工具','回到本機飛星工具')} ›</a></section>
+      <nav class="links" aria-label={t('其他年份','其他年份')}>{YEARS.filter(y=>y!==year).map(y=><a href={`${home}${y}-jiugong/`}>{y} · {t('九宫飞星图','九宮飛星圖')}</a>)}</nav>
+    </>}
+  </main><Invite hant={hant} />
+  <Fragment slot="foot"><p>{t('起例据《八宅明镜》与《沈氏玄空学》卷四自行实现，年星与交节时刻由tyme4ts计算；说明为本站原创。','起例據《八宅明鏡》與《沈氏玄空學》卷四自行實作，年星與交節時刻由tyme4ts計算；說明為本站原創。')}</p><p>{t('仅供传统文化参考与娱乐','僅供傳統文化參考與娛樂')}</p></Fragment>
+</Paper>
+<style>
+  .article{width:min(720px,100%);margin-inline:auto}h1{font:400 36px/1.5 var(--font-display);letter-spacing:.15em;margin:16px 0}h2{font-size:21px;font-weight:400;margin:0}p{line-height:1.9}.lead{color:var(--ink-2)}a{color:inherit;text-underline-offset:4px}.back{display:inline-flex;align-items:center;min-height:44px}section{border-top:1px solid var(--rule);margin-top:36px;padding-top:24px}dl{display:flex;flex-wrap:wrap;gap:20px 40px}dt{font-size:13px;color:var(--ink-2)}dd{margin:4px 0}.nine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--rule);border-top:1px solid var(--rule);margin:24px 0}.nine>div{text-align:center;padding:16px 8px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule)}.nine span{font-size:13px;color:var(--ink-2)}.nine strong{display:block;font-weight:400;font-size:30px}.links{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:36px}.links a{display:flex;align-items:center;min-height:44px}@media(min-width:1024px){h1{font-size:44px}}
+</style>

@@ -136,6 +136,8 @@ BODY = {
 BODY["hans"][3].append("bazi-rizhu.json")
 BODY["hant"][3].extend(["home-ui-hant.json", "copy-hant.json", "templates-hant.json", "home-runtime-hant.json"])
 BODY["hant"][3].append("bazi-rizhu-hant.json")
+BODY["hans"][3].extend(["fengshui.json", "feixing.json"])
+BODY["hant"][3].extend(["fengshui-hant.json", "feixing-hant.json"])
 
 # 爻辞行：初九：… 六二：… 上六：… 用九：…
 YAO = re.compile(r"^(初|上|用)?[六九][二三四五]?：")
@@ -239,6 +241,11 @@ def bazi_blocks(lang: str) -> dict[str, list[str]]:
 def quming_blocks(lang: str) -> dict[str, list[str]]:
     """取名（M22a）：测名页与八十一数页共用一份，h1 各一块。"""
     return {"index": [CHROME[lang], "取名", "八十一數" if lang == "hant" else "八十一数", "名字裡的字" if lang == "hant" else "名字里的字"]}
+
+
+def fengshui_blocks(lang: str) -> dict[str, list[str]]:
+    names = json.load(open(f"src/data/fengshui{'-hant' if lang == 'hant' else ''}.json", encoding="utf-8"))
+    return {"index": [CHROME[lang], "風水" if lang == "hant" else "风水", "九宮飛星圖" if lang == "hant" else "九宫飞星图", "0123456789", *(x["title"] for x in names.values())]}
 
 
 def city_chars(lang: str) -> str:
@@ -437,6 +444,8 @@ def main() -> None:
     gua_hant(bazi_blocks("hant"), "src/fonts/bazi-hant")
     gua_hans(quming_blocks("hans"), "src/fonts/quming")
     gua_hant(quming_blocks("hant"), "src/fonts/quming-hant")
+    gua_hans(fengshui_blocks("hans"), "src/fonts/fengshui")
+    gua_hant(fengshui_blocks("hant"), "src/fonts/fengshui-hant")
 
 
 if __name__ == "__main__":

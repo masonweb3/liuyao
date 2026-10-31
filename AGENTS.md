@@ -393,6 +393,13 @@ README.md           英文说明；README.zh-CN.md 是中文版
   - **个人复盘**：往卦标题下「你记下的 N 卦里，自认应验 x 卦」。N 只算应了、一半、没应，x 只算应了；N 为 0 时整行不出。列表多一列「自记」（手机是所问下一行小字），不想记的不显示。
   - **存储**：往卦记录多两个可选字段 `review`（`outcome` 存英文键 yes/half/no/pending/skip，显示用 copy.ts 的字；`note` ≤ 100 字；`at`）和 `remind`（`days`、`at`）。旧记录没有这两个字段照常读；字段坏了只丢这个字段，不丢这一卦。记录没有 id，按起卦时刻 `at` 找到那一条整表写回。首屏的 `history.ts` 不认识这两个字段，原样带着读写；新逻辑都在按需加载的 `revisit.ts`、`view.ts`，文案由 Astro 在构建时写进页面（`Slots.astro`），首屏脚本零增长。往卦列表由 `view.ts` 画，`ritual.ts` 先按 `entries()` 定空态，包没载入时提示「重新打开本页」（Chromium 记住失败的动态 import，页内重试不会再发请求）。
 
+### 风水（M24、M25）补充
+
+- `src/lib/fengshui.ts`：命卦、宅卦、手动度数与本地图校验，零依赖。`src/lib/feixing.ts`：沈氏正向下卦、精确节令年/月九星；只在构建时或 `scripts/feixing-worker.ts` 中用。不得把年图冒充宅盘。
+- `/fengshui/` 及繁体页用 `Fengshui.astro`；九种编号页与 `YEARS` 年度九宫页用 `FengshuiPage.astro`，预渲染、零 JS。说明与 81 条札记在 `fengshui*.json`、`feixing*.json`，全部原创。
+- 图统一北在上；宅卦按坐山。下卦只收每山中间九度（距中线小于 4.5°），临界与兼向拒绝，不替用户改读数。手机自动罗盘须经 iOS、Android 实机校准后才开放；手动方位盘必须明示没有传感器测量。
+- 图片只在本机解码显示，不上传、不存；格式签名限 JPEG、PNG、WebP，20 MB、2,000 万像素以内。离页清空并释放 blob。生年、男女算法、坐向与所有动态提示及结果均用设备字体，禁止触发网络字体；链接不带 Referer。
+
 ## 7. 开发与测试流程（在局域网测试服务器上做）
 
 - 测试服务器的地址、账号、已占用端口和网络情况写在 `CLAUDE.local.md`，开工前先读。下文的 `$STAGE` 指它的 SSH 目标。

@@ -1,0 +1,121 @@
+---
+import kb from '../data/fengshui.json';
+import kbHant from '../data/fengshui-hant.json';
+import notes from '../data/feixing.json';
+import notesHant from '../data/feixing-hant.json';
+import { YEARS } from '../lib/huangli-days';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+interface Props { hant?: boolean }
+const { hant=false }=Astro.props;
+const t=(s:string,h:string)=>hant?h:s;
+const c=hant?kbHant:kb;
+const n=hant?notesHant:notes;
+const home=`${hant?'/zh-hant':''}/fengshui/`;
+---
+<Paper title={t('风水 · 八宅、九宫与玄空飞星 · 六爻','風水 · 八宅、九宮與玄空飛星 · 六爻')} description={t('在浏览器内查命卦、宅卦与正向下卦飞星，旋转本地图叠加九宫。生年、性别、住房读数和图片不上传、不存、不进网址。','在瀏覽器內查命卦、宅卦與正向下卦飛星，旋轉本機圖片疊加九宮。生年、性別、住房讀數和圖片不上傳、不存、不進網址。')} path="/fengshui/" at="/fengshui/" group="fengshui" subset="index" home hant={hant} ogType="website">
+  <main class="fs" data-fs data-hant={hant?'1':undefined} data-kb={JSON.stringify(c)}>
+    <header class="intro"><h1>{t('风水','風水')}</h1><p>{t('对照传统方位，看看空间怎样使用。这里列出卦、方向与数字，调整只从实际采光、整理和动线出发。','對照傳統方位，看看空間怎樣使用。這裡列出卦、方向與數字，調整只從實際採光、整理和動線出發。')}</p></header>
+    <noscript><style is:inline>[data-fs] form{display:none!important}</style><p>{t('工具要启用 JavaScript 才能在本机计算；下方知识页仍可阅读。','工具要啟用 JavaScript 才能在本機計算；下方知識頁仍可閱讀。')}</p></noscript>
+
+    <section class="part" aria-labelledby="fs-ming-title"><h2 id="fs-ming-title">{t('八宅 · 命卦','八宅 · 命卦')}</h2>
+      <div class="tool-grid private" data-private>
+        <form method="dialog" autocomplete="off" data-birth-form>
+          <label for="fs-year">{t('出生年（以立春分界）','出生年（以立春分界）')}</label><input id="fs-year" type="number" min="1" max="9999" step="1" placeholder="1984" required />
+          <label for="fs-gender">{t('传统表的男女算法','傳統表的男女算法')}</label><select id="fs-gender" required><option value="">{t('请选择','請選擇')}</option><option value="男">{t('男式','男式')}</option><option value="女">{t('女式','女式')}</option></select>
+          <p class="fine">{t('立春前出生，填上一公历年；临近交节可先在八字页核对。这里只收年份和所选算法，不收全名或地址。','立春前出生，填上一國曆年；臨近交節可先在八字頁核對。這裡只收年份和所選算法，不收全名或地址。')} <a href={hant?'/zh-hant/bazi/':'/bazi/'} rel="noreferrer">{t('八字排盘','八字排盤')}</a></p>
+          <div class="actions"><button type="button" data-birth-go>{t('查命卦','查命卦')}</button><button type="button" data-birth-clear>清空</button></div><p class="error" role="alert" data-birth-error></p>
+        </form>
+        <div data-birth-result class="result" role="region" aria-label={t('命卦结果','命卦結果')} tabindex="-1" hidden></div>
+      </div>
+    </section>
+
+    <section class="part" aria-labelledby="fs-house-title"><h2 id="fs-house-title">{t('宅卦与手动方位盘','宅卦與手動方位盤')}</h2>
+      <p>{t('输入已经确认的房屋朝向。0°为磁北，顺时针增加；宅卦按相反方向的坐山定。手动方位盘只显示输入的读数，没有传感器测量功能。','輸入已經確認的房屋朝向。0°為磁北，順時針增加；宅卦按相反方向的坐山定。手動方位盤只顯示輸入的讀數，沒有感測器測量功能。')}</p>
+      <div class="tool-grid private" data-private>
+        <form method="dialog" autocomplete="off" data-house-form><label for="fs-facing">{t('房屋朝向（磁北度数）','房屋朝向（磁北度數）')}</label><input id="fs-facing" type="number" min="0" max="360" step="any" placeholder="180" required /><div class="actions"><button type="button" data-house-go>{t('看宅卦','看宅卦')}</button><button type="button" data-house-clear>清空</button></div><p role="alert" class="error" data-house-error></p></form>
+        <div data-house-result class="result" role="region" aria-label={t('宅卦结果','宅卦結果')} tabindex="-1" hidden></div>
+      </div>
+    </section>
+
+    <section class="part" aria-labelledby="fs-image-title"><h2 id="fs-image-title">{t('本地图 · 旋转对北、叠九宫','本機圖片 · 旋轉對北、疊九宮')}</h2><p>{t('图片只在浏览器打开。转动到北在上，九宫按旋转后的图片外框均分，不识别房间、门窗或凹凸边界。','圖片只在瀏覽器開啟。轉動到北在上，九宮按旋轉後的圖片外框均分，不辨識房間、門窗或凹凸邊界。')}</p>
+      <div class="private" data-private>
+        <label for="fs-image">{t('选择本地图片（JPEG、PNG、WebP，20 MB以内）','選擇本機圖片（JPEG、PNG、WebP，20 MB以內）')}</label><input id="fs-image" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p class="fine">{t('最多2,000万像素；不上传、不存，不改变原文件。图片缺少北向标记时，请先核对实际方向。','最多2,000萬像素；不上傳、不存，不改變原始檔案。圖片缺少北向標記時，請先核對實際方向。')}</p>
+        <div data-image-controls hidden><label for="fs-rotation">{t('转动图片，让北箭头朝上','轉動圖片，讓北箭頭朝上')}</label><input id="fs-rotation" type="range" min="-180" max="180" step="1" value="0" /><output for="fs-rotation" data-image-angle>0°</output><button type="button" data-image-clear>{t('清空图片','清空圖片')}</button><p>{t('上北下南 · 左西右东','上北下南 · 左西右東')}</p></div>
+        <p class="error" role="alert" data-image-error></p><p role="status" data-image-status></p>
+        <div class="image-box" data-image-box hidden><img data-image alt={t('只在本机打开的户型图','只在本機開啟的格局圖')} /><div class="image-grid" aria-hidden="true">{[6,1,8,7,5,3,2,9,4].map(p=><span>{c[String(p) as keyof typeof c].direction}</span>)}</div></div>
+      </div>
+    </section>
+
+    <section class="part" aria-labelledby="fs-stars-title"><h2 id="fs-stars-title">{t('玄空飞星 · 正向下卦','玄空飛星 · 正向下卦')}</h2>
+      <p>{t('按入住年定元运，按已确认的磁北朝向排山、向二盘。各山中间九度列下卦，距离中线4.5°及以上的兼向与临界读数不排；请保留实际读数，不为了成盘改数。','按入住年定元運，按已確認的磁北朝向排山、向二盤。各山中間九度列下卦，距離中線4.5°及以上的兼向與臨界讀數不排；請保留實際讀數，不為了成盤改數。')}</p>
+      <div class="tool-grid private" data-private>
+        <form method="dialog" autocomplete="off" data-stars-form>
+          <label for="fx-year">{t('入住年（立春前填上年）','入住年（立春前填上年）')}</label><input id="fx-year" type="number" min="1" max="9999" step="1" placeholder="2024" required />
+          <label for="fx-facing">{t('房屋朝向（磁北度数）','房屋朝向（磁北度數）')}</label><input id="fx-facing" type="number" min="0" max="360" step="any" placeholder="180" required />
+          <label for="fx-at">{t('年月星的查看时刻（北京时间）','年月星的查看時刻（北京時間）')}</label><input id="fx-at" type="datetime-local" step="1" required />
+          <p class="fine">{t('本页以填写的入住年为口径，其他流派可能按建造或改造年。年月星按精确节令切换，不按春节；手机精度不足以区分24山，请使用已核对的罗盘读数。','本頁以填寫的入住年為口徑，其他流派可能按建造或改造年。年月星按精確節令切換，不按春節；手機精度不足以區分24山，請使用已核對的羅盤讀數。')}</p>
+          <div class="actions"><button type="button" data-stars-go disabled>{t('排飞星','排飛星')}</button><button type="button" data-stars-clear>清空</button><button type="button" data-stars-retry hidden>{t('重新载入','重新載入')}</button></div><p class="error" role="alert" data-stars-error></p><p role="status" data-stars-status></p>
+        </form>
+        <div data-stars-result class="result" role="region" aria-label={t('飞星结果','飛星結果')} tabindex="-1" hidden></div>
+      </div>
+    </section>
+    <p class="privacy">{t('生年、所选男女算法、住房读数和图片只在这台设备上处理，不上传、不存、不进网址；离页清空。私有输入与结果用设备字体显示。','生年、所選男女算法、住房讀數和圖片只在這台裝置上處理，不上傳、不存、不進網址；離頁清空。私有輸入與結果用裝置字型顯示。')}</p>
+
+    <section class="part"><h2>{t('年度九宫','年度九宮')}</h2><div class="links">{YEARS.map(year=><a href={`${home}${year}-jiugong/`}>{year} · {t('九宫飞星图','九宮飛星圖')} ›</a>)}</div></section>
+    <section class="part" id="minggua"><h2>{t('命卦编号与方位','命卦編號與方位')}</h2><div class="links">{Object.entries(c).map(([id,x])=><a href={`${home}minggua/${id}/`}>{x.title} · {x.direction} ›</a>)}</div></section>
+    <details class="part notes"><summary>{t('山向意象札记 · 81组','山向意象札記 · 81組')}</summary><p>{t('按九宫所配卦象写的空间联想，附通用整理建议。数字不代替对房间的观察，不用于给房屋打分。','按九宮所配卦象寫的空間聯想，附通用整理建議。數字不代替對房間的觀察，不用於給房屋評分。')}</p>{Object.entries(n).map(([key,text])=><section><h3>{t('山','山')}{key.split('-')[0]} · {t('向','向')}{key.split('-')[1]}</h3><p>{text}</p></section>)}</details>
+  </main><Invite hant={hant} />
+  <Fragment slot="foot"><p>{t('八宅起例据《八宅明镜》，飞布据《沈氏玄空学》卷四自行实现；年、月九星由tyme4ts计算，说明为本站原创。','八宅起例據《八宅明鏡》，飛布據《沈氏玄空學》卷四自行實作；年、月九星由tyme4ts計算，說明為本站原創。')}</p><p>{t('仅供传统文化参考与娱乐','僅供傳統文化參考與娛樂')}</p></Fragment>
+</Paper>
+
+<script>
+  import { DIRECTIONS, house, imageType, minggua, rotatedSize } from '../lib/fengshui';
+  import type kbType from '../data/fengshui.json';
+  import type { FeixingResult } from '../scripts/feixing-worker';
+  const root=document.querySelector<HTMLElement>('[data-fs]')!;
+  const hant=root.dataset.hant==='1';const t=(s:string,h:string)=>hant?h:s;
+  const KB=JSON.parse(root.dataset.kb!) as typeof kbType;
+  const $=<T extends HTMLElement=HTMLElement>(k:string)=>root.querySelector<T>(`[data-${k}]`)!;
+  const input=(id:string)=>document.getElementById(id) as HTMLInputElement;
+  const text=(tag:string,value:string,parent:HTMLElement)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
+  const clearResult=(result:HTMLElement,error:HTMLElement)=>{result.hidden=true;result.replaceChildren();error.textContent='';};
+  const wire=(form:HTMLFormElement,run:()=>void)=>{form.addEventListener('submit',e=>{e.preventDefault();run();});form.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229&&e.target instanceof HTMLInputElement){e.preventDefault();run();}});};
+  const gua=(number:number)=>KB[String(number) as keyof typeof KB];
+  const lookup=(number:number,parent:HTMLElement)=>{const a=document.createElement('a');a.textContent=t('读这个编号','讀這個編號')+' ›';a.href=`${hant?'/zh-hant':''}/fengshui/minggua/${number}/`;a.rel='noreferrer';parent.append(a);};
+
+  const birth=$<HTMLFormElement>('birth-form'),br=$('birth-result'),be=$('birth-error');
+  const runBirth=()=>{if(!birth.reportValidity())return;clearResult(br,be);try{const x=minggua(Number(input('fs-year').value),(document.getElementById('fs-gender') as HTMLSelectElement).value as '男'|'女');const k=gua(x.number);br.hidden=false;text('h3',`${k.title} · ${k.group}${t('四卦','四卦')}`,br);text('p',`${t('数字归一','數字歸一')} ${x.sum} · ${t('表中得数','表中得數')} ${x.raw}${x.raw===5?` → ${x.number}`:''}`,br);text('p',`${k.direction} · ${k.element}`,br);text('p',t('同组方位：','同組方位：')+DIRECTIONS.filter(d=>d.group===x.group).map(d=>hant?d.hant:d.name).join('、'),br);text('p',k.lead,br);lookup(x.number,br);br.focus();}catch{be.textContent=t('请核对年份与所选算法。','請核對年份與所選算法。');}};
+  wire(birth,runBirth);$('birth-go').onclick=runBirth;birth.addEventListener('input',()=>clearResult(br,be));$('birth-clear').onclick=()=>{birth.reset();clearResult(br,be);};
+
+  const hf=$<HTMLFormElement>('house-form'),hr=$('house-result'),he=$('house-error');
+  const runHouse=()=>{if(!hf.reportValidity())return;clearResult(hr,he);try{const degree=Number(input('fs-facing').value);const x=house(degree),k=gua(x.sitting.number);hr.hidden=false;text('h3',t('宅卦 · ','宅卦 · ')+k.title,hr);text('p',`${t('向','向')}${hant?x.facing.hant:x.facing.name} ${degree}° · ${t('坐','坐')}${hant?x.sitting.hant:x.sitting.name}`,hr);const dial=document.createElementNS('http://www.w3.org/2000/svg','svg');dial.setAttribute('viewBox','0 0 220 220');dial.setAttribute('role','img');dial.setAttribute('aria-label',t(`手动读数${degree}度`,`手動讀數${degree}度`));dial.classList.add('dial');const circle=document.createElementNS(dial.namespaceURI,'circle');circle.setAttribute('cx','110');circle.setAttribute('cy','110');circle.setAttribute('r','82');circle.setAttribute('fill','none');circle.setAttribute('stroke','currentColor');dial.append(circle);for(const d of DIRECTIONS){const a=d.degree*Math.PI/180;const label=document.createElementNS(dial.namespaceURI,'text');label.setAttribute('x',String(110+100*Math.sin(a)));label.setAttribute('y',String(115-100*Math.cos(a)));label.setAttribute('text-anchor','middle');label.textContent=hant?d.hant:d.name;dial.append(label);}const needle=document.createElementNS(dial.namespaceURI,'path');needle.setAttribute('d','M110 40L104 120L110 110L116 120Z');needle.setAttribute('fill','currentColor');needle.setAttribute('transform',`rotate(${degree} 110 110)`);dial.append(needle);hr.append(dial);text('p',k.lead,hr);lookup(x.sitting.number,hr);hr.focus();}catch{he.textContent=t('请填0到360之间的度数。','請填0到360之間的度數。');}};
+  wire(hf,runHouse);$('house-go').onclick=runHouse;hf.addEventListener('input',()=>clearResult(hr,he));$('house-clear').onclick=()=>{hf.reset();clearResult(hr,he);};
+
+  const file=input('fs-image'),rotation=input('fs-rotation'),box=$('image-box'),image=$<HTMLImageElement>('image'),controls=$('image-controls'),imageError=$('image-error'),imageStatus=$('image-status');
+  let picture:{url:string;width:number;height:number}|undefined;let fileId=0;
+  const drawImage=()=>{if(!picture)return;const angle=Number(rotation.value);const size=rotatedSize(picture.width,picture.height,angle);box.style.aspectRatio=`${size.width}/${size.height}`;image.style.width=`${picture.width/size.width*100}%`;image.style.height=`${picture.height/size.height*100}%`;image.style.transform=`translate(-50%,-50%) rotate(${angle}deg)`;$('image-angle').textContent=`${angle}°`;};
+  const clearImage=()=>{fileId++;if(picture)URL.revokeObjectURL(picture.url);picture=undefined;image.removeAttribute('src');box.hidden=true;controls.hidden=true;file.value='';rotation.value='0';imageError.textContent='';imageStatus.textContent='';};
+  file.addEventListener('change',async()=>{const current=++fileId;const f=file.files?.[0];if(!f)return;let url:string|undefined;imageError.textContent='';imageStatus.textContent=t('正在本机打开图片…','正在本機開啟圖片…');try{if(!f.size||f.size>20_000_000||!imageType(new Uint8Array(await f.slice(0,12).arrayBuffer())))throw Error('image');url=URL.createObjectURL(f);const probe=new Image();probe.src=url;await probe.decode();rotatedSize(probe.naturalWidth,probe.naturalHeight,0);if(current!==fileId){URL.revokeObjectURL(url);return;}if(picture)URL.revokeObjectURL(picture.url);picture={url,width:probe.naturalWidth,height:probe.naturalHeight};image.src=url;rotation.value='0';box.hidden=false;controls.hidden=false;drawImage();imageStatus.textContent=t('图片仅在本机显示；没有上传。','圖片僅在本機顯示；沒有上傳。');}catch{if(url)URL.revokeObjectURL(url);if(current===fileId){imageError.textContent=t('请选20 MB、2,000万像素以内的有效JPEG、PNG或WebP图片。','請選20 MB、2,000萬像素以內的有效JPEG、PNG或WebP圖片。');imageStatus.textContent='';}}});
+  rotation.addEventListener('input',drawImage);$('image-clear').onclick=clearImage;
+
+  const ff=$<HTMLFormElement>('stars-form'),fr=$('stars-result'),fe=$('stars-error'),fs=$('stars-status'),go=$<HTMLButtonElement>('stars-go'),retry=$<HTMLButtonElement>('stars-retry');
+  const resetAt=()=>input('fx-at').value=new Date(Date.now()+480*60000).toISOString().slice(0,19);resetAt();
+  let worker:Worker|undefined,ready=false,id=0;
+  const clearStars=()=>{id++;clearResult(fr,fe);go.disabled=!ready;};
+  const fail=()=>{id++;ready=false;worker?.terminate();worker=undefined;go.disabled=true;retry.hidden=false;fs.textContent='';fe.textContent=t('计算文件未能载入，已填内容仍在本页。','計算檔案未能載入，已填內容仍在本頁。');};
+  const grid=(values:Record<number,number>,parent:HTMLElement,chart?:FeixingResult['chart'])=>{const g=document.createElement('div');g.className='nine-grid';for(const p of [6,1,8,7,5,3,2,9,4]){const cell=document.createElement('div');text('span',gua(p).direction,cell);if(chart)text('p',`${t('山','山')}${chart.mountain[p]} · ${t('向','向')}${chart.face[p]}`,cell);text('strong',String(values[p]),cell);g.append(cell);}parent.append(g);};
+  const drawStars=(r:FeixingResult)=>{fr.hidden=false;text('h3',`${t('第','第')}${r.chart.period}${t('运','運')} · ${r.chart.sitting}${t('山','山')}${r.chart.facing}${t('向','向')}`,fr);text('p',`${t('山星','山星')}${r.chart.mountainForward?t('顺飞','順飛'):t('逆飞','逆飛')} · ${t('向星','向星')}${r.chart.facingForward?t('顺飞','順飛'):t('逆飞','逆飛')}`,fr);text('p',t('北在上。每格上行列山、向星，大数为运星。','北在上。每格上行列山、向星，大數為運星。'),fr);grid(r.chart.base,fr,r.chart);for(const p of [6,1,8,7,5,3,2,9,4]){const details=document.createElement('details');text('summary',`${gua(p).direction} · ${t('山','山')}${r.chart.mountain[p]} ${t('向','向')}${r.chart.face[p]}`,details);text('p',r.notes[p]!,details);fr.append(details);}text('h3',`${r.calendar.annual.name} · ${t('年星','年星')}${r.calendar.annual.centre}`,fr);grid(r.calendar.annual.grid,fr);text('h3',`${r.calendar.month} · ${t('月星','月星')}${r.calendar.monthCentre}`,fr);grid(r.calendar.monthGrid,fr);fr.focus();};
+  function warm(){if(worker)return;fs.textContent=t('正在载入本地飞星计算…','正在載入本機飛星計算…');retry.hidden=true;fe.textContent='';try{worker=new Worker(new URL('../scripts/feixing-worker.ts',import.meta.url),{type:'module'});}catch{fail();return;}worker.onerror=fail;worker.onmessage=(e:MessageEvent<{ready?:boolean;id?:number;result?:FeixingResult;error?:string}>)=>{if(e.data.ready){ready=true;go.disabled=false;fs.textContent=t('已载入，计算不再取网络资源。','已載入，計算不再取網路資源。');return;}if(e.data.id!==id)return;go.disabled=false;fs.textContent='';if(e.data.result)drawStars(e.data.result);else fe.textContent=e.data.error==='edge'?t('读数在兼向或临界范围，本页不排这类盘。请保留实际读数。','讀數在兼向或臨界範圍，本頁不排這類盤。請保留實際讀數。'):t('请核对年份、度数与查看时刻。','請核對年份、度數與查看時刻。');};}
+  const runStars=()=>{if(!ready||!worker||!ff.reportValidity())return;clearStars();go.disabled=true;fs.textContent=t('正在本机排盘…','正在本機排盤…');worker.postMessage({id,year:Number(input('fx-year').value),degrees:Number(input('fx-facing').value),at:input('fx-at').value,hant});};
+  wire(ff,runStars);ff.addEventListener('focusin',warm);ff.addEventListener('input',clearStars);go.onclick=runStars;retry.onclick=warm;$('stars-clear').onclick=()=>{ff.reset();resetAt();clearStars();fs.textContent='';};
+  window.addEventListener('pagehide',()=>{birth.reset();hf.reset();ff.reset();resetAt();clearResult(br,be);clearResult(hr,he);clearStars();clearImage();worker?.terminate();worker=undefined;ready=false;go.disabled=true;fs.textContent='';});
+</script>
+
+<style>
+  .fs{width:100%;max-width:1120px;margin:0 auto}h1,h2,h3,p{margin:0}h1{font:400 34px/1.5 var(--font-display);letter-spacing:.2em}h2{font-size:21px;font-weight:400;letter-spacing:.12em}h3{font-size:18px;font-weight:400}.intro p{max-width:680px;margin-top:20px}.fs p{line-height:1.9;margin:16px 0}.part{margin-top:56px;padding-top:28px;border-top:1px solid var(--rule)}.tool-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;margin-top:24px}.private{--font-private:'Songti SC','STSong','Noto Serif CJK SC','Source Han Serif SC','SimSun',serif}.private:lang(zh-Hant){--font-private:'Songti TC','Noto Serif CJK TC','Source Han Serif TC','PMingLiU',serif}.private,.private :global(*),.private :global(*::before),.private :global(*::after){font-family:var(--font-private)!important}form{display:grid;gap:10px}label{display:block;font-size:14px;margin-top:10px}input,select{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:10px;background:transparent;border:1px solid var(--rule);border-radius:0;color:var(--ink);font-size:16px}button{min-height:44px;padding:10px 16px;color:var(--ink);background:transparent;border:1px solid var(--rule);font:inherit;cursor:pointer}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}button:disabled{opacity:.5;cursor:wait}.fine,.privacy{font-size:13px;color:var(--ink-2)}.error{color:var(--seal)}a{color:inherit;text-underline-offset:4px}.links{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:20px}.links a{display:flex;align-items:center;min-height:44px}.result :global(p){overflow-wrap:anywhere}.result :global(.dial){display:block;width:220px;max-width:100%;height:auto;margin:20px auto}.result :global(.dial text){font-size:12px}.result :global(.nine-grid){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--rule);border-left:1px solid var(--rule);margin:20px 0}.result :global(.nine-grid>div){min-height:88px;padding:8px;box-sizing:border-box;text-align:center;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}.result :global(.nine-grid span){font-size:12px;color:var(--ink-2)}.result :global(.nine-grid strong){display:block;font-size:24px;font-weight:400}.result :global(.nine-grid p){font-size:13px;margin:4px 0}.result :global(details){border-top:1px solid var(--rule)}.result :global(summary),summary{min-height:44px;cursor:pointer;padding:8px 0}.image-box{position:relative;width:100%;max-width:720px;margin:24px auto;border:1px solid var(--rule);box-sizing:border-box;overflow:hidden}.image-box img{position:absolute;top:50%;left:50%;max-width:none;transform-origin:center}.image-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));pointer-events:none}.image-grid span{display:flex;align-items:center;justify-content:center;border:1px solid var(--seal);box-sizing:border-box;color:var(--ink);text-shadow:0 0 3px var(--paper);font-size:14px}.notes>section{padding:18px 0;border-top:1px solid var(--rule)}.notes h3{font-size:15px}.notes p{font-size:14px}:focus-visible{outline:2px solid var(--seal);outline-offset:3px}[hidden]{display:none!important}@media(min-width:1024px){h1{font-size:44px}.tool-grid{grid-template-columns:360px minmax(0,1fr);gap:80px}.part{margin-top:80px}}
+  .result :global(h3){font-size:18px;font-weight:400;margin:0}
+  .result :global(p){line-height:1.9;margin:16px 0}
+  .result :global(a){color:inherit;text-underline-offset:4px;display:inline-flex;align-items:center;min-height:44px}
+</style>

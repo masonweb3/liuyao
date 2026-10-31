@@ -22,4 +22,5 @@ export const COLUMNS: Column[] = [
 	{ path: "/meihua/", hans: "梅花", hant: "梅花" },
 	// 取名（M22a）：栏目首页先放测名，八十一数页也算这一栏；M23 的起名进同一栏（M22-7）
 	{ path: "/quming/", hans: "取名", hant: "取名", hantPath: "/zh-hant/quming/" },
+	{ path: "/fengshui/", hans: "风水", hant: "風水", hantPath: "/zh-hant/fengshui/" },
 ];
