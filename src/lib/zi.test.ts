@@ -3,9 +3,9 @@ import content from '../data/zi.json';
 import { initials, related, ZI, zi, ziPath } from './zi';
 
 describe('单字页', () => {
-	it('592 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
-		expect(ZI).toHaveLength(592);
-		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(592);
+	it('842 字简繁一对一、路径完整、每页标题都是非空轮廓', () => {
+		expect(ZI).toHaveLength(842);
+		expect(new Set(ZI.map(c => content[c].hant)).size).toBe(842);
 		for (const c of ZI) for (const hant of [false, true]) {
 			const x = zi(c,hant);
 			expect(x.form, c).toBeDefined();
@@ -26,6 +26,10 @@ describe('单字页', () => {
 		expect(zi('儿',true).ch).toBe('兒');
 		expect(zi('致',true).ch).toBe('致');
 		expect(zi('涂',true).ch).toBe('涂');
+		expect(zi('采',true).ch).toBe('采');
+		expect(zi('台',true).ch).toBe('台');
+		expect(zi('征',true).ch).toBe('征');
+		expect(zi('里',true).ch).toBe('里');
 		for (const c of ZI) for (const by of ['radical','sound'] as const) {
 			const list = related(c,by);
 			expect(list).not.toContain(c);
