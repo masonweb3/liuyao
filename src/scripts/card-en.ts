@@ -9,7 +9,8 @@ export async function card(r:CastResult,ben:GuaText,question:string):Promise<str
   const font=getComputedStyle(document.documentElement).getPropertyValue('--font-body');
   await document.fonts.load(`40px ${font}`,ben.name+ben.baihua+question);
   const canvas=document.createElement('canvas');canvas.width=1242;canvas.height=1656;
-  const c=canvas.getContext('2d');if(!c)throw new Error('canvas 2d unavailable');
+  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas 2d unavailable');
+  const c=ctx;
   c.fillStyle='#f8f4ed';c.fillRect(0,0,1242,1656);c.textBaseline='top';
   const pen=(size:number,color='#2d2e36')=>{c.font=`${size}px ${font}`;c.fillStyle=color;};
   function lines(text:string,y:number,size:number,max:number){
