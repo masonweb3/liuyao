@@ -2,7 +2,6 @@
 :root:lang(en){--font-body:'Sixyao English','Noto Serif SC',serif;--font-display:var(--font-body)}
 html:lang(en) :is(h1,h2,h3,button,a,p,label,legend,.name,.hint,.sub,.kind,.no,.mark,.keys,.title,.pos,.kicker,.label){letter-spacing:normal}
 html:lang(en) :is(.btn,.quiet,.tag,.past,.pro){letter-spacing:normal;padding-inline:16px;white-space:normal}
-html:lang(en) .home{animation:none}
 html:lang(en) .home .motto{writing-mode:horizontal-tb;font-size:clamp(25px,4.2vw,54px);line-height:1.5;text-align:center}
 html:lang(en) .home .motto>span{display:block}
 html:lang(en) .home .aside{display:none}

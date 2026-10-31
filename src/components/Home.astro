@@ -95,7 +95,9 @@ const rows = [t("心有所疑"), t("不妨一问")].map((row, r) => [...row].map
     cursor: pointer;
     transition: color var(--t-hover);
   }
-  .home {
+  .screen.home {
+    /* 日期与导航直接绘制，标语与金线保留各自的入场动画。 */
+    animation: none;
     background: radial-gradient(ellipse 80% 55% at 50% 44%, var(--night-2) 0%, var(--night) 70%);
   }
   .center {
