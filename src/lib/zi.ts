@@ -17,5 +17,10 @@ export function zi(c: keyof typeof content, hant = false) {
 export const initials = (c: keyof typeof content) => splitTone(lookup(T, c)!.readings[0]!)[0];
 export const related = (c: keyof typeof content, by: 'radical' | 'sound') => {
 	const a = zi(c);
-	return ZI.filter((x) => x !== c && (by === 'radical' ? zi(x).form.rad === a.form.rad : lookup(T, x)!.readings.some((p) => a.entry.readings.includes(p)))).slice(0, 8);
+	const result: typeof ZI = [];
+	for (const x of ZI) {
+		if (x !== c && (by === 'radical' ? zi(x).form.rad === a.form.rad : lookup(T, x)!.readings.some((p) => a.entry.readings.includes(p)))) result.push(x);
+		if (result.length === 8) break;
+	}
+	return result;
 };
