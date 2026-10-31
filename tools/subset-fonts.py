@@ -363,6 +363,13 @@ def paper_fonts() -> None:
         extra += "".join(c + x["yi"] if lang == "hans" else x["hant"] + x["yi_hant"] for c, x in zi.items())
         missing = "".join(sorted(c for c in data_chars(files, extra) if ord(c) not in have))
         lost = [c for c in missing if ord(c) not in full]
+        # 繁体字页解释简化字时，TC 完整字体也可能缺字；按实际码位从同系列 SC 补。
+        if lang == "hant" and lost and all(ord(c) in cmap("serif-sc") for c in lost):
+            rng, size = save(make_subset(load("serif-sc"), "".join(lost)), "src/fonts/body-hant-sc.woff2")
+            css.append(face(family, 400, "body-hant-sc", rng))
+            print("src/fonts/body-hant-sc.woff2", len(lost), "chars", size, "B:", "".join(lost))
+            missing = "".join(c for c in missing if c not in lost)
+            lost = []
         if lost:
             raise SystemExit(f"{family} 完整字体也没有 {''.join(lost)}")
         path = f"src/fonts/body-{lang}.woff2"
