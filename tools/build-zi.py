@@ -107,7 +107,8 @@ def main():
         forms = dictionary["g"][c].split(";")
         form = forms[4][0] if len(forms) > 4 and forms[4] else c
         meta[c] = {"given": given[c], "surname": surnames[c], "rank": rank.get(c), "pos": [positions[c][k] for k in ["first", "second", "single"]],
-                   "tgh": int(row[5]), "book": book(form), "bookHant": book(text["hant"]), "glyph": glyph(c, False), "glyphHant": glyph(text["hant"], True)}
+                   "tgh": int(row[5]), "strokes": int(u[c]["kTotalStrokes"].split()[0]), "strokesHant": int(u[text["hant"]]["kTotalStrokes"].split()[0]),
+                   "book": book(form), "bookHant": book(text["hant"]), "glyph": glyph(c, False), "glyphHant": glyph(text["hant"], True)}
     Path("src/data/zi.json").write_text(json.dumps(content, ensure_ascii=False, indent="\t") + "\n")
     Path("src/data/zi-meta.json").write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")) + "\n")
     print(f"{len(meta)} 字，简繁标题路径齐全；{count} 个公开名字的聚合计数一致")

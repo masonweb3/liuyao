@@ -61,7 +61,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
               <button type="button" data-f="retry">{t('再试一次', '再試一次')}</button>
             </div>
             <div class="go">
-              <button type="button" class="submit" data-f="submit">{t('测名', '測名')}</button>
+              <button type="button" class="submit" data-f="submit" disabled>{t('测名', '測名')}</button>
               <button type="button" class="clear" data-f="clear">清空</button>
             </div>
             <p class="privacy">{c.privacy}</p>
@@ -361,6 +361,7 @@ const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [ha
   });
 
   $('submit').addEventListener('click', go);
+  $('submit').removeAttribute('disabled');
   $('clear').addEventListener('click', () => {
     sur.value = '';
     giv.value = '';

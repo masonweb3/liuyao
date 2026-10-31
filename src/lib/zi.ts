@@ -12,7 +12,7 @@ export function zi(c: keyof typeof content, hant = false) {
 	const ch = hant ? text.hant : c;
 	const entry = lookup(T, ch, hant)!;
 	const form = hant ? entry.forms.find((x) => x.form === ch)! : entry.forms[0]!;
-	return { ch, entry, form, text: hant ? text.yi_hant : text.yi, meta: meta[c], glyph: hant ? meta[c].glyphHant : meta[c].glyph };
+	return { ch, entry, form, strokes: hant ? meta[c].strokesHant : meta[c].strokes, text: hant ? text.yi_hant : text.yi, meta: meta[c], glyph: hant ? meta[c].glyphHant : meta[c].glyph };
 }
 export const initials = (c: keyof typeof content) => splitTone(lookup(T, c)!.readings[0]!)[0];
 export const related = (c: keyof typeof content, by: 'radical' | 'sound') => {

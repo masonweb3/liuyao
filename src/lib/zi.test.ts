@@ -20,6 +20,7 @@ describe('单字页第一批', () => {
 		expect(zi('曹').form).toMatchObject({kx:10,page:502,today:11});
 		expect(zi('琳').meta).toMatchObject({given:225,surname:0,pos:[30,161,34],tgh:2502});
 		expect(zi('乐',true).ch).toBe('樂');
+		expect([zi('荣').strokes, zi('荣',true).strokes, zi('荣').form.kx]).toEqual([9,14,14]);
 		for (const c of ZI) for (const by of ['radical','sound'] as const) {
 			const list = related(c,by);
 			expect(list).not.toContain(c);
