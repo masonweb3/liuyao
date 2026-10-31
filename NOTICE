@@ -157,6 +157,11 @@ tyme4ts（https://github.com/6tail/tyme4ts）：MIT，Copyright (c) 2024 6tail�
 ---------------------------------------------------------------------------
 字体
 
+src/data/zi-meta.json 的单字标题轮廓由 tools/build-zi.py 从下述同版本字体生成，
+只保留 SVG 路径；字义 src/data/zi.json 为本站原创，采用 CC BY-NC-SA 4.0。
+名字用字与位置的聚合计数取自 Wikidata（https://www.wikidata.org/，CC0），
+2026-10-02 的 71,442 个现代华人公开名字样本，主要为公众人物，不代表人口统计。
+
 Noto Serif SC（Copyright 2012 Google Inc.；字形 (c) 2017-2024 Adobe）与站酷小薇 ZCOOL XiaoWei
 （Copyright 2018 The ZCOOL XiaoWei Project Authors），均采用 SIL Open Font
 License 1.1（https://openfontlicense.org）。页面经 @fontsource 分片自托管；

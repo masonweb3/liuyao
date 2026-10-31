@@ -44,13 +44,23 @@ describe("康熙笔画", () => {
 		expect([kx("曹").rad, kx("曹").res, kx("曹").today]).toEqual([73, 6, 11]);
 	});
 
-	it("只对过网站转录、没看影印本的（盛 誠 著 署 戴 翼 卿 鷹）照算法值，标「未逐字核对原书」", () => {
-		for (const [ch, n] of [["盛", 11], ["诚", 13], ["著", 14], ["署", 14], ["戴", 17], ["翼", 17], ["卿", 10], ["鹰", 24]] as const) {
+	it("补核影印本：例外值优先，所有已核字形不再标为未核", () => {
+		for (const [ch, n] of [["盛", 12], ["诚", 14], ["戴", 18], ["翼", 18], ["卿", 11], ["鹰", 23], ["滋", 14], ["颐", 15], ["竞", 19]] as const) {
 			const f = kx(ch);
 			expect(f.kx, ch).toBe(n);
-			expect(f.page, ch).toBeUndefined();
-			expect(f.unchecked, ch).toBe(true);
+			expect(f.page, ch).toBeGreaterThan(0);
+			expect(f.unchecked, ch).toBe(false);
 		}
+	});
+
+	it("原书未收的字形单独标记，不假称已按原书核定", () => {
+		for (const ch of "鬍傢囌颱优噹鎂鋮銥銨埔") {
+			const f = lookup(T, ch, true)!.forms.find((x) => x.form === ch)!;
+			expect(f.notInBook, ch).toBe(true);
+			expect(f.unchecked, ch).toBe(false);
+			expect(f.page, ch).toBeUndefined();
+		}
+		expect(kx("琳").notInBook).toBe(false);
 	});
 
 	it("两条约定：数字按数值，王 记 4（原书玉部零画）；书序里不起疑的字不标", () => {

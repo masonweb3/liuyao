@@ -145,6 +145,7 @@ def main() -> None:
     kx_file = json.load(open("tools/quming-kangxi.json", encoding="utf-8"))
     EXC = {k: tuple(v) for k, v in kx_file["exceptions"].items()}
     CHECKED = set(kx_file["checked"]) | set(EXC)
+    NOT_IN_BOOK = set(kx_file.get("notInKangxi", ""))
 
     tgh = {c: int(d["kTGH"].split(":")[1]) for c, d in u.items() if "kTGH" in d}
     assert len(tgh) == 8105
@@ -183,6 +184,17 @@ def main() -> None:
         pv = rows[i - 1][1] if i else None
         nx = rows[i + 1][1] if i + 1 < len(rows) else None
         cls[c] = "inside" if pv == k == nx else "differs" if pv == nx else ("edge" if k in (pv, nx) else ("radhead" if k[1] <= 0 else "odd"))
+    # 两三个同画字头连成一段时，单看相邻字会漏掉（頤、競）。
+    start = 0
+    while start < len(rows):
+        end = start + 1
+        while end < len(rows) and rows[end][1] == rows[start][1]:
+            end += 1
+        if start and end < len(rows) and end - start <= 3 and rows[start - 1][1] == rows[end][1] and rows[start - 1][1][0] == rows[start][1][0]:
+            for _, _, c in rows[start:end]:
+                cls[c] = "differs"
+        start = end
+    assert cls["頤"] == "differs" and cls["競"] == "differs"
 
     def rs_pick(t: str) -> tuple[int, int]:
         vals = rs_values(u[t]["kRSUnicode"])
@@ -218,7 +230,8 @@ def main() -> None:
         today = int(u[t]["kTotalStrokes"].split()[0])
         convention = t in NUM or t == "王"
         # 今写笔画与康熙笔画相同时省掉（浏览器里按部首笔画加部外画补回）
-        kx[t] = [r, res, "" if today == rad_strokes(r) + res else today] + ([1] if flagged(t) and t not in CHECKED and not convention else [])
+        flag = 2 if t in NOT_IN_BOOK else 1 if flagged(t) and t not in CHECKED and not convention else 0
+        kx[t] = [r, res, "" if today == rad_strokes(r) + res else today] + ([flag] if flag else [])
     x = {t: EXC[t][2] for t in sorted(EXC)}
     assert all(t in kx for t in EXC), [t for t in EXC if t not in kx]
 

@@ -45,6 +45,7 @@ import qumingHant from "./quming-hant.json" with { type: "json" };
 import qumingShuliHant from "./quming-shuli-hant.json" with { type: "json" };
 import qumingShuli from "./quming-shuli.json" with { type: "json" };
 import quming from "./quming.json" with { type: "json" };
+import ziContent from "./zi.json" with { type: "json" };
 
 /** WOFF2 文件里 cmap 表映射到非零字形的码位。只处理 cmap 格式 4 和 12，够读这几个字体。 */
 function woff2Chars(buf: Buffer): Set<number> {
@@ -159,7 +160,7 @@ const shown = (data: unknown) => [
  */
 function componentText(hant: boolean): string[] {
 	const pair = /t\(\s*(['`])((?:(?!\1).)*)\1,\s*(['`])((?:(?!\3).)*)\3\s*,?\s*\)/g;
-	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb", "Quming", "QumingShuli"].map((f) =>
+	return ["Zeri", "ZeriMonth", "HuangliToday", "Bazi", "BaziKb", "Quming", "QumingShuli", "Zi", "ZiList"].map((f) =>
 		readFileSync(new URL(`../components/${f}.astro`, import.meta.url), "utf8")
 			.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
 			.replace(pair, (...m: string[]) => (hant ? m[4]! : m[2]!)),
@@ -179,8 +180,8 @@ describe("正文字体覆盖（fontsource 切片加补字）", () => {
 	});
 
 	it.each([
-		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), baziRizhu, quming, qumingShuli)],
-		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant)],
+		["简体", "noto-serif-sc", "Noto Serif SC", chars(guaci, baihua, yaoBaihua, ...shown(huangliData), zeri, ITEMS.map((i) => i.name), componentText(false), bazi, baziBaihua, baziTiangan, baziDizhi, baziPages, TenStar.NAMES, Terrain.NAMES, Object.keys(baziNamesHant), cityText(0), baziRizhu, quming, qumingShuli, Object.entries(ziContent).map(([c,x]) => c+x.yi))],
+		["繁体", "noto-serif-tc", "Noto Serif TC", chars(guaciHant, baihuaHant, yaoBaihuaHant, ...shown(huangliHant), zeriHant, ITEMS.map((i) => i.hant), componentText(true), baziHant, baziBaihuaHant, baziTianganHant, baziDizhiHant, baziPagesHant, baziNamesHant, cityText(1), baziRizhuHant, qumingHant, qumingShuliHant, Object.values(ziContent).map(x => x.hant+x.yi_hant))],
 	])("%s：卦爻辞、两种白话、黄历、择日、八字、取名的说明与页面文字、出生地名单的每个字都有字形", (_, pkg, family, text) => {
 		const have = fontsourceChars(pkg as string);
 		for (const ch of patchChars(family as string)) have.add(ch);
@@ -242,8 +243,8 @@ it.each([
 
 // 取名（M22a）的标题字体：测名页与八十一数页共用一份，只有两个 h1
 it.each([
-	["quming", "取名八十一数"],
-	["quming-hant", "取名八十一數"],
+	["quming", "取名八十一数名字里的字"],
+	["quming-hant", "取名八十一數名字裡的字"],
 ])("取名标题子集 %s/index 有两页的 h1", (dir, text) => {
 	const have = new Set<number>();
 	for (const f of ["index", "index-wk"]) {

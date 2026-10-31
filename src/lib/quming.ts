@@ -42,6 +42,8 @@ export interface Form {
 	page?: number;
 	/** 被书序检查标出、又没看过影印本 */
 	unchecked: boolean;
+	/** 原书未收的字形，按今字形部首计 */
+	notInBook: boolean;
 }
 
 export interface Zi {
@@ -149,6 +151,7 @@ function form(t: Table, f: string): Form {
 		...(conv && { conv }),
 		...(t.data.x[f] && { page: t.data.x[f] }),
 		unchecked: flag === "1",
+		notInBook: flag === "2",
 	};
 }
 

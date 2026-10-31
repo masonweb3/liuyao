@@ -1,0 +1,68 @@
+---
+import content from '../data/zi.json';
+import table from '../data/quming-zi.json';
+import copyHans from '../data/quming.json';
+import copyHant from '../data/quming-hant.json';
+import { related, zi, ziPath } from '../lib/zi';
+import { splitTone, wadeGiles, zhuyin } from '../lib/quming';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+
+interface Props { ch: keyof typeof content; hant?: boolean }
+const { ch, hant = false } = Astro.props;
+const x = zi(ch, hant);
+const t = (s: string, h: string) => hant ? h : s;
+const c = hant ? copyHant : copyHans;
+const home = hant ? '/zh-hant/quming/' : '/quming/';
+const f = x.form;
+const book = hant ? x.meta.bookHant : x.meta.book;
+const bookPage = f.page ?? book?.page;
+const rad = table.rad[f.rad - 1];
+const readings = x.entry.readings;
+const title = `${x.ch}${t('字的意思、读音与康熙笔画', '字的意思、讀音與康熙筆畫')} · 六爻`;
+const upper = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const py = splitTone(hant ? x.entry.tw : readings[0]!)[0];
+const facts = [
+  ...(hant ? [[t('注音', '注音'), readings.map(p => `${zhuyin(p)}（${p}）`).join(' · ')]] : []),
+  [t('读音', '讀音'), `${readings.join(' · ')} · ${t('粤语', '粵語')} ${x.entry.jyut || '—'}`],
+  [t('笔画', '筆畫'), `${t('Unihan 总画数', 'Unihan 總畫數')} ${f.today} · ${t('康熙笔画', '康熙筆畫')} ${f.kx}`],
+  [t('康熙字典', '康熙字典'), `${rad}${t('部', '部')} ${f.res} ${t('画', '畫')}${bookPage && !f.notInBook ? ` · ${t('同文书局本第', '同文書局本第')} ${bookPage} ${t('页', '頁')}${!f.page && book ? ` · ${t('第', '第')} ${book.index} ${t('字', '字')}` : ''}` : ''}${f.unchecked ? ` · ${c.kx.unchecked}` : ''}${f.notInBook ? ` · ${c.kx.notInBook}` : ''}${f.conv === 'wang' ? ` · ${c.kx.wang}` : ''}${f.conv === 'num' ? ` · ${t('数字按数值计', '數字按數值計')}` : ''}`],
+  [t('繁简', '繁簡'), ch === content[ch].hant ? t('简繁同形', '簡繁同形') : hant ? `${t('简体', '簡體')} ${ch}` : `${t('繁体', '繁體')} ${zi(ch).entry.forms.map(f => f.form).join('、')}`],
+  [t('规范字表', '規範字表'), `${'一二三'[x.meta.tgh <= 3500 ? 0 : x.meta.tgh <= 6500 ? 1 : 2]}${t('级字', '級字')} · ${t('第', '第')} ${x.meta.tgh} ${t('号', '號')}`],
+];
+const english = [['拼音', upper(py)], [t('威妥玛', '威妥瑪'), upper(wadeGiles(py))], [t('粤语拼音', '粵語拼音'), x.entry.jyut || '—'], ...(table.hk[ch] ? [[t('港式姓氏', '港式姓氏'), table.hk[ch]]] : [])];
+const groups = [['radical', t('同部首', '同部首')], ['sound', t('同音', '同音')]] as const;
+---
+
+<Paper title={title} description={x.text} path={ziPath(ch)} alternatePath={ziPath(content[ch].hant, true)} at="/quming/" group="quming" subset="index" hant={hant}>
+  <main class="zi">
+    <div class="left">
+      <a class="label" href={hant ? '/zh-hant/zi/' : '/zi/'}>{t('取名 · 名字里的字', '取名 · 名字裡的字')}</a>
+      <h1><span class="sr">{x.ch}</span><svg aria-hidden="true" viewBox={x.glyph.box}><path d={x.glyph.d} transform="scale(1,-1)" /></svg></h1>
+      <p class="lead">{x.ch}，{t('读', '讀')} {readings.join('、')}。</p>
+      <dl>{facts.map(([a,b]) => <div><dt>{a}</dt><dd>{b}</dd></div>)}</dl>
+    </div>
+    <div class="right">
+      <section><h2>{t('字义', '字義')}</h2><p>{x.text}</p></section>
+      <section>
+        <h2>{t('名字里的用法', '名字裡的用法')}</h2>
+        <p>{t(`Wikidata 的 71,442 个现代华人名字样本中，${x.ch}在名里出现 ${x.meta.given} 次，作姓 ${x.meta.surname} 次。`, `Wikidata 的 71,442 個現代華人名字樣本中，${x.ch}在名裡出現 ${x.meta.given} 次，作姓 ${x.meta.surname} 次。`)}</p>
+        <div class="stats">{[...x.meta.pos, x.meta.surname].map((n,i) => <div><b>{n}</b><span>{[t('名的第一字','名的第一字'),t('名的第二字','名的第二字'),t('单名','單名'),t('作姓','作姓')][i]}</span></div>)}</div>
+        <p class="note">{t('统计偏向公众人物，男性、年长者较多，只看大概。', '統計偏向公眾人物，男性、年長者較多，只看大概。')}</p>
+      </section>
+      <section><h2>{t('英文写法', '英文寫法')}</h2><dl>{english.map(([a,b]) => <div><dt>{a}</dt><dd>{b}</dd></div>)}</dl><p class="note">{t('单字的写法不代替全名连读检查；和别的字连起来怎么样，到测名里看。', '單字的寫法不代替全名連讀檢查；和別的字連起來怎麼樣，到測名裡看。')}</p></section>
+      <section><h2>{t('相关的字', '相關的字')}</h2>{groups.map(([by,label]) => { const list = related(ch, by); return list.length > 0 && <div><h3>{label}</h3><div class="grid">{list.map(key => <a href={ziPath(hant ? content[key].hant : key,hant)}>{hant ? content[key].hant : key}</a>)}</div></div>; })}</section>
+      <section class="cta"><p>{c.cta}</p><a href={home}>{t('去测名', '去測名')}</a></section>
+    </div>
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot">
+    <p>{t('字形、读音取自 Unicode Unihan（Unicode License v3）；名字用字统计取自 Wikidata（CC0）；字义为本站原创。', '字形、讀音取自 Unicode Unihan（Unicode License v3）；名字用字統計取自 Wikidata（CC0）；字義為本站原創。')}</p>
+    <p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}</p>
+  </Fragment>
+</Paper>
+
+<style>
+  .zi{display:grid;gap:32px;max-width:1080px;margin:auto}.left,.right,section{display:flex;flex-direction:column;gap:16px}p,h1,h2,h3,dl,dd{margin:0}p{font-size:15px;line-height:1.9}.label{color:var(--ink-2);font-size:12px;letter-spacing:.2em;min-height:44px;display:flex;align-items:center}h1 svg{width:64px;height:64px;fill:currentColor;display:block}.lead{color:var(--ink-2)}dl{border-top:1px solid var(--rule)}dl>div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--rule)}dt{font-size:13px;color:var(--ink-2);letter-spacing:.12em}dd{font-size:15px;line-height:1.8;overflow-wrap:anywhere}h2{font-size:15px;font-weight:600;letter-spacing:.25em;display:flex;align-items:center;gap:10px}h2::before{content:'';width:6px;height:6px;background:var(--seal)}h3{font-size:13px;font-weight:400;color:var(--ink-2);padding:12px 0}.right{gap:32px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-top:1px solid var(--rule);padding-top:12px}.stats>div{display:flex;flex-direction:column;align-items:center;gap:4px}.stats b{font-size:22px;font-weight:400}.stats span,.note{font-size:12px;color:var(--ink-2)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-block:1px solid var(--rule)}.grid a{min-height:48px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink);text-decoration:none}.grid a:hover{text-decoration:underline}.cta{padding:20px;border:1px solid var(--rule)}.cta>a{min-height:52px;border:1px solid var(--ink);display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  @media(min-width:1024px){.zi{grid-template-columns:320px minmax(0,1fr);gap:64px}.left{align-self:start;position:sticky;top:32px}h1 svg{width:80px;height:80px}.right{gap:40px}p{font-size:16px}.grid{grid-template-columns:repeat(8,minmax(0,1fr))}}
+</style>

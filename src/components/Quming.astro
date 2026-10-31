@@ -11,6 +11,7 @@ import copyHant from '../data/quming-hant.json';
 import shuliHant from '../data/quming-shuli-hant.json';
 import shuli from '../data/quming-shuli.json';
 import copyHans from '../data/quming.json';
+import characters from '../data/zi.json';
 import Paper from '../layouts/Paper.astro';
 import Invite from './Invite.astro';
 
@@ -23,10 +24,11 @@ const t = (hans: string, tw: string) => (hant ? tw : hans);
 const c = hant ? copyHant : copyHans;
 const numbers = (hant ? shuliHant : shuli).numbers;
 const home = hant ? '/zh-hant/quming/' : '/quming/';
+const pages = Object.fromEntries(Object.entries(characters).map(([ch, x]) => [hant ? x.hant : ch, `${hant ? '/zh-hant' : ''}/zi/${hant ? x.hant : ch}/`]));
 ---
 
 <Paper title={c.title} description={c.description} path="/quming/" at="/quming/" home group="quming" subset="index" hant={hant} ogType="website">
-  <main class="qm" data-qm data-hant={hant ? '1' : undefined} data-zi={zi} data-copy={JSON.stringify(c)} data-shuli={JSON.stringify(numbers)}>
+  <main class="qm" data-qm data-hant={hant ? '1' : undefined} data-zi={zi} data-copy={JSON.stringify(c)} data-shuli={JSON.stringify(numbers)} data-pages={JSON.stringify(pages)}>
     <section class="intro">
       <h1>取名</h1>
       <p>{c.lead}</p>
@@ -74,10 +76,11 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
 
       <div class="right">
         <section class="result" data-f="result" aria-label={t('测名结果', '測名結果')} tabindex="-1" hidden></section>
-        {/* 名字里的字（M22a 只有八十一数；常见字与单字页是 M22b） */}
+        {/* 单字页只链已经发布的字；没有内容的字不造空页 */}
         <section class="kb" aria-labelledby="qm-kb">
           <h2 class="head" id="qm-kb">{t('名字里的字', '名字裡的字')}</h2>
           <ul role="list">
+            <li><a href={hant ? '/zh-hant/zi/' : '/zi/'}><span><span class="kt">{t('常用字目录', '常用字目錄')}</span><span class="ks">{t('342 字的读音、康熙笔画与字义', '342 字的讀音、康熙筆畫與字義')}</span></span><span aria-hidden="true">›</span></a></li>
             <li><a href={`${home}81/`}><span><span class="kt">{t('八十一数', '八十一數')}</span><span class="ks">{c.more81}</span></span><span aria-hidden="true">›</span></a></li>
           </ul>
         </section>
@@ -102,6 +105,7 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
   const t = (hans: string, tw: string) => (hant ? tw : hans);
   const C = JSON.parse(root.dataset.copy!) as Copy;
   const N81 = JSON.parse(root.dataset.shuli!) as Record<string, string>;
+  const pages = JSON.parse(root.dataset.pages!) as Record<string, string>;
   const $ = <T extends HTMLElement = HTMLElement>(k: string) => root.querySelector<T>(`[data-f="${k}"]`)!;
   const form = root.querySelector<HTMLFormElement>('[data-form]')!;
   const sur = document.getElementById('qm-sur') as HTMLInputElement;
@@ -226,6 +230,7 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
     }
     if (f.today !== f.kx) bits.push(fill(C.kx.today, { n: f.today }));
     if (f.unchecked) bits.push(C.kx.unchecked);
+    if (f.notInBook) bits.push(C.kx.notInBook);
     return esc(bits.join(' · '));
   }
 
@@ -255,7 +260,9 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
       );
     if (!c.zi.inTgh) rows.push(`<span class="note">${esc(C.notTgh)}</span>`);
     const tr = c.zi.forms.length === 1 && f.form !== c.used ? `<span class="tr">${t('繁', '繁')} ${esc(f.form)}</span>` : '';
-    return `<li><span class="big"><span class="ch">${esc(c.used)}</span>${tr}</span><span class="rows">${rows.join('')}</span></li>`;
+    const href = pages[hant ? f.form : c.zi.simp];
+    const ch = href ? `<a class="ch" href="${esc(href)}" rel="noreferrer">${esc(c.used)}</a>` : `<span class="ch">${esc(c.used)}</span>`;
+    return `<li><span class="big">${ch}${tr}</span><span class="rows">${rows.join('')}</span></li>`;
   }
 
   function formula(r: Result, k: Ge) {
@@ -711,6 +718,9 @@ const home = hant ? '/zh-hant/quming/' : '/quming/';
   .qm .big .ch {
     font-size: 36px;
     line-height: 1.15;
+    color: inherit;
+    text-underline-offset: 5px;
+    text-decoration-thickness: 1px;
   }
   .qm .tr {
     font-size: var(--fs-xs);

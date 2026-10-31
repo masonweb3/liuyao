@@ -18,6 +18,8 @@ interface Props {
   description: string;
   /** 简体页的路径（/gua/…/）；繁体页自动加 /zh-hant 前缀 */
   path: string;
+  /** 简繁字形不同的网址（单字页）；其余页面照原路径加前缀 */
+  alternatePath?: string;
   /** 目录页：栏目「六十四卦」的首页（aria-current="page"；卦页是 "true"，点它回目录）。 */
   index?: boolean;
   /** 本页属于哪一栏（栏目表 columns.ts 的 path），默认六十四卦 */
@@ -32,9 +34,9 @@ interface Props {
   ogType?: 'website' | 'article';
 }
 
-const { title, description, path, index = false, at = '/gua/', home = index, group = 'gua', subset, hant = false, ogType = index ? 'website' : 'article' } = Astro.props;
+const { title, description, path, alternatePath, index = false, at = '/gua/', home = index, group = 'gua', subset, hant = false, ogType = index ? 'website' : 'article' } = Astro.props;
 const t = (hans: string, tw: string) => (hant ? tw : hans);
-const [self, other] = hant ? [HANT + path, path] : [path, HANT + path];
+const [self, other] = hant ? [alternatePath ?? HANT + path, path] : [path, alternatePath ?? HANT + path];
 const dir = hant ? `${group}-hant` : group;
 const table = RANGES[`../fonts/${dir}/ranges.json`] ?? {};
 // 主子集必须有，缺了就让构建失败；补字子集（-wk）只有缺字的页才有。

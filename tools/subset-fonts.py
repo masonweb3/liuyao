@@ -234,7 +234,7 @@ def bazi_blocks(lang: str) -> dict[str, list[str]]:
 
 def quming_blocks(lang: str) -> dict[str, list[str]]:
     """取名（M22a）：测名页与八十一数页共用一份，h1 各一块。"""
-    return {"index": [CHROME[lang], "取名", "八十一數" if lang == "hant" else "八十一数"]}
+    return {"index": [CHROME[lang], "取名", "八十一數" if lang == "hant" else "八十一数", "名字裡的字" if lang == "hant" else "名字里的字"]}
 
 
 def city_chars(lang: str) -> str:
@@ -352,6 +352,8 @@ def paper_fonts() -> None:
     for lang, (family, src, pkg, files) in BODY.items():
         have, full = fontsource_chars(pkg), cmap(src)
         extra = (tyme4ts_chars() if lang == "hans" else "") + city_chars(lang)
+        zi = json.load(open("src/data/zi.json", encoding="utf-8"))
+        extra += "".join(c + x["yi"] if lang == "hans" else x["hant"] + x["yi_hant"] for c, x in zi.items())
         missing = "".join(sorted(c for c in data_chars(files, extra) if ord(c) not in have))
         lost = [c for c in missing if ord(c) not in full]
         if lost:

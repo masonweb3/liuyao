@@ -1,0 +1,29 @@
+---
+import content from '../data/zi.json';
+import { ZI, initials, ziPath } from '../lib/zi';
+import Paper from '../layouts/Paper.astro';
+import Invite from './Invite.astro';
+interface Props { hant?: boolean }
+const { hant = false } = Astro.props;
+const t = (s: string, h: string) => hant ? h : s;
+const title = t('名字里的字', '名字裡的字');
+const intro = t('第一批 342 个常用于名字和姓氏的字，按拼音排列。点开看读音、康熙笔画与字义。', '第一批 342 個常用於名字和姓氏的字，按拼音排列。點開看讀音、康熙筆畫與字義。');
+const groups = new Map<string, typeof ZI>();
+for (const ch of [...ZI].sort((a,b) => initials(a).localeCompare(initials(b),'en'))) {
+  const key = initials(ch).charAt(0).toUpperCase();
+  groups.set(key, [...(groups.get(key) ?? []), ch]);
+}
+---
+<Paper title={`${title} · 取名 · 六爻`} description={intro} path="/zi/" at="/quming/" group="quming" subset="index" hant={hant} ogType="website">
+  <main class="zi-list">
+    <a class="label" href={hant ? '/zh-hant/quming/' : '/quming/'}>取名</a>
+    <h1>{title}</h1><p>{intro}</p>
+    <nav aria-label={t('按拼音首字母', '按拼音首字母')}>{[...groups.keys()].map(key => <a href={`#${key}`}>{key}</a>)}</nav>
+    {[...groups].map(([key,chars]) => <section id={key} aria-labelledby={`head-${key}`}><h2 id={`head-${key}`}>{key}</h2><div>{chars.map(ch => <a href={ziPath(hant ? content[ch].hant : ch,hant)}>{hant ? content[ch].hant : ch}</a>)}</div></section>)}
+  </main>
+  <Invite hant={hant} />
+  <Fragment slot="foot"><p>{t('字义为本站原创；字形与读音取自 Unicode Unihan。', '字義為本站原創；字形與讀音取自 Unicode Unihan。')}</p><p>{t('仅供传统文化参考与娱乐', '僅供傳統文化參考與娛樂')}</p></Fragment>
+</Paper>
+<style>
+  .zi-list{max-width:720px;margin:auto}h1,h2,p{margin:0}h1{font-family:var(--font-display);font-size:32px;font-weight:400;letter-spacing:.2em;line-height:1.5}p{font-size:15px;line-height:1.9;margin:12px 0 24px}.label{font-size:12px;color:var(--ink-2);min-height:44px;display:flex;align-items:center}nav{display:flex;flex-wrap:wrap;border-block:1px solid var(--rule);margin-bottom:24px}nav a{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none}section{scroll-margin-top:20px;margin-top:24px}h2{font-size:13px;color:var(--ink-2);padding:8px 0;letter-spacing:.2em}section>div{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border-top:1px solid var(--rule)}section a{min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:18px;text-decoration:none}a:hover{text-decoration:underline}@media(min-width:1024px){h1{font-size:40px}p{font-size:16px}}
+</style>
